@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.schemas.transaction_schema import Transaction
 
 app = FastAPI()
 
