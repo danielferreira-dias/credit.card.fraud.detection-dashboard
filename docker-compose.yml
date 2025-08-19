@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    container_name: fraud-detection-backend
+    ports:
+      - "80:80"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./backend/models:/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: fraud-detection-network
