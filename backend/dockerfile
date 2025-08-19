@@ -19,5 +19,5 @@ COPY . .
 # Expose port 80
 EXPOSE 80
 
-# Run the application using uvicorn directly through the virtual environment
-CMD ["./.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+# Run the application using uv run
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
