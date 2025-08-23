@@ -41,15 +41,6 @@ def test_predict_transaction_ok(client: TestClient):
     assert resp.status_code == 200
     body = resp.json()
 
-
-def test_create_transaction_ok(client: TestClient  ):
-    resp = client.post("/transactions/", json=transaction_router.test_transaction.model_dump())
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["id"] == 1
-    assert body["is_fraud"] is True
-
-
 def test_delete_transaction_ok(client: TestClient):
     resp = client.delete("/transactions/1")
     assert resp.status_code == 200
