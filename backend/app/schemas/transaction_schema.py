@@ -11,6 +11,7 @@ class TransactionRequest(BaseModel):
     amount: float
     max_single_amount: float
     distante_from_home: int
+    current: str
     card_present: int
 
 class TransactionPredictionResponse(BaseModel):

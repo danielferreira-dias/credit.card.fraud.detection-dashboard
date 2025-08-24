@@ -1,5 +1,7 @@
 # services/transaction_service.py
+from ast import List
 from fastapi import HTTPException
+from sqlalchemy import Transaction
 from sqlalchemy.orm import Session
 from backend.app.settings.algorithm_models import load_model, load_scaler
 from backend.app.schemas.transaction_schema import TransactionRequest
@@ -13,7 +15,7 @@ class TransasactionSercice:
     def __init__(self, db: Session):
         self.repo = TransactionRepository(db)
 
-    def list_transactions_service(self):
+    def list_transactions_service(self) -> List[Transaction]:
         return self.repo.get_all_transactions()
 
     def predict_transaction_service(self, transaction_id: int) -> dict:
@@ -30,6 +32,7 @@ class TransasactionSercice:
             amount=transaction.amount,
             max_single_amount = transaction.velocity_last_hour.get("max_single_amount", 0.0),
             distante_from_home=transaction.distance_from_home,
+            currency=transaction.currency,
             card_present=transaction.card_present
         )
 
@@ -73,38 +76,70 @@ def extract_features(transaction_request: TransactionRequest):
     """
 
     channel_type = ["large", "medium", "mobile", "web", "pos"]
-    device_type = ["Android_App", "Safari", "Firefox", "Chrome", "iOS_App", "Edge", "NFC_Payment", "Magnetic_Stripe", "Chip_Reader"]
+    device_type = ["Android App", "Safari", "Firefox", "Chrome", "iOS App", "Edge", "NFC Payment", "Magnetic Stripe", "Chip Reader"]
     countries = ["USA", "Australia", "Germany", "UK", "Canada", "Japan", "France", "Singapore", "Nigeria", "Brazil", "Russia", "Mexico"]
 
-    features = {
-        "channel_large": 0,
-        "channel_medium": 0,
-        "channel_mobile": 0,
-        "channel_web": 0,
-        "channel_pos": 0,
-        "device_Android_App": 0,
-        "device_Safari": 0,
-        "device_Firefox": 0,
-        "device_Chrome": 0,
-        "device_iOS_App": 0,
-        "device_Edge": 0,
-        "device_NFC_Payment": 0,
-        "device_Magnetic_Stripe": 0,
-        "device_Chip_Reader": 0,
-        "city_Unknown_City": 0,
-        "country_USA": 0,
-        "country_Australia": 0,
-        "country_Germany": 0,
-        "country_UK": 0,
-        "country_Canada": 0,
-        "country_Japan": 0,
-        "country_France": 0,
-        "country_Singapore": 0,
-        "country_Nigeria": 0,
-        "country_Brazil": 0,
-        "country_Russia": 0,
-        "country_Mexico": 0,
-        "USD_converted_total_amount": 0.0,
+    conversion_rates = {
+        'EUR': 1.06,
+        'CAD': 0.72,
+        'RUB': 0.01,
+        'NGN': 0.0006,
+        'SGD': 0.75,
+        'MXN': 0.049,
+        'BRL': 0.17,
+        'AUD': 0.65,
+        'JPY': 0.0065
     }
+
+    features = {
+        "channel_large": 1 if transaction_request.channel == "large" else 0,
+        "channel_medium": 1 if transaction_request.channel == "medium" else 0,
+        "channel_mobile": 1 if transaction_request.channel == "mobile" else 0,
+        "channel_web": 1 if transaction_request.channel == "web" else 0,
+        "channel_pos": 1 if transaction_request.channel == "pos" else 0,
+        "device_Android App": 1 if transaction_request.device == "Android App" else 0,
+        "device_Safari": 1 if transaction_request.device == "Safari" else 0,
+        "device_Firefox": 1 if transaction_request.device == "Firefox" else 0,
+        "device_Chrome": 1 if transaction_request.device == "Chrome" else 0,
+        "device_iOS App": 1 if transaction_request.device == "iOS App" else 0,
+        "device_Edge": 1 if transaction_request.device == "Edge" else 0,
+        "device_NFC Payment": 1 if transaction_request.device == "NFC Payment" else 0,
+        "device_Magnetic Stripe": 1 if transaction_request.device == "Magnetic Stripe" else 0,
+        "device_Chip Reader": 1 if transaction_request.device == "Chip Reader" else 0,
+        "city_Unknown_City": 1 if transaction_request.city == "Unknown City" else 0,
+        "country_USA": 1 if transaction_request.country == "USA" else 0,
+        "country_Australia": 1 if transaction_request.country == "Australia" else 0,
+        "country_Germany": 1 if transaction_request.country == "Germany" else 0,
+        "country_UK": 1 if transaction_request.country == "UK" else 0,
+        "country_Canada": 1 if transaction_request.country == "Canada" else 0,
+        "country_Japan": 1 if transaction_request.country == "Japan" else 0,
+        "country_France": 1 if transaction_request.country == "France" else 0,
+        "country_Singapore": 1 if transaction_request.country == "Singapore" else 0,
+        "country_Nigeria": 1 if transaction_request.country == "Nigeria" else 0,
+        "country_Brazil": 1 if transaction_request.country == "Brazil" else 0,
+        "country_Russia": 1 if transaction_request.country == "Russia" else 0,
+        "country_Mexico": 1 if transaction_request.country == "Mexico" else 0,
+        "USD_converted_amount": 0.0,
+        "UDS_converted_total_amount": 0.0,
+        "is_off_hours": 1 if transaction_request.transaction_hour > 9 or transaction_request.transaction_hour < 17 else 0,
+        "is_high_amount": 0,
+        "is_low_amount": 0,
+        "transaction_hour": transaction_request.transaction_hour,
+        "hour": transaction_request.transaction_hour,
+        "high_risk_transaction": 1 if transaction_request.country in ['Brazil', 'Mexico', 'Nigeria', 'Russia'] and transaction_request.device in ['Magnetic Stripe', 'NFC Payment', 'Chip Reader'] else 0,
+        "card_present": transaction_request.card_present,
+        "distance_from_home": transaction_request.distante_from_home,
+    }
+
+    features['USD_converted_amount'] = transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)
+
+    features['USD_converted_total_amount'] = transaction_request.total_amount * conversion_rates.get(transaction_request.currency, 1.28)
+
+    features['max_single_amount'] = transaction_request.max_single_amount * conversion_rates.get(transaction_request.currency, 1.28)
+
+    features['is_high_amount'] = 1 if features['USD_converted_amount'] > 1000 else 0
+    features['is_low_amount'] = 1 if features['USD_converted_amount'] < 100 else 0
+
+
     
 
