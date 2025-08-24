@@ -26,14 +26,5 @@ async def list_transactions():
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(transaction_id: int):
-    if not response:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    return response
-
-@router.post("/", response_model=TransactionResponse)
-async def create_transaction(transaction):
-    return response
-
-@router.delete("/{transaction_id}", response_model=TransactionResponse)
-async def delete_transaction(transaction_id: int):
+    response = TransasactionSercice.get_transaction_by_id(transaction_id)
     return response
