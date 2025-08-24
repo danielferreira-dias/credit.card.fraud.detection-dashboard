@@ -1,12 +1,13 @@
 from sqlalchemy import Column, Integer, Float, Boolean, DateTime, String
 from sqlalchemy.sql import func
 from app.settings.database import Base
+from sqlalchemy.dialects.postgresql import JSONB
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    transaction_id = Column(Integer, primary_key=True, index=True)
-    customer_id = Column(Integer, nullable=False)
+    transaction_id = Column(String, primary_key=True, index=True)
+    customer_id = Column(String, nullable=False)
     card_number = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False)
     merchant_category = Column(String(100), nullable=True)
@@ -27,7 +28,7 @@ class Transaction(Base):
     high_risk_merchant = Column(Boolean, default=False)
     transaction_hour = Column(Integer, nullable=True)
     weekend_transaction = Column(Boolean, default=False)
-    velocity_last_hour = Column(Integer, nullable=True)
+    velocity_last_hour = Column(JSONB, nullable=True)
     is_fraud = Column(Boolean, default=False)
 
 

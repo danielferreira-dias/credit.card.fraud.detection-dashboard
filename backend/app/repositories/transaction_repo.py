@@ -1,7 +1,6 @@
 # repositories/transaction_repo.py
 from sqlalchemy.orm import Session
 from app.models.transaction_model import Transaction
-from app.schemas.transaction_schema import TransactionRequest
 from typing import List, Optional
 
 def get_all_transactions(db: Session) -> List[Transaction]:
@@ -10,8 +9,10 @@ def get_all_transactions(db: Session) -> List[Transaction]:
 def get_transaction_by_id(db: Session, transaction_id: int) -> Optional[Transaction]:
     return db.query(Transaction).filter(Transaction.id == transaction_id).first()
 
-def create_transaction(db: Session, transaction: TransactionRequest) -> Transaction:
+def create_transaction(db: Session) -> Transaction:
     # Convert TransactionRequest to Transaction model
+    """
+    
     db_transaction = Transaction(
         channel_large=transaction.channel_large,
         channel_medium=transaction.channel_medium,
@@ -57,6 +58,8 @@ def create_transaction(db: Session, transaction: TransactionRequest) -> Transact
     db.commit()
     db.refresh(db_transaction)
     return db_transaction
+    """
+
 
 def delete_transaction(db: Session, transaction_id: int) -> Optional[Transaction]:
     transaction = get_transaction_by_id(db, transaction_id)

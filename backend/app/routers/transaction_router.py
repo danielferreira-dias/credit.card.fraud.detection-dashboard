@@ -2,7 +2,7 @@
 import datetime
 from fastapi import APIRouter, HTTPException
 from typing import List
-from app.schemas.transaction_schema import TransactionRequest, TransactionResponse, TransactionPredictionResponse
+from app.schemas.transaction_schema import TransactionResponse, TransactionPredictionResponse
 
 response = ""
 
