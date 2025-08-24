@@ -4,8 +4,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 class TransactionRequest(BaseModel):
-    type_channel: str
-    type_device: str
+    channel: str
+    device: str
     country: str
     transaction_hour: int
     amount: float
