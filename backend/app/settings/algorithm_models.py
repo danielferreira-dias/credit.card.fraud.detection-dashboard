@@ -10,6 +10,3 @@ def load_model():
 
 def load_scaler():
 	return joblib.load(SCALER_PATH)
-
-model = load_model()
-scaler = load_scaler()

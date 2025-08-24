@@ -1,16 +1,16 @@
 # services/transaction_service.py
 from ast import List
 from fastapi import HTTPException
-from backend.app.models.transaction_model import Transaction
+from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
-from backend.app.settings.algorithm_models import load_model, load_scaler
-from backend.app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
-from backend.app.repositories.transaction_repo import TransactionRepository
+from app.settings.algorithm_models import load_model, load_scaler
+from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
+from app.repositories.transaction_repo import TransactionRepository
 
 model = load_model()
 scaler = load_scaler()
 
-class TransasactionSercice:
+class TransactionService:
 
     def __init__(self, db: Session):
         self.repo = TransactionRepository(db)
