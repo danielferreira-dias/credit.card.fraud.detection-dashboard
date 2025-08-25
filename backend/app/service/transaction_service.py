@@ -1,5 +1,5 @@
 # services/transaction_service.py
-from ast import List
+from typing import List
 from fastapi import HTTPException
 from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
@@ -45,7 +45,7 @@ class TransactionService:
             card_present=transaction.card_present
         )
 
-        transaction_data = TransasactionSercice.extract_features(transaction_request)
+        transaction_data = self.extract_features(transaction_request)
         transaction_data_scaled = scaler.transform([transaction_data])
 
         prediction = model.predict(transaction_data_scaled)
@@ -88,7 +88,7 @@ class TransactionService:
         )
     
     @staticmethod
-    def extract_features(transaction_request: TransactionRequest):
+    def extract_features(transaction_request: TransactionRequest) -> dict:
         """Builds feature dictionary for the model.
 
         The Transactionrequest object contains:
@@ -180,6 +180,8 @@ class TransactionService:
 
         features['is_high_amount'] = 1 if features['USD_converted_amount'] > 1000 else 0
         features['is_low_amount'] = 1 if features['USD_converted_amount'] < 100 else 0
+
+        return features
     
 
 

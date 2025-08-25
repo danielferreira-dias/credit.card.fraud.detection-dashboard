@@ -4,7 +4,7 @@ from app.settings.database import get_db
 from fastapi import APIRouter, HTTPException
 from typing import List
 from fastapi import Depends
-from requests import Session
+from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionResponse, TransactionPredictionResponse
 from app.service.transaction_service import TransactionService
 

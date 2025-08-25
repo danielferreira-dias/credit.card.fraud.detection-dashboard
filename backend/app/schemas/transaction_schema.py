@@ -40,9 +40,9 @@ class TransactionResponse(BaseModel):
     high_risk_merchant: bool
     transaction_hour: int
     weekend_transaction: bool
-    velocity_last_hour: VelecityResponse 
+    velocity_last_hour: VelocityResponse 
 
-class VelecityResponse(BaseModel):
+class VelocityResponse(BaseModel):
     num_transactions: int 
     total_amount: float
     unique_merchants: int
