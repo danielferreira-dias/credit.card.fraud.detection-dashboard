@@ -26,12 +26,4 @@ class TransactionRepository:
             self.db.delete(transaction)
             self.db.commit()
     
-    def update_transaction(self, transaction_id: int, **kwargs) -> Optional[Transaction]:
-        transaction = self.get_transaction_by_id(transaction_id)
-        if transaction:
-            for key, value in kwargs.items():
-                setattr(transaction, key, value)
-            self.db.commit()
-            self.db.refresh(transaction)
-        return transaction
     

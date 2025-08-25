@@ -9,6 +9,10 @@ WORKDIR /app
 # Copy dependency files first for better layer caching
 COPY pyproject.toml uv.lock ./
 COPY requirements.txt ./
+COPY models/ ./models/
+
+# Copiar código da aplicação
+COPY app/ ./
 
 # Install the application dependencies and additional requirements
 RUN uv sync --frozen --no-cache

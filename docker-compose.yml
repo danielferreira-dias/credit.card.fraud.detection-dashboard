@@ -6,7 +6,6 @@ services:
     container_name: fraud-detection-backend
     ports:
       - "80:80"
-    # Load environment variables from the root .env into the backend container
     env_file:
       - .env
     environment:
