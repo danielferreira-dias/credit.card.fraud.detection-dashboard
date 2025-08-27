@@ -1,5 +1,7 @@
 # app/routers/transactions.py
 import datetime
+
+import joblib
 from app.settings.database import get_db
 from fastapi import APIRouter, HTTPException
 from typing import List
@@ -7,7 +9,6 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionResponse, TransactionPredictionResponse
 from app.service.transaction_service import TransactionService
-
 
 router = APIRouter(
     prefix="/transactions",
@@ -31,6 +32,6 @@ async def list_transactions(service: TransactionService = Depends(get_transactio
     return response_list
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
-async def get_transaction(service: TransactionService = Depends(get_transaction_service), transaction_id: int = None):
+async def get_transaction(service: TransactionService = Depends(get_transaction_service), transaction_id: str = ""):
     response = service.get_transaction_by_id(transaction_id)
     return response

@@ -11,8 +11,8 @@ class TransactionRepository:
     def get_all_transactions(self) -> List[Transaction]:
         return self.db.query(Transaction).all()
     
-    def get_transaction_by_id(self, transaction_id: int) -> Optional[Transaction]:
-        return self.db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    def get_transaction_by_id(self, transaction_id: str) -> Optional[Transaction]:
+        return self.db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
     
     def create_transaction(self, transaction: Transaction) -> Transaction:
         self.db.add(transaction)
@@ -20,7 +20,7 @@ class TransactionRepository:
         self.db.refresh(transaction)
         return transaction
     
-    def delete_transaction(self, transaction_id: int) -> None:
+    def delete_transaction(self, transaction_id: str) -> None:
         transaction = self.get_transaction_by_id(transaction_id)
         if transaction:
             self.db.delete(transaction)

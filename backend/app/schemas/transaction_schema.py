@@ -19,8 +19,8 @@ class TransactionPredictionResponse(BaseModel):
     probability: Optional[float] = None
 
 class TransactionResponse(BaseModel):
-    costumer_id: int
-    card_number: int
+    costumer_id: str
+    card_number: str
     timestamp: datetime.datetime
     merchant: str 
     merchant_category: str

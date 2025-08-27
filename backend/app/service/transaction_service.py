@@ -1,14 +1,10 @@
 # services/transaction_service.py
-from typing import List
+from typing import Any, List
 from fastapi import HTTPException
 from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
-from app.settings.algorithm_models import load_model, load_scaler
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
-
-model = load_model()
-scaler = load_scaler()
 
 class TransactionService:
 
@@ -21,13 +17,13 @@ class TransactionService:
             raise HTTPException(status_code=404, detail="Transactions not found")
         return [self._to_response(ts) for ts in transaction_list]
     
-    def get_transaction_by_id(self, transaction_id: int) -> TransactionResponse:
+    def get_transaction_by_id(self, transaction_id: str) -> TransactionResponse:
         transaction = self.repo.get_transaction_by_id(transaction_id)
         if transaction is None:
             raise HTTPException(status_code=404, detail="Transaction not found")
         return self._to_response(transaction)
 
-    def predict_transaction_service(self, transaction_id: int) -> dict:
+    def predict_transaction_service(self, transaction_id: str, model: Any, scaler: Any) -> dict:
         transaction = self.repo.get_transaction_by_id(transaction_id)
 
         if transaction is None:
@@ -103,20 +99,13 @@ class TransactionService:
         distant_from_home: int
         card_present: int
 
-        The dictionary returned by this function must include exactly the
-        following variables/keys (feature order is important downstream):
-
-        channel_large, channel_medium, device_Android App, device_Safari,
-        device_Firefox, USD_converted_total_amount, device_Chrome, device_iOS App,
-        city_Unknown City, country_USA, country_Australia, country_Germany,
-        country_UK, country_Canada, country_Japan, country_France, device_Edge,
-        country_Singapore, channel_mobile, country_Nigeria, country_Brazil,
-        country_Russia, country_Mexico, is_off_hours, max_single_amount,
-        USD_converted_amount, channel_web, is_high_amount, is_low_amount,
-        transaction_hour, hour, device_NFC Payment, device_Magnetic Stripe,
-        device_Chip Reader, high_risk_transaction, channel_pos, card_present,
-        distance_from_home
         """
+
+        if transaction_request is None:
+            raise TypeError("transaction_request cannot be None")
+        
+        if transaction_request.channel is None or transaction_request.device is None or transaction_request.country is None:
+            raise ValueError("channel, device, and country cannot be None")
 
         channel_type = ["large", "medium", "mobile", "web", "pos"]
         device_type = ["Android App", "Safari", "Firefox", "Chrome", "iOS App", "Edge", "NFC Payment", "Magnetic Stripe", "Chip Reader"]
