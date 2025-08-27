@@ -36,7 +36,7 @@ class TransactionService:
             transaction_hour=transaction.transaction_hour,
             amount=transaction.amount,
             max_single_amount = transaction.velocity_last_hour.get("max_single_amount", 0.0),
-            distant_from_home=transaction.distance_from_home,
+            distance_from_home=transaction.distance_from_home,
             currency=transaction.currency,
             card_present=transaction.card_present
         )
@@ -96,7 +96,7 @@ class TransactionService:
         transaction_hour: int
         amount: float
         max_single_amount: float
-        distant_from_home: int
+        distance_from_home: int
         card_present: int
 
         """
@@ -160,7 +160,7 @@ class TransactionService:
             "hour": transaction_request.transaction_hour,
             "high_risk_transaction": 1 if transaction_request.country in ['Brazil', 'Mexico', 'Nigeria', 'Russia'] and transaction_request.device in ['Magnetic Stripe', 'NFC Payment', 'Chip Reader'] else 0,
             "card_present": transaction_request.card_present,
-            "distance_from_home": transaction_request.distant_from_home,
+            "distance_from_home": transaction_request.distance_from_home,
         }
 
         features['USD_converted_amount'] = transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)

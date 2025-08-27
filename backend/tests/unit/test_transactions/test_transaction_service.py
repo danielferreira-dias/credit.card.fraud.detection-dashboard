@@ -19,7 +19,7 @@ def transaction_request_mock() -> TransactionRequest:
         transaction_hour=14,
         amount=150.0,
         max_single_amount=200.0,
-        distant_from_home=1,
+        distance_from_home=1,
         currency="USD",
         card_present=0
     )
@@ -106,8 +106,8 @@ def test_extract_features_card_present(transaction_request_mock):
     features = TransactionService.extract_features(transaction_request_mock)
     assert features['card_present'] == 0
 
-def test_extract_features_distant_home_frome(transaction_request_mock):
+def test_extract_features_distance_home_frome(transaction_request_mock):
     features = TransactionService.extract_features(transaction_request_mock)
-    assert features['distant_from_home'] == 1
+    assert features['distance_from_home'] == 1
 
 
