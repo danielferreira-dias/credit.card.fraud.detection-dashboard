@@ -64,6 +64,13 @@ class TransactionService:
 
     @classmethod
     def _to_response(cls, ts: Transaction) -> TransactionResponse:
+        """
+        Converts a Transaction model instance to a TransactionResponse schema.
+        Args:
+            ts (Transaction): The transaction model instance.
+        Returns:
+            TransactionResponse: The transaction response schema.
+        """
         return TransactionResponse(
             costumer_id=ts.customer_id,
             card_number=cls.mask_card(ts.card_number),
@@ -92,17 +99,10 @@ class TransactionService:
     @staticmethod
     def extract_features(transaction_request: TransactionRequest) -> dict:
         """Builds feature dictionary for the model.
-
-        The Transactionrequest object contains:
-        channel: str
-        device: str
-        country: str
-        transaction_hour: int
-        amount: float
-        max_single_amount: float
-        distance_from_home: int
-        card_present: int
-
+        Args:
+            transaction_request (TransactionRequest): The transaction request data.
+        Returns:
+            dict: A dictionary of features for the model.
         """
 
         if transaction_request is None:
@@ -110,10 +110,6 @@ class TransactionService:
         
         if transaction_request.channel is None or transaction_request.device is None or transaction_request.country is None:
             raise ValueError("channel, device, and country cannot be None")
-
-        channel_type = ["large", "medium", "mobile", "web", "pos"]
-        device_type = ["Android App", "Safari", "Firefox", "Chrome", "iOS App", "Edge", "NFC Payment", "Magnetic Stripe", "Chip Reader"]
-        countries = ["USA", "Australia", "Germany", "UK", "Canada", "Japan", "France", "Singapore", "Nigeria", "Brazil", "Russia", "Mexico"]
 
         conversion_rates = {
             'EUR': 1.06,

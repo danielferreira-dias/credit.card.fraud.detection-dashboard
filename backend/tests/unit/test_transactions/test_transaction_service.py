@@ -43,11 +43,6 @@ def test_extract_features_none_channel(transaction_request_mock):
     with pytest.raises(ValueError):
         TransactionService.extract_features(transaction_request_mock)
 
-def test_extract_features_valid_length(transaction_request_mock):
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert isinstance(features, list)
-    assert len(features) == 15 
-
 def test_extract_features_valid_values_channel(transaction_request_mock):
     features = TransactionService.extract_features(transaction_request_mock)
     assert features['channel_large'] == 1
