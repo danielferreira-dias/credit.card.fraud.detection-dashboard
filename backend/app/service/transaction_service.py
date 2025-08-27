@@ -5,11 +5,15 @@ from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
+from app.infra.model_loader import ModelLoader
 
 class TransactionService:
 
     def __init__(self, db: Session):
         self.repo = TransactionRepository(db)
+        self.artifacts = ModelLoader.load()
+        self.scaler = self.artifacts.scaler
+        self.model  = self.artifacts.model
 
     def list_transactions_service(self) -> List[TransactionResponse]:
         transaction_list = self.repo.get_all_transactions()
@@ -23,7 +27,7 @@ class TransactionService:
             raise HTTPException(status_code=404, detail="Transaction not found")
         return self._to_response(transaction)
 
-    def predict_transaction_service(self, transaction_id: str, model: Any, scaler: Any) -> dict:
+    def predict_transaction_service(self, transaction_id: str) -> dict:
         transaction = self.repo.get_transaction_by_id(transaction_id)
 
         if transaction is None:
@@ -42,10 +46,10 @@ class TransactionService:
         )
 
         transaction_data = self.extract_features(transaction_request)
-        transaction_data_scaled = scaler.transform([transaction_data])
+        transaction_data_scaled = self.scaler.transform([transaction_data])
 
-        prediction = model.predict(transaction_data_scaled)
-        probability = model.predict_proba(transaction_data_scaled)[0][1]
+        prediction = self.model.predict(transaction_data_scaled)
+        probability = self.model.predict_proba(transaction_data_scaled)[0][1]
 
         return TransactionPredictionResponse(
             is_fraud=prediction[0],

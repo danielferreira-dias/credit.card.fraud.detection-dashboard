@@ -1,6 +1,6 @@
 import pytest
 from app.service.transaction_service import TransactionService
-from backend.app.schemas.transaction_schema import TransactionRequest
+from app.schemas.transaction_schema import TransactionRequest
 
 import pytest
 
