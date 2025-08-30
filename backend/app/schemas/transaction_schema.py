@@ -7,11 +7,13 @@ class TransactionRequest(BaseModel):
     channel: str
     device: str
     country: str
+    city: str
     transaction_hour: int
     amount: float
+    total_amount: float
     max_single_amount: float
     distance_from_home: int
-    current: str
+    currency: str
     card_present: int
 
 class TransactionPredictionResponse(BaseModel):

@@ -40,6 +40,7 @@ class TransactionService:
             transaction_hour=transaction.transaction_hour,
             amount=transaction.amount,
             max_single_amount = transaction.velocity_last_hour.get("max_single_amount", 0.0),
+            total_amount = transaction.velocity_last_hour.get("total_amount", 0.0),
             distance_from_home=transaction.distance_from_home,
             currency=transaction.currency,
             card_present=transaction.card_present
@@ -71,6 +72,9 @@ class TransactionService:
         Returns:
             TransactionResponse: The transaction response schema.
         """
+        if ts is None:
+            raise ValueError("Transaction instance cannot be None")
+
         return TransactionResponse(
             costumer_id=ts.customer_id,
             card_number=cls.mask_card(ts.card_number),
@@ -120,7 +124,8 @@ class TransactionService:
             'MXN': 0.049,
             'BRL': 0.17,
             'AUD': 0.65,
-            'JPY': 0.0065
+            'JPY': 0.0065,
+            'USD': 1.0
         }
 
         features = {
@@ -153,6 +158,7 @@ class TransactionService:
             "country_Mexico": 1 if transaction_request.country == "Mexico" else 0,
             "USD_converted_amount": 0.0,
             "UDS_converted_total_amount": 0.0,
+            "max_single_amount": 0.0,
             "is_off_hours": 1 if transaction_request.transaction_hour > 9 or transaction_request.transaction_hour < 17 else 0,
             "is_high_amount": 0,
             "is_low_amount": 0,

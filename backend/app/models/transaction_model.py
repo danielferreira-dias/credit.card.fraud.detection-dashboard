@@ -24,7 +24,7 @@ class Transaction(Base):
     channel = Column(String(100), nullable=True)
     device_fingerprint = Column(String(100), nullable=True)
     ip_address = Column(String(45), nullable=True)
-    distance_from_home = Column(Float, nullable=True)
+    distance_from_home = Column(Integer, nullable=True)
     high_risk_merchant = Column(Boolean, default=False)
     transaction_hour = Column(Integer, nullable=True)
     weekend_transaction = Column(Boolean, default=False)
