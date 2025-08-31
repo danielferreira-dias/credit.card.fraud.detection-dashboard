@@ -1,6 +1,7 @@
 # services/transaction_service.py
 from typing import Any, List
 from fastapi import HTTPException
+import numpy as np
 from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
@@ -14,6 +15,7 @@ class TransactionService:
         self.artifacts = ModelLoader.load()
         self.scaler = self.artifacts.scaler
         self.model  = self.artifacts.model
+        self.pipe = self.artifacts.pipe
 
     def list_transactions_service(self) -> List[TransactionResponse]:
         transaction_list = self.repo.get_all_transactions()
@@ -47,10 +49,9 @@ class TransactionService:
         )
 
         transaction_data = self.extract_features(transaction_request)
-        transaction_data_scaled = self.scaler.transform([transaction_data])
 
-        prediction = self.model.predict(transaction_data_scaled)
-        probability = self.model.predict_proba(transaction_data_scaled)[0][1]
+        prediction = self.pipe.predict(transaction_data.to_numpy_array())
+        probability = self.pipe.predict_proba(transaction_data.to_numpy_array())[0][1]
 
         return TransactionPredictionResponse(
             is_fraud=prediction[0],
@@ -131,18 +132,12 @@ class TransactionService:
         features = {
             "channel_large": 1 if transaction_request.channel == "large" else 0,
             "channel_medium": 1 if transaction_request.channel == "medium" else 0,
-            "channel_mobile": 1 if transaction_request.channel == "mobile" else 0,
-            "channel_web": 1 if transaction_request.channel == "web" else 0,
-            "channel_pos": 1 if transaction_request.channel == "pos" else 0,
             "device_Android App": 1 if transaction_request.device == "Android App" else 0,
             "device_Safari": 1 if transaction_request.device == "Safari" else 0,
             "device_Firefox": 1 if transaction_request.device == "Firefox" else 0,
+            "UDS_converted_total_amount": 0.0,
             "device_Chrome": 1 if transaction_request.device == "Chrome" else 0,
             "device_iOS App": 1 if transaction_request.device == "iOS App" else 0,
-            "device_Edge": 1 if transaction_request.device == "Edge" else 0,
-            "device_NFC Payment": 1 if transaction_request.device == "NFC Payment" else 0,
-            "device_Magnetic Stripe": 1 if transaction_request.device == "Magnetic Stripe" else 0,
-            "device_Chip Reader": 1 if transaction_request.device == "Chip Reader" else 0,
             "city_Unknown_City": 1 if transaction_request.city == "Unknown City" else 0,
             "country_USA": 1 if transaction_request.country == "USA" else 0,
             "country_Australia": 1 if transaction_request.country == "Australia" else 0,
@@ -151,20 +146,26 @@ class TransactionService:
             "country_Canada": 1 if transaction_request.country == "Canada" else 0,
             "country_Japan": 1 if transaction_request.country == "Japan" else 0,
             "country_France": 1 if transaction_request.country == "France" else 0,
+            "device_Edge": 1 if transaction_request.device == "Edge" else 0,
             "country_Singapore": 1 if transaction_request.country == "Singapore" else 0,
+            "channel_mobile": 1 if transaction_request.channel == "mobile" else 0,
             "country_Nigeria": 1 if transaction_request.country == "Nigeria" else 0,
             "country_Brazil": 1 if transaction_request.country == "Brazil" else 0,
             "country_Russia": 1 if transaction_request.country == "Russia" else 0,
             "country_Mexico": 1 if transaction_request.country == "Mexico" else 0,
-            "USD_converted_amount": 0.0,
-            "UDS_converted_total_amount": 0.0,
             "max_single_amount": 0.0,
             "is_off_hours": 1 if transaction_request.transaction_hour > 9 or transaction_request.transaction_hour < 17 else 0,
+            "USD_converted_amount": 0.0,
+            "channel_web": 1 if transaction_request.channel == "web" else 0,
             "is_high_amount": 0,
             "is_low_amount": 0,
             "transaction_hour": transaction_request.transaction_hour,
             "hour": transaction_request.transaction_hour,
+            "device_NFC Payment": 1 if transaction_request.device == "NFC Payment" else 0,
+            "device_Magnetic Stripe": 1 if transaction_request.device == "Magnetic Stripe" else 0,
+            "device_Chip Reader": 1 if transaction_request.device == "Chip Reader" else 0,
             "high_risk_transaction": 1 if transaction_request.country in ['Brazil', 'Mexico', 'Nigeria', 'Russia'] and transaction_request.device in ['Magnetic Stripe', 'NFC Payment', 'Chip Reader'] else 0,
+            "channel_pos": 1 if transaction_request.channel == "pos" else 0,
             "card_present": transaction_request.card_present,
             "distance_from_home": transaction_request.distance_from_home,
         }

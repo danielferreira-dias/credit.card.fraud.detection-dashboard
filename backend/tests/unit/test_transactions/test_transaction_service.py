@@ -56,6 +56,8 @@ def fake_transaction() -> Transaction:
         is_fraud=False,
     )
 
+
+# ---- Teste ----
 @pytest.mark.parametrize(
     "card,expected",
     [

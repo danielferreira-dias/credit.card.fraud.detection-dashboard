@@ -31,6 +31,8 @@
   }
 }
 
+TX_a0ad2a2a
+
 ## FRAUD DETECTED
 {
   "costumer_id": "CUST_70474",

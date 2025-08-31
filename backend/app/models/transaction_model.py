@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Float, Boolean, DateTime, String
 from sqlalchemy.sql import func
-from app.settings.database import Base
+from app.settings.base import Base
 from sqlalchemy.dialects.postgresql import JSONB
 
 class Transaction(Base):
