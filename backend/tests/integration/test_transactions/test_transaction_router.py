@@ -43,8 +43,28 @@ def build_transaction(**overrides) -> Transaction:
     base.update(overrides)  # sobrescreve defaults com o que passares
     return Transaction(**base)
 
+def test_get_transaction_not_found(client):
+    r = client.get("/transactions/UNKNOWN_ID")
+    assert r.status_code == 404
+
+def test_get_transaction_found(client, pg_sessionmaker):
+    db = pg_sessionmaker()
+    tx = build_transaction(transaction_id="TX_12345")
+    db.add(tx)
+    db.commit()
+
+    r = client.get("/transactions/TX_12345")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["amount"] == 100.0
+
+def test_health_check(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
 
 def test_predict_transaction_endpoint(client, pg_sessionmaker):
+    print(pg_sessionmaker().bind.url)
     db = pg_sessionmaker()
     tx = build_transaction(transaction_id="TX_TEST", amount=999.9)
     db.add(tx)
