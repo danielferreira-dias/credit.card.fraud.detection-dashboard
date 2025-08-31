@@ -1,27 +1,29 @@
 FROM python:3.11-slim
 
-# Install uv.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Set working directory
+# Instala o uv diretamente
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Define diretório de trabalho
 WORKDIR /app
 
-# Copy dependency files first for better layer caching
+# Copia ficheiros de dependência para caching
 COPY pyproject.toml uv.lock ./
-COPY requirements.txt ./
 
-# Copiar código da aplicação
-COPY app/ ./
+# Instala dependências com ambiente virtual isolado
+RUN uv venv && \
+    uv sync --frozen --no-cache
 
-# Install the application dependencies and additional requirements
-RUN uv sync --frozen --no-cache
-RUN uv pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application
+# Copia a aplicação (usa o cache eficientemente)
+COPY app/ ./app/
+COPY models/ ./models/
+COPY tests/ ./tests/
 COPY . .
 
-# Expose port 80
+# Expõe a porta
 EXPOSE 80
 
-# Run the application using uv which handles the virtual environment
+# Comando para correr a app
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]

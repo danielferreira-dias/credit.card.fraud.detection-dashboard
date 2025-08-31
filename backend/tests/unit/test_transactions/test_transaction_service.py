@@ -1,6 +1,4 @@
-from unittest.mock import MagicMock
 import pytest
-
 from app.schemas.transaction_schema import TransactionRequest
 from app.service.transaction_service import TransactionService
 from app.models.transaction_model import Transaction
