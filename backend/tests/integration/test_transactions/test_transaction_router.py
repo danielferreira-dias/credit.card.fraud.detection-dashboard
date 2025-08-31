@@ -61,7 +61,7 @@ def test_get_transaction_found(client, pg_sessionmaker):
 def test_health_check(client):
     r = client.get("/health")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok"}
+    assert r.json() == {"status": "OK"}
 
 def test_predict_transaction_endpoint(client, pg_sessionmaker):
     print(pg_sessionmaker().bind.url)
