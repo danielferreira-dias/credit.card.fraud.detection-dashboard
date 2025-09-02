@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Request, status
 from app.routers.transaction_router import router as transaction_router
 from app.settings.database import engine
 from app.models.transaction_model import Transaction

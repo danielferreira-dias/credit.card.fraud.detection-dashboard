@@ -7,6 +7,10 @@ from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TransactionService:
 

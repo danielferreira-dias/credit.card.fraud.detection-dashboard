@@ -1,7 +1,9 @@
 # app/routers/transactions.py
 import datetime
 
+from fastapi.exceptions import RequestValidationError
 import joblib
+from psycopg2 import IntegrityError
 from app.settings.database import get_db
 from fastapi import APIRouter, HTTPException
 from typing import List
