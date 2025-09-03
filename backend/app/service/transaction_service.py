@@ -9,35 +9,46 @@ from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
 import logging
 
-logger = logging.getLogger(__name__)
+from app.exception.transaction_exceptions import EntityError, ModelNotLoadedError, PredictionError
 
+logger = logging.getLogger(__name__)
 
 class TransactionService:
 
     def __init__(self, db: Session):
         self.repo = TransactionRepository(db)
         self.artifacts = ModelLoader.load()
-        self.scaler = self.artifacts.scaler
-        self.model  = self.artifacts.model
-        self.pipe = self.artifacts.pipe
+        try:
+            self.artifacts = ModelLoader.load()
+            self.scaler = self.artifacts.scaler
+            self.model = self.artifacts.model
+            self.pipe = self.artifacts.pipe
+        except Exception as e:
+            logger.critical("Erro ao carregar artefactos de ML", exc_info=True)
+            raise ModelNotLoadedError("Erro ao carregar artefactos de ML") from e
 
     def list_transactions_service(self) -> List[TransactionResponse]:
         transaction_list = self.repo.get_all_transactions()
         if transaction_list is None:
-            raise HTTPException(status_code=404, detail="Transactions not found")
+            logger.error("No transactions found in the database.")
+            raise EntityError(name="Transactions Not Found", message="Transactions do not exist.") 
+        
         return [self._to_response(ts) for ts in transaction_list]
     
     def get_transaction_by_id(self, transaction_id: str) -> TransactionResponse:
         transaction = self.repo.get_transaction_by_id(transaction_id)
         if transaction is None:
-            raise HTTPException(status_code=404, detail="Transaction not found")
+            logger.error(f"Transaction with ID {transaction_id} not found.")
+            raise EntityError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
+        
         return self._to_response(transaction)
 
     def predict_transaction_service(self, transaction_id: str) -> dict:
         transaction = self.repo.get_transaction_by_id(transaction_id)
 
         if transaction is None:
-            raise HTTPException(status_code=404, detail="Transaction not found") 
+            logger.warning(f"Transaction with ID {transaction_id} not found for prediction.")
+            raise EntityError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")
         
         transaction_request = TransactionRequest(
             channel=transaction.channel,
@@ -53,9 +64,11 @@ class TransactionService:
         )
 
         transaction_data = self.extract_features(transaction_request)
+        logger.debug(f"Extracted features for transaction ID {transaction_id}: {transaction_data}")
 
         prediction = self.pipe.predict(transaction_data.to_numpy_array())
         probability = self.pipe.predict_proba(transaction_data.to_numpy_array())[0][1]
+        logger.info(f"Prediction for transaction ID {transaction_id}: {prediction[0]} with probability {probability:.4f}") 
 
         return TransactionPredictionResponse(
             is_fraud=prediction[0],

@@ -4,6 +4,12 @@ from app.settings.database import engine
 from app.models.transaction_model import Transaction
 from pydantic import BaseModel
 
+from app.exception.transaction_exceptions import TransactionsException
+from app.exception.handler import transaction_handler
+from app.infra.logger import setup_logger
+
+logger = setup_logger("main")
+
 class HealthCheck(BaseModel):
     """Response model to validate and return when performing a health check."""
     status: str = "OK"
@@ -17,10 +23,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Include routers --------------------------------------------------
 app.include_router(transaction_router)
+
+# Register exception handlers --------------------------------------------------
+app.add_exception_handler(TransactionsException, transaction_handler)
+
 
 @app.get("/")
 def read_root():
+    logger.info("Root endpoint called")
     return {"message": "Hello from credit-card-fraud-detection-dashboard!"}
 
 @app.get(
@@ -41,5 +53,6 @@ def get_health() -> HealthCheck:
     Returns:
         HealthCheck: Returns a JSON response with the health status
     """
+    logger.info("Health check endpoint called")
     return HealthCheck(status="OK")
 

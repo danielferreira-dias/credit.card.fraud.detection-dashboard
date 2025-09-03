@@ -8,9 +8,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def transaction_service_exception_handler(request: Request, exc: TrasanctionsException):
-    logger.error(f"{exc.__class__.__name__}: {exc.detail}")
+async def transaction_handler(request: Request, exc: TrasanctionsException):
+    logger.error(f"{exc.__class__.__name__}: {exc.message}")
     return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.detail}
+        status_code=exc.to_http_status(),
+        content={"message": exc.message}
     )
