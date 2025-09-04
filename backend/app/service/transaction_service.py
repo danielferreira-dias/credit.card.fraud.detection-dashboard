@@ -9,7 +9,7 @@ from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
 import logging
 
-from app.exception.transaction_exceptions import EntityError, ModelNotLoadedError, PredictionError
+from app.exception.transaction_exceptions import TransactionNotFoundError, ModelNotLoadedError
 
 logger = logging.getLogger(__name__)
 
@@ -31,24 +31,33 @@ class TransactionService:
         transaction_list = self.repo.get_all_transactions()
         if transaction_list is None:
             logger.error("No transactions found in the database.")
-            raise EntityError(name="Transactions Not Found", message="Transactions do not exist.") 
+            raise TransactionNotFoundError(name="Transactions Not Found", message="Transactions do not exist.") 
         
         return [self._to_response(ts) for ts in transaction_list]
     
     def get_transaction_by_id(self, transaction_id: str) -> TransactionResponse:
+        if transaction_id is None:
+            logger.error(f"{transaction_id} cannot be None for prediction.")
+            raise TransactionInvalidDataError("transaction_id cannot be None")
+
         transaction = self.repo.get_transaction_by_id(transaction_id)
         if transaction is None:
             logger.error(f"Transaction with ID {transaction_id} not found.")
-            raise EntityError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
+            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
         
         return self._to_response(transaction)
 
     def predict_transaction_service(self, transaction_id: str) -> dict:
+
+        if transaction_id is None:
+            logger.error(f"{transaction_id} cannot be None for prediction.")
+            raise TransactionInvalidDataError("transaction_id cannot be None")
+
         transaction = self.repo.get_transaction_by_id(transaction_id)
 
         if transaction is None:
             logger.warning(f"Transaction with ID {transaction_id} not found for prediction.")
-            raise EntityError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")
+            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")
         
         transaction_request = TransactionRequest(
             channel=transaction.channel,

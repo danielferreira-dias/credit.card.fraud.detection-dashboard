@@ -14,81 +14,46 @@ class TransactionsException(Exception):
     def to_http_status(self):
         return HTTP_500_INTERNAL_SERVER_ERROR
 
-# Convert exception to appropriate HTTP status code
-
-class EntityError(TransactionsException):
-    """Exception raised when a requested entity is not found."""
-
-    def __init__(self, name: str = "Entity Not Found", message: str = "The requested entity was not found"):
-        self.detail = f"{name}: {message}"
-        super().__init__(self.detail)
-
-    def to_http_status(self):
-        return HTTP_404_NOT_FOUND
-    
+# Database related exceptions -------------------------
 
 class DatabaseException(TransactionsException):
-    """Exception raised for database-related errors."""
-
-    def __init__(self, name: str = "Internal Error", message: str = "Database operation failed"):
-        self.message = message
-        self.name = name
-        super().__init__(name=self.default_name, message=message)
-    
+    """Exception raised for database related errors."""
     def to_http_status(self):
         return HTTP_500_INTERNAL_SERVER_ERROR
 
-class DuplicateTransactionError(TransactionsException):
-    """Exception raised for duplicated keys"""
+class TransactionNotFoundError(TransactionsException):
+    """Exception raised when a transaction is not found."""
+    def to_http_status(self):
+        return HTTP_404_NOT_FOUND
 
-    def __init__(self, name: str = "Duplicate Transaction", message: str = "A transaction with this ID already exists"):
-        self.name = name
-        self.message = message
-        super().__init__(self.name, self.message)
+class TransactionCreationError(TransactionsException):
+    """Exception raised when there is an error creating a transaction."""
+    def to_http_status(self):
+        return HTTP_500_INTERNAL_SERVER_ERROR
     
+class TransactionDuplucateError(TransactionsException):
+    """Exception raised when a duplicate transaction is detected."""
     def to_http_status(self):
         return HTTP_409_CONFLICT
 
-class InvalidDataError(TransactionsException):
-    """Exception raised when transaction data is invalid."""
-
-    def __init__(self, name: str = "Invalid Transaction Data", message: str = "The provided transaction data is invalid"):
-        self.detail = f"{name}: {message}"
-        super().__init__(self.detail)
-    
+class TransactionInvalidDataError(TransactionsException):
+    """Exception raised when invalid data is provided for a transaction."""
     def to_http_status(self):
         return HTTP_400_BAD_REQUEST
 
-class PredictionError(TransactionsException):
-    """Exception raised when there is an error during prediction."""
-
-    def __init__(self, name: str = "Prediction Error", message: str = "An error occurred during the prediction process"):
-        self.detail = f"{name}: {message}"
-        super().__init__(self.detail)
-    
-    def to_http_status(self):
-        return HTTP_500_INTERNAL_SERVER_ERROR
+# Model related exceptions ----------------------------
 
 class ModelNotLoadedError(TransactionsException):
     """Exception raised when the ML model is not loaded properly."""
-
-    def __init__(self, name: str = "Model Not Loaded", message: str = "The machine learning model is not loaded"):
-        self.name = name
-        self.message = message
-        super().__init__(name=self.name, message=self.message)
+    def to_http_status(self):
+        return HTTP_500_INTERNAL_SERVER_ERROR
 
 class ScalerNotLoadedError(TransactionsException):
     """Exception raised when the scaler is not loaded properly."""
-
-    def __init__(self, name: str = "Scaler Not Loaded", message: str = "The scaler for feature transformation is not loaded"):
-        self.name = name
-        self.message = message
-        super().__init__(name=self.name, message=self.message)
+    def to_http_status(self):
+        return HTTP_500_INTERNAL_SERVER_ERROR
 
 class PipelineNotLoadedError(TransactionsException):
     """Exception raised when the ML pipeline is not loaded properly."""
-
-    def __init__(self, name: str = "Pipeline Not Loaded", message: str = "The machine learning pipeline is not loaded"):
-        self.name = name
-        self.message = message
-        super().__init__(name=self.name, message=self.message)
+    def to_http_status(self):
+        return HTTP_500_INTERNAL_SERVER_ERROR
