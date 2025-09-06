@@ -1,6 +1,6 @@
 from __future__ import annotations
 import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 import numpy as np
 from pydantic import BaseModel
 
@@ -17,23 +17,6 @@ class TransactionRequest(BaseModel):
     currency: str
     card_present: int
 
-    def to_numpy_array(self) -> np.ndarray:
-        """
-        Converts the base model fields into a NumPy array.
-        """
-        return np.array([
-            self.channel,
-            self.device,
-            self.country,
-            self.city,
-            self.transaction_hour,
-            self.amount,
-            self.total_amount,
-            self.max_single_amount,
-            self.distance_from_home,
-            self.currency,
-            self.card_present
-        ])
 
 class TransactionPredictionResponse(BaseModel):
     is_fraud: int

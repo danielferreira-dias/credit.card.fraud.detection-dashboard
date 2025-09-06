@@ -2,6 +2,7 @@
 from typing import Any, List
 from fastapi import HTTPException
 import numpy as np
+from sklearn.exceptions import NotFittedError
 from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
@@ -54,6 +55,7 @@ class TransactionService:
             raise TransactionInvalidDataError("transaction_id cannot be None")
 
         transaction = self.repo.get_transaction_by_id(transaction_id)
+        logger.info(f"Fetched transaction for prediction: {transaction}")
 
         if transaction is None:
             logger.warning(f"Transaction with ID {transaction_id} not found for prediction.")
@@ -63,6 +65,7 @@ class TransactionService:
             channel=transaction.channel,
             device=transaction.device,
             country=transaction.country,
+            city=transaction.city,
             transaction_hour=transaction.transaction_hour,
             amount=transaction.amount,
             max_single_amount = transaction.velocity_last_hour.get("max_single_amount", 0.0),
@@ -74,14 +77,21 @@ class TransactionService:
 
         transaction_data = self.extract_features(transaction_request)
         logger.debug(f"Extracted features for transaction ID {transaction_id}: {transaction_data}")
+        ##transaction_data = np.array([list(transaction_data.values())])
 
-        prediction = self.pipe.predict(transaction_data.to_numpy_array())
-        probability = self.pipe.predict_proba(transaction_data.to_numpy_array())[0][1]
-        logger.info(f"Prediction for transaction ID {transaction_id}: {prediction[0]} with probability {probability:.4f}") 
+        try:
+            transaction_data_fit = self.scaler.transform(transaction_data.values())
+            pred = self.model.predict(transaction_data_fit)
+            proba = self.model.predict_proba(transaction_data_fit)[0][1]
+        except NotFittedError as e:
+            logger.error("Model pipeline not fitted", exc_info=True)
+            raise ModelNotLoadedError("Model not fitted; load a trained artifact.")
+
+        logger.info(f"Prediction for transaction ID {transaction_id}: {pred[0]} with probability {proba:.4f}") 
 
         return TransactionPredictionResponse(
-            is_fraud=prediction[0],
-            probability=probability
+            is_fraud=pred[0],
+            probability=proba
         )
     
     @staticmethod
@@ -131,10 +141,12 @@ class TransactionService:
     def extract_features(transaction_request: TransactionRequest) -> dict:
         """Builds feature dictionary for the model.
         Args:
-            transaction_request (TransactionRequest): The transaction request data.
+            transaction_request (TransactionFeature): The transaction request data.
         Returns:
             dict: A dictionary of features for the model.
         """
+
+        logger.info(f"Current Transaction Request: {transaction_request}")
 
         if transaction_request is None:
             raise TypeError("transaction_request cannot be None")
@@ -202,8 +214,12 @@ class TransactionService:
 
         features['max_single_amount'] = transaction_request.max_single_amount * conversion_rates.get(transaction_request.currency, 1.28)
 
-        features['is_high_amount'] = 1 if features['USD_converted_amount'] > 1000 else 0
-        features['is_low_amount'] = 1 if features['USD_converted_amount'] < 100 else 0
+        logger.info(f"First Features {features}")
+
+        features['is_high_amount'] = 1 if features.get("USD_converted_amount", 0) > 1000 else 0
+        features['is_low_amount'] = 1 if features.get("USD_converted_amount", 0) < 100 else 0
+
+        logger.debug(f"Features extracted to train: {features}")
 
         return features
     

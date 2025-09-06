@@ -31,4 +31,7 @@ class Transaction(Base):
     velocity_last_hour = Column(JSONB, nullable=True)
     is_fraud = Column(Boolean, default=False)
 
+    def __repr__(self):
+        return f"<Transaction(transaction_id={self.transaction_id}, amount={self.amount}, is_fraud={self.is_fraud}), customer_id={self.customer_id}, merchant={self.merchant}, timestamp={self.timestamp}, country={self.country}, city={self.city}, card_type={self.card_type}, channel={self.channel}, device={self.device}), card_present={self.card_present}, high_risk_merchant={self.high_risk_merchant}, weekend_transaction={self.weekend_transaction}, transaction_hour={self.transaction_hour}, distance_from_home={self.distance_from_home}, velocity_last_hour={self.velocity_last_hour}, currency={self.currency}, merchant_category={self.merchant_category}, merchant_type={self.merchant_type}, ip_address={self.ip_address}, device_fingerprint={self.device_fingerprint}, card_number={self.card_number}"
+
 

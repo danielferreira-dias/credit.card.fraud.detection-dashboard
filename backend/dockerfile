@@ -18,7 +18,6 @@ RUN uv venv && \
 
 # Copia a aplicação (usa o cache eficientemente)
 COPY app/ ./app/
-COPY models/ ./models/
 COPY tests/ ./tests/
 COPY . .
 

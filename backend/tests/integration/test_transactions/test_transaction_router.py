@@ -2,6 +2,9 @@ import pytest
 # tests/factories.py
 from datetime import datetime
 from app.models.transaction_model import Transaction
+from app.infra.logger import setup_logger
+
+logger = setup_logger("test")
 
 def build_transaction(**overrides) -> Transaction:
     """
@@ -27,7 +30,7 @@ def build_transaction(**overrides) -> Transaction:
         channel="mobile",
         device_fingerprint="dfp123",
         ip_address="127.0.0.1",
-        distance_from_home=5.5,
+        distance_from_home=1,
         high_risk_merchant=False,
         transaction_hour=12,
         weekend_transaction=False,
@@ -49,11 +52,10 @@ def test_get_transaction_not_found(client):
 
 def test_get_transaction_found(client, pg_sessionmaker):
     db = pg_sessionmaker()
-    tx = build_transaction(transaction_id="TX_12345")
+    tx = build_transaction(transaction_id="tx_teste")
     db.add(tx)
     db.commit()
-
-    r = client.get("/transactions/TX_12345")
+    r = client.get("/transactions/tx_teste")
     assert r.status_code == 200
     data = r.json()
     assert data["amount"] == 100.0
@@ -64,13 +66,15 @@ def test_health_check(client):
     assert r.json() == {"status": "OK"}
 
 def test_predict_transaction_endpoint(client, pg_sessionmaker):
-    print(pg_sessionmaker().bind.url)
     db = pg_sessionmaker()
-    tx = build_transaction(transaction_id="TX_TEST", amount=999.9)
+    tx = build_transaction(transaction_id="TX_a0ad2a2a", amount=999.9)
     db.add(tx)
     db.commit()
 
-    r = client.get("/transactions/TX_TEST/predict")
+    logger.info("Inserted test transaction into DB")
+    logger.info("Transaction: %s", tx)
+
+    r = client.get("/transactions/TX_a0ad2a2a/predict")
     assert r.status_code == 200
     data = r.json()
     assert "is_fraud" in data

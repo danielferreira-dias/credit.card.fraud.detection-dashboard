@@ -20,9 +20,10 @@ class TransactionRepository:
             logger.error(f"Erro ao obter transações: {e}")
             raise DatabaseException("Erro ao aceder às transações na base de dados") from e
     
-    def get_transaction_by_id(self, transaction_id: str) -> Optional[Transaction]:
+    def get_transaction_by_id(self, transaction_id: str) -> Transaction:
         try:
             transaction = self.db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
+            logger.info(f"The transaction fetched by the database was the following: {transaction}")
             return transaction
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transação por ID {transaction_id}: {e}")

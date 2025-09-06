@@ -17,12 +17,5 @@ def setup_logger(name: str = "app"):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
-    # (Opcional) Ficheiro de log com rotação automática
-    file_handler = RotatingFileHandler(
-        "logs/app.log", maxBytes=1_000_000, backupCount=3
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
     logger.propagate = False  # evita logs duplicados com uvicorn
     return logger
