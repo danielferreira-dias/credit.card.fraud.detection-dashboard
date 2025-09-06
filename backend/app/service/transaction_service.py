@@ -1,16 +1,14 @@
 # services/transaction_service.py
-from typing import Any, List
-from fastapi import HTTPException
-import numpy as np
+from typing import List
 from sklearn.exceptions import NotFittedError
 from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
-import logging
-
 from app.exception.transaction_exceptions import TransactionNotFoundError, ModelNotLoadedError
+from app.utils.helpers import features_to_df
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -76,13 +74,13 @@ class TransactionService:
         )
 
         transaction_data = self.extract_features(transaction_request)
-        logger.debug(f"Extracted features for transaction ID {transaction_id}: {transaction_data}")
+        transaction_dataframe = features_to_df(transaction_data) 
+        logger.info(f"The dataframe -> {transaction_dataframe}")
         ##transaction_data = np.array([list(transaction_data.values())])
 
         try:
-            transaction_data_fit = self.scaler.transform(transaction_data.values())
-            pred = self.model.predict(transaction_data_fit)
-            proba = self.model.predict_proba(transaction_data_fit)[0][1]
+            pred = self.pipe.predict(transaction_dataframe)[0]
+            proba = self.pipe.predict_proba(transaction_dataframe)[0][1]
         except NotFittedError as e:
             logger.error("Model pipeline not fitted", exc_info=True)
             raise ModelNotLoadedError("Model not fitted; load a trained artifact.")
@@ -173,7 +171,7 @@ class TransactionService:
             "device_Android App": 1 if transaction_request.device == "Android App" else 0,
             "device_Safari": 1 if transaction_request.device == "Safari" else 0,
             "device_Firefox": 1 if transaction_request.device == "Firefox" else 0,
-            "UDS_converted_total_amount": 0.0,
+            "USD_converted_total_amount": transaction_request.total_amount * conversion_rates.get(transaction_request.currency, 1.28),
             "device_Chrome": 1 if transaction_request.device == "Chrome" else 0,
             "device_iOS App": 1 if transaction_request.device == "iOS App" else 0,
             "city_Unknown_City": 1 if transaction_request.city == "Unknown City" else 0,
@@ -191,12 +189,12 @@ class TransactionService:
             "country_Brazil": 1 if transaction_request.country == "Brazil" else 0,
             "country_Russia": 1 if transaction_request.country == "Russia" else 0,
             "country_Mexico": 1 if transaction_request.country == "Mexico" else 0,
-            "max_single_amount": 0.0,
             "is_off_hours": 1 if transaction_request.transaction_hour > 9 or transaction_request.transaction_hour < 17 else 0,
-            "USD_converted_amount": 0.0,
+            'max_single_amount': transaction_request.max_single_amount * conversion_rates.get(transaction_request.currency, 1.28),
+            "USD_converted_amount": transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28),
             "channel_web": 1 if transaction_request.channel == "web" else 0,
-            "is_high_amount": 0,
-            "is_low_amount": 0,
+            "is_high_amount": 1 if (transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)) > 1000 else 0,
+            "is_low_amount": 1 if (transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)) < 100 else 0,
             "transaction_hour": transaction_request.transaction_hour,
             "hour": transaction_request.transaction_hour,
             "device_NFC Payment": 1 if transaction_request.device == "NFC Payment" else 0,
@@ -208,18 +206,7 @@ class TransactionService:
             "distance_from_home": transaction_request.distance_from_home,
         }
 
-        features['USD_converted_amount'] = transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)
-
-        features['USD_converted_total_amount'] = transaction_request.total_amount * conversion_rates.get(transaction_request.currency, 1.28)
-
-        features['max_single_amount'] = transaction_request.max_single_amount * conversion_rates.get(transaction_request.currency, 1.28)
-
-        logger.info(f"First Features {features}")
-
-        features['is_high_amount'] = 1 if features.get("USD_converted_amount", 0) > 1000 else 0
-        features['is_low_amount'] = 1 if features.get("USD_converted_amount", 0) < 100 else 0
-
-        logger.debug(f"Features extracted to train: {features}")
+        logger.info(f"Features extracted to train: {features}")
 
         return features
     
