@@ -27,7 +27,7 @@ def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService
 # --- router ------------------------
 
 @router.get("/{transaction_id}/predict", response_model=TransactionPredictionResponse)
-async def predict_transaction(service: TransactionService = Depends(get_transaction_service), transaction_id: str = ""):
+async def predict_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
     response = service.predict_transaction_service(transaction_id)
     logger.info(f"Response of router predict_transaction: {response}")
     return response
@@ -39,7 +39,7 @@ async def list_transactions(service: TransactionService = Depends(get_transactio
     return response_list
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
-async def get_transaction(service: TransactionService = Depends(get_transaction_service), transaction_id: str = ""):
+async def get_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
     response = service.get_transaction_by_id(transaction_id)
     logger.info(f"Response of get transaction_id {transaction_id}: {response}")
     return response
