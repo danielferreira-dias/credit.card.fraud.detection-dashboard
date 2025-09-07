@@ -8,7 +8,6 @@ from app.schemas.transaction_schema import TransactionPredictionResponse, Transa
 from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
 from app.exception.transaction_exceptions import TransactionInvalidDataError, TransactionNotFoundError, ModelNotLoadedError
-from app.utils.helpers import features_to_df
 import logging
 
 from app.schemas.features_schema import TransactionFeatures, conversion_rates

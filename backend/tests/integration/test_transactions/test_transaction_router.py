@@ -47,7 +47,7 @@ def build_transaction(**overrides) -> Transaction:
     return Transaction(**base)
 
 @pytest.fixture
-def make_fake_transiction(**overrides) -> Transaction:
+def non_fraud_transaction(**overrides) -> Transaction:
     base = dict(
     transaction_id="TX_a0ad2a2a",
     customer_id="CUST_72886",
@@ -79,6 +79,43 @@ def make_fake_transiction(**overrides) -> Transaction:
         "max_single_amount": 1925480.6324148502,
     },
     is_fraud=False,
+)
+    base.update(overrides)
+    return Transaction(**base)
+
+@pytest.fixture
+def fraud_transaction(**overrides) -> Transaction:
+    base = dict(
+    transaction_id="TX_3599c101",
+    customer_id="CUST_70474",
+    card_number="376800864692727",
+    timestamp="2024-09-30T00:00:01.764464",
+    merchant_category="Entertainment",
+    merchant_type="gaming",
+    merchant="Steam",
+    amount=3368.97,
+    currency="BRL",
+    country="Brazil",
+    city="Unknown City",
+    city_size="medium",
+    card_type="Platinum Credit",
+    card_present=False,
+    device="Edge",
+    channel="web",
+    device_fingerprint="a73043a57091e775af37f252b3a32af9",
+    ip_address="208.123.221.203",
+    distance_from_home=1,
+    high_risk_merchant=True,
+    transaction_hour=0,
+    weekend_transaction=False,
+    velocity_last_hour={
+        "total_amount": 33498556.080464985,
+        "num_transactions": 1197,
+        "unique_countries": 12,
+        "unique_merchants": 105,
+        "max_single_amount": 1925480.6324148502,
+    },
+    is_fraud=True,  # ground truth desta linha
 )
     base.update(overrides)
     return Transaction(**base)
@@ -116,11 +153,23 @@ def test_predict_transaction_endpoint(client, pg_sessionmaker):
     data = r.json()
     assert "is_fraud" in data
 
-def test_predict_transaction_is_false(client, make_fake_transiction):
-    transaction_id = make_fake_transiction.transaction_id
+def test_predict_transaction_is_false(client, non_fraud_transaction):
+    transaction_id = non_fraud_transaction.transaction_id
     r = client.get(f"/transactions/{transaction_id}/predict")
 
     assert r.status_code == 200
     data = r.json()
     assert data.get('is_fraud') == False
+
+def test_predict_transaction_is_true(client, pg_sessionmaker, fraud_transaction):
+    db = pg_sessionmaker()
+    db.add(fraud_transaction)
+    db.commit()
+    db.refresh(fraud_transaction)
+    transaction_id = fraud_transaction.transaction_id
+    r = client.get(f"/transactions/{transaction_id}/predict")
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get('is_fraud') == True
     
