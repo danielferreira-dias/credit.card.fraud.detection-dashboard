@@ -26,7 +26,31 @@ conversion_rates = {
             'USD': 1.0
         }
 
+KEYMAP = {
+    "device_android_app": "device_Android App",
+    "device_ios_app": "device_iOS App",
+    "device_safari": "device_Safari",
+    "device_firefox": "device_Firefox",
+    "device_chrome": "device_Chrome",
+    "device_edge": "device_Edge",
+    "device_nfc_payment": "device_NFC Payment",
+    "device_magnetic_stripe": "device_Magnetic Stripe",
+    "device_chip_reader": "device_Chip Reader",
+    "usd_converted_total_amount": "USD_converted_total_amount",
+    "usd_converted_amount": "USD_converted_amount",
+    "city_unknown_city": "city_Unknown City",
+    "country_usa": "country_USA",
+    "country_australia": "country_Australia",
+    "country_germany": "country_Germany",
+    "country_uk": "country_UK",
+    "country_canada": "country_Canada",
+    "country_japan": "country_Japan",
+    "country_france": "country_France",
+    "country_singapore": "country_Singapore",
+}
+
 class TransactionFeatures(BaseModel):
+    model_config = dict(populate_by_name=True)
     channel_large: int = Field(alias="channel_large")
     channel_medium: int = Field(alias="channel_medium")
     device_android_app: int = Field(alias="device_Android App")

@@ -46,6 +46,43 @@ def build_transaction(**overrides) -> Transaction:
     base.update(overrides)  # sobrescreve defaults com o que passares
     return Transaction(**base)
 
+@pytest.fixture
+def make_fake_transiction(**overrides) -> Transaction:
+    base = dict(
+    transaction_id="TX_a0ad2a2a",
+    customer_id="CUST_72886",
+    card_number="6646734767813109",
+    timestamp="2024-09-30T00:00:01.034820",   # normalizado para formato ISO
+    merchant="Taco Bell",
+    merchant_category="Restaurant",
+    merchant_type="fast_food",
+    amount=294.87,
+    currency="GBP",
+    country="UK",
+    city="Unknown City",
+    city_size="medium",
+    card_type="Platinum Credit",
+    card_present=False,
+    device="iOS App",
+    channel="mobile",
+    device_fingerprint="e8e6160445c935fd0001501e4cbac8bc",
+    ip_address="197.153.60.199",
+    distance_from_home=0,          # cuidado: no CSV estava como string "0"
+    high_risk_merchant=False,
+    transaction_hour=0,
+    weekend_transaction=False,
+    velocity_last_hour={
+        "total_amount": 33498556.080464985,
+        "num_transactions": 1197,
+        "unique_countries": 12,
+        "unique_merchants": 105,
+        "max_single_amount": 1925480.6324148502,
+    },
+    is_fraud=False,
+)
+    base.update(overrides)
+    return Transaction(**base)
+
 def test_get_transaction_not_found(client):
     r = client.get("/transactions/UNKNOWN_ID")
     assert r.status_code == 404
@@ -78,3 +115,12 @@ def test_predict_transaction_endpoint(client, pg_sessionmaker):
     assert r.status_code == 200
     data = r.json()
     assert "is_fraud" in data
+
+def test_predict_transaction_is_false(client, make_fake_transiction):
+    transaction_id = make_fake_transiction.transaction_id
+    r = client.get(f"/transactions/{transaction_id}/predict")
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get('is_fraud') == False
+    

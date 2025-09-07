@@ -2,7 +2,7 @@
 from typing import List
 import numpy as np
 from sklearn.exceptions import NotFittedError
-from app.models.transaction_model import Transaction
+from app.models.transaction_model import FEATURE_COLUMNS, Transaction
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
@@ -24,7 +24,6 @@ class TransactionService:
             self.artifacts = ModelLoader.load()
             self.scaler = self.artifacts.scaler
             self.model = self.artifacts.model
-            self.pipe = self.artifacts.pipe
         except Exception as e:
             logger.critical("Erro ao carregar artefactos de ML", exc_info=True)
             raise ModelNotLoadedError("Erro ao carregar artefactos de ML") from e
@@ -82,25 +81,30 @@ class TransactionService:
         logger.warning(f"Current transaction data for prediction is -> {transaction_data}")
 
         try:
-            transaction_data_numpy = transaction_data.to_numpy()
-            assert transaction_data_numpy.ndim == 2 and transaction_data_numpy.shape[1] == 38, transaction_data_numpy.shape
+            transaction_data_numpy = np.array([[transaction_data.model_dump(by_alias=True)[c] for c in FEATURE_COLUMNS]], dtype=float)
             logger.warning(f"Data was transformed into numpy {transaction_data_numpy}")
 
-            transaction_data_scaled = self.scaler.transform(transaction_data_numpy)
+            # Se tens scaler + modelo separados:
+            X_scaled = self.scaler.transform(transaction_data_numpy)
+            y_pred = int(self.model.predict(X_scaled)[0])
 
-            pred = self.model.predict(transaction_data_scaled)
-            proba = self.model.predict_proba(transaction_data_scaled)
+            probas = getattr(self.model, "predict_proba", None)
+            if probas is not None:
+                p = self.model.predict_proba(X_scaled)
+                p_pos = float(np.asarray(p)[..., -1].ravel()[0])   # robusto (pega a última coluna)
+            else:
+                # fallback caso não exista predict_proba
+                p_pos = None
 
-            proba  = float(proba[0, 1])
         except NotFittedError as e:
             logger.error("Model pipeline not fitted", exc_info=True)
             raise ModelNotLoadedError("Model not fitted; load a trained artifact.") from e
 
-        logger.info(f"Prediction for transaction ID {transaction_id}: {pred[0]} with probability {proba}") 
+        logger.info(f"Prediction for transaction ID {transaction_id}: {y_pred} with probability of being fraudulent {p_pos}") 
 
         return TransactionPredictionResponse(
-            is_fraud=pred[0],
-            probability=proba
+            is_fraud=True if y_pred == 1 else False,
+            probability=p_pos
         )
     
     @staticmethod

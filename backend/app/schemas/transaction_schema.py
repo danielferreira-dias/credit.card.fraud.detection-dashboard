@@ -18,7 +18,7 @@ class TransactionRequest(BaseModel):
     card_present: int
 
 class TransactionPredictionResponse(BaseModel):
-    is_fraud: int
+    is_fraud: bool
     probability: Optional[float] = None
 
 class TransactionResponse(BaseModel):

@@ -21,25 +21,19 @@ class ModelLoader:
 
         scaler_path = Path.getenv("SCALER_PATH") if hasattr(Path, "getenv") else None
         model_path  = Path.getenv("MODEL_PATH") if hasattr(Path, "getenv") else None
-        pipe_path  = Path.getenv("PIPE_PATH") if hasattr(Path, "getenv") else None
 
-        scaler_pkl = Path(scaler_path) if scaler_path else misc / "fraud_detection_scaler.joblib"
-        model_pkl  = Path(model_path)  if model_path  else misc / "fraud_detection_model.joblib"
-        pipe_joblib  = Path(model_path)  if pipe_path  else misc / "pipelinev1_xgb.joblib"
+        scaler_pkl = Path(scaler_path) if scaler_path else misc / "scaler.joblib"
+        model_pkl  = Path(model_path)  if model_path  else misc / "xgb_model.joblib"
 
         if not scaler_pkl.exists():
             raise FileNotFoundError(f"Scaler não encontrado: {scaler_pkl}")
         if not model_pkl.exists():
             raise FileNotFoundError(f"Modelo não encontrado: {model_pkl}")
-        if not pipe_joblib.exists():
-            raise FileNotFoundError(f"Modelo não encontrado: {pipe_joblib}")
 
         scaler = joblib.load(scaler_pkl)
         model  = joblib.load(model_pkl)
-        pipe = joblib.load(pipe_joblib)
 
         cls._artifacts = Artifacts()
         cls._artifacts.scaler = scaler
         cls._artifacts.model = model
-        cls._artifacts.pipe = pipe
         return cls._artifacts
