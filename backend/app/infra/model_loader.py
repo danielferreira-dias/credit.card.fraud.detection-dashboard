@@ -23,9 +23,9 @@ class ModelLoader:
         model_path  = Path.getenv("MODEL_PATH") if hasattr(Path, "getenv") else None
         pipe_path  = Path.getenv("PIPE_PATH") if hasattr(Path, "getenv") else None
 
-        scaler_pkl = Path(scaler_path) if scaler_path else misc / "fraud_detection_scaler.pkl"
-        model_pkl  = Path(model_path)  if model_path  else misc / "fraud_detection_model.pkl"
-        pipe_joblib  = Path(model_path)  if pipe_path  else misc / "pipeline_xgb.joblib"
+        scaler_pkl = Path(scaler_path) if scaler_path else misc / "fraud_detection_scaler.joblib"
+        model_pkl  = Path(model_path)  if model_path  else misc / "fraud_detection_model.joblib"
+        pipe_joblib  = Path(model_path)  if pipe_path  else misc / "pipelinev1_xgb.joblib"
 
         if not scaler_pkl.exists():
             raise FileNotFoundError(f"Scaler não encontrado: {scaler_pkl}")

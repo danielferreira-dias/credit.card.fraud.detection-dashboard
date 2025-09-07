@@ -1,14 +1,17 @@
 # services/transaction_service.py
 from typing import List
+import numpy as np
 from sklearn.exceptions import NotFittedError
 from app.models.transaction_model import Transaction
 from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
-from app.exception.transaction_exceptions import TransactionNotFoundError, ModelNotLoadedError
+from app.exception.transaction_exceptions import TransactionInvalidDataError, TransactionNotFoundError, ModelNotLoadedError
 from app.utils.helpers import features_to_df
 import logging
+
+from app.schemas.features_schema import TransactionFeatures, conversion_rates
 
 logger = logging.getLogger(__name__)
 
@@ -73,19 +76,27 @@ class TransactionService:
             card_present=transaction.card_present
         )
 
-        transaction_data = self.extract_features(transaction_request)
-        transaction_dataframe = features_to_df(transaction_data) 
-        logger.info(f"The dataframe -> {transaction_dataframe}")
-        ##transaction_data = np.array([list(transaction_data.values())])
+        transaction_data = self.extract_features(transaction_request, conversion_rates)
+        if transaction_data is None:
+            raise TransactionInvalidDataError("Transaction data for prediction is none.")
+        logger.warning(f"Current transaction data for prediction is -> {transaction_data}")
 
         try:
-            pred = self.pipe.predict(transaction_dataframe)[0]
-            proba = self.pipe.predict_proba(transaction_dataframe)[0][1]
+            transaction_data_numpy = transaction_data.to_numpy()
+            assert transaction_data_numpy.ndim == 2 and transaction_data_numpy.shape[1] == 38, transaction_data_numpy.shape
+            logger.warning(f"Data was transformed into numpy {transaction_data_numpy}")
+
+            transaction_data_scaled = self.scaler.transform(transaction_data_numpy)
+
+            pred = self.model.predict(transaction_data_scaled)
+            proba = self.model.predict_proba(transaction_data_scaled)
+
+            proba  = float(proba[0, 1])
         except NotFittedError as e:
             logger.error("Model pipeline not fitted", exc_info=True)
-            raise ModelNotLoadedError("Model not fitted; load a trained artifact.")
+            raise ModelNotLoadedError("Model not fitted; load a trained artifact.") from e
 
-        logger.info(f"Prediction for transaction ID {transaction_id}: {pred[0]} with probability {proba:.4f}") 
+        logger.info(f"Prediction for transaction ID {transaction_id}: {pred[0]} with probability {proba}") 
 
         return TransactionPredictionResponse(
             is_fraud=pred[0],
@@ -136,80 +147,47 @@ class TransactionService:
         )
     
     @staticmethod
-    def extract_features(transaction_request: TransactionRequest) -> dict:
-        """Builds feature dictionary for the model.
-        Args:
-            transaction_request (TransactionFeature): The transaction request data.
-        Returns:
-            dict: A dictionary of features for the model.
-        """
-
-        logger.info(f"Current Transaction Request: {transaction_request}")
-
-        if transaction_request is None:
-            raise TypeError("transaction_request cannot be None")
-        
-        if transaction_request.channel is None or transaction_request.device is None or transaction_request.country is None:
-            raise ValueError("channel, device, and country cannot be None")
-
-        conversion_rates = {
-            'EUR': 1.06,
-            'CAD': 0.72,
-            'RUB': 0.01,
-            'NGN': 0.0006,
-            'SGD': 0.75,
-            'MXN': 0.049,
-            'BRL': 0.17,
-            'AUD': 0.65,
-            'JPY': 0.0065,
-            'USD': 1.0
-        }
-
-        features = {
-            "channel_large": 1 if transaction_request.channel == "large" else 0,
-            "channel_medium": 1 if transaction_request.channel == "medium" else 0,
-            "device_Android App": 1 if transaction_request.device == "Android App" else 0,
-            "device_Safari": 1 if transaction_request.device == "Safari" else 0,
-            "device_Firefox": 1 if transaction_request.device == "Firefox" else 0,
-            "USD_converted_total_amount": transaction_request.total_amount * conversion_rates.get(transaction_request.currency, 1.28),
-            "device_Chrome": 1 if transaction_request.device == "Chrome" else 0,
-            "device_iOS App": 1 if transaction_request.device == "iOS App" else 0,
-            "city_Unknown_City": 1 if transaction_request.city == "Unknown City" else 0,
-            "country_USA": 1 if transaction_request.country == "USA" else 0,
-            "country_Australia": 1 if transaction_request.country == "Australia" else 0,
-            "country_Germany": 1 if transaction_request.country == "Germany" else 0,
-            "country_UK": 1 if transaction_request.country == "UK" else 0,
-            "country_Canada": 1 if transaction_request.country == "Canada" else 0,
-            "country_Japan": 1 if transaction_request.country == "Japan" else 0,
-            "country_France": 1 if transaction_request.country == "France" else 0,
-            "device_Edge": 1 if transaction_request.device == "Edge" else 0,
-            "country_Singapore": 1 if transaction_request.country == "Singapore" else 0,
-            "channel_mobile": 1 if transaction_request.channel == "mobile" else 0,
-            "country_Nigeria": 1 if transaction_request.country == "Nigeria" else 0,
-            "country_Brazil": 1 if transaction_request.country == "Brazil" else 0,
-            "country_Russia": 1 if transaction_request.country == "Russia" else 0,
-            "country_Mexico": 1 if transaction_request.country == "Mexico" else 0,
-            "is_off_hours": 1 if transaction_request.transaction_hour > 9 or transaction_request.transaction_hour < 17 else 0,
-            'max_single_amount': transaction_request.max_single_amount * conversion_rates.get(transaction_request.currency, 1.28),
-            "USD_converted_amount": transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28),
-            "channel_web": 1 if transaction_request.channel == "web" else 0,
-            "is_high_amount": 1 if (transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)) > 1000 else 0,
-            "is_low_amount": 1 if (transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)) < 100 else 0,
-            "transaction_hour": transaction_request.transaction_hour,
-            "hour": transaction_request.transaction_hour,
-            "device_NFC Payment": 1 if transaction_request.device == "NFC Payment" else 0,
-            "device_Magnetic Stripe": 1 if transaction_request.device == "Magnetic Stripe" else 0,
-            "device_Chip Reader": 1 if transaction_request.device == "Chip Reader" else 0,
-            "high_risk_transaction": 1 if transaction_request.country in ['Brazil', 'Mexico', 'Nigeria', 'Russia'] and transaction_request.device in ['Magnetic Stripe', 'NFC Payment', 'Chip Reader'] else 0,
-            "channel_pos": 1 if transaction_request.channel == "pos" else 0,
-            "card_present": transaction_request.card_present,
-            "distance_from_home": transaction_request.distance_from_home,
-        }
-
-        logger.info(f"Features extracted to train: {features}")
-
-        return features
-    
+    def extract_features(transaction_request: TransactionRequest, conversion_rates: dict) -> TransactionFeatures:
+        return TransactionFeatures(
+            channel_large=1 if transaction_request.channel == "large" else 0,
+            channel_medium=1 if transaction_request.channel == "medium" else 0,
+            **{"device_Android App": 1 if transaction_request.device == "Android App" else 0},
+            device_Safari=1 if transaction_request.device == "Safari" else 0,
+            device_Firefox=1 if transaction_request.device == "Firefox" else 0,
+            USD_converted_total_amount=transaction_request.total_amount * conversion_rates.get(transaction_request.currency, 1.28),
+            device_Chrome=1 if transaction_request.device == "Chrome" else 0,
+            **{"device_iOS App": 1 if transaction_request.device == "iOS App" else 0},
+            **{"city_Unknown City": 1 if transaction_request.city == "Unknown City" else 0},
+            country_USA=1 if transaction_request.country == "USA" else 0,
+            country_Australia=1 if transaction_request.country == "Australia" else 0,
+            country_Germany=1 if transaction_request.country == "Germany" else 0,
+            country_UK=1 if transaction_request.country == "UK" else 0,
+            country_Canada=1 if transaction_request.country == "Canada" else 0,
+            country_Japan=1 if transaction_request.country == "Japan" else 0,
+            country_France=1 if transaction_request.country == "France" else 0,
+            device_Edge=1 if transaction_request.device == "Edge" else 0,
+            country_Singapore=1 if transaction_request.country == "Singapore" else 0,
+            channel_mobile=1 if transaction_request.channel == "mobile" else 0,
+            country_Nigeria=1 if transaction_request.country == "Nigeria" else 0,
+            country_Brazil=1 if transaction_request.country == "Brazil" else 0,
+            country_Russia=1 if transaction_request.country == "Russia" else 0,
+            country_Mexico=1 if transaction_request.country == "Mexico" else 0,
+            is_off_hours=1 if transaction_request.transaction_hour < 9 or transaction_request.transaction_hour > 17 else 0,
+            max_single_amount=transaction_request.max_single_amount * conversion_rates.get(transaction_request.currency, 1.28),
+            USD_converted_amount=transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28),
+            channel_web=1 if transaction_request.channel == "web" else 0,
+            is_high_amount=1 if (transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)) > 1000 else 0,
+            is_low_amount=1 if (transaction_request.amount * conversion_rates.get(transaction_request.currency, 1.28)) < 100 else 0,
+            transaction_hour=transaction_request.transaction_hour,
+            hour=transaction_request.transaction_hour,
+            **{"device_NFC Payment": 1 if transaction_request.device == "NFC Payment" else 0},
+            **{"device_Magnetic Stripe": 1 if transaction_request.device == "Magnetic Stripe" else 0},
+            **{"device_Chip Reader": 1 if transaction_request.device == "Chip Reader" else 0},
+            high_risk_transaction=1 if transaction_request.country in ['Brazil', 'Mexico', 'Nigeria', 'Russia']and transaction_request.device in ['Magnetic Stripe', 'NFC Payment', 'Chip Reader'] else 0,
+            channel_pos=1 if transaction_request.channel == "pos" else 0,
+            card_present=1 if transaction_request.card_present else 0,
+            distance_from_home=transaction_request.distance_from_home,
+        )
 
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 import datetime
 from typing import List, Literal, Optional
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class TransactionRequest(BaseModel):
     channel: str
@@ -16,7 +16,6 @@ class TransactionRequest(BaseModel):
     distance_from_home: int
     currency: str
     card_present: int
-
 
 class TransactionPredictionResponse(BaseModel):
     is_fraud: int
