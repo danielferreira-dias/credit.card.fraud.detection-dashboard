@@ -37,14 +37,14 @@ class Transaction(Base):
 
 # Ordem EXATA das features (usa estes nomes como colunas no DataFrame)
 FEATURE_COLUMNS: List[str] = [
-    "channel_large","channel_medium","device_Android App","device_Safari","device_Firefox",
+    "channel_medium","device_Android App","device_Safari","device_Firefox",
     "USD_converted_total_amount","device_Chrome","device_iOS App","city_Unknown City",
     "country_USA","country_Australia","country_Germany","country_UK","country_Canada",
     "country_Japan","country_France","device_Edge","country_Singapore","channel_mobile",
     "country_Nigeria","country_Brazil","country_Russia","country_Mexico","is_off_hours",
     "max_single_amount","USD_converted_amount","channel_web","is_high_amount","is_low_amount",
     "transaction_hour","hour","device_NFC Payment","device_Magnetic Stripe",
-    "device_Chip Reader","high_risk_transaction","channel_pos","card_present",
+    "device_Chip Reader","high_risk_transaction","channel_pos","suspicious_device","card_present",
     "distance_from_home",
 ]
 

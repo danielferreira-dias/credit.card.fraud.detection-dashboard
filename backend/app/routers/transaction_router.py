@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from app.schemas.transaction_schema import TransactionResponse, TransactionPredictionResponse
+from app.schemas.transaction_schema import ResponseWithMessage, TransactionCreate, TransactionResponse, TransactionPredictionResponse
 from app.service.transaction_service import TransactionService
 from app.infra.logger import setup_logger
 
@@ -43,3 +43,11 @@ async def get_transaction(transaction_id: str, service: TransactionService = Dep
     response = service.get_transaction_by_id(transaction_id)
     logger.info(f"Response of get transaction_id {transaction_id}: {response}")
     return response
+
+@router.post("/transaction", response_model=ResponseWithMessage)
+async def create_new_transaction(new_transaction: TransactionCreate, service: TransactionService = Depends(get_transaction_service)):
+    response = service.create_transaction(new_transaction)
+    return ResponseWithMessage(
+        message="Transição criada com successo",
+        data=response
+    )

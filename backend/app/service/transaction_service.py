@@ -1,6 +1,7 @@
 # services/transaction_service.py
 from typing import List
 import numpy as np
+import pandas as pd
 from sklearn.exceptions import NotFittedError
 from app.models.transaction_model import FEATURE_COLUMNS, Transaction
 from sqlalchemy.orm import Session
@@ -77,12 +78,16 @@ class TransactionService:
         transaction_data = self.extract_features(transaction_request, conversion_rates)
         if transaction_data is None:
             raise TransactionInvalidDataError("Transaction data for prediction is none.")
-        logger.warning(f"Current transaction data for prediction is -> {transaction_data}")
+        logger.info(f"Current transaction data for prediction is -> {transaction_data}")
 
         try:
             transaction_data_numpy = np.array([[transaction_data.model_dump(by_alias=True)[c] for c in FEATURE_COLUMNS]], dtype=float)
-            logger.warning(f"Data was transformed into numpy {transaction_data_numpy}")
+            ##logger.info(f"Data was transformed into numpy {transaction_data_numpy}")
 
+            transaction_data_dataframe = pd.DataFrame([transaction_data.model_dump(by_alias=True)], columns=FEATURE_COLUMNS)
+
+            logger.info("Feature columns received: %s", list(transaction_data_dataframe.columns))
+            assert list(transaction_data_dataframe.columns) == FEATURE_COLUMNS, "Ordem das colunas incorreta!"
             # Se tens scaler + modelo separados:
             X_scaled = self.scaler.transform(transaction_data_numpy)
             y_pred = int(self.model.predict(X_scaled)[0])
@@ -105,6 +110,9 @@ class TransactionService:
             is_fraud=True if y_pred == 1 else False,
             probability=p_pos
         )
+    
+    def create_transaction(self, new_transaction: Transaction) -> TransactionResponse:
+        return self._to_response(self.repo.create_transaction(new_transaction))
     
     @staticmethod
     def mask_card(card: str) -> str:
@@ -152,7 +160,6 @@ class TransactionService:
     @staticmethod
     def extract_features(transaction_request: TransactionRequest, conversion_rates: dict) -> TransactionFeatures:
         return TransactionFeatures(
-            channel_large=1 if transaction_request.channel == "large" else 0,
             channel_medium=1 if transaction_request.channel == "medium" else 0,
             **{"device_Android App": 1 if transaction_request.device == "Android App" else 0},
             device_Safari=1 if transaction_request.device == "Safari" else 0,
@@ -188,6 +195,7 @@ class TransactionService:
             **{"device_Chip Reader": 1 if transaction_request.device == "Chip Reader" else 0},
             high_risk_transaction=1 if transaction_request.country in ['Brazil', 'Mexico', 'Nigeria', 'Russia']and transaction_request.device in ['Magnetic Stripe', 'NFC Payment', 'Chip Reader'] else 0,
             channel_pos=1 if transaction_request.channel == "pos" else 0,
+            suspicious_device= 1 if transaction_request.device in ["NFC Payment", "Magnetic Stripe", "Chip Reader"] else 0,
             card_present=1 if transaction_request.card_present else 0,
             distance_from_home=transaction_request.distance_from_home,
         )

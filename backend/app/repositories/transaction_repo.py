@@ -34,7 +34,7 @@ class TransactionRepository:
             existing_transaction = self.get_transaction_by_id(transaction.transaction_id)
             if existing_transaction:   
                 logger.warning(f"Transação com ID {transaction.transaction_id} já existe")
-                raise TransactionDuplucateError("Transação com este ID já existe na base de dados")
+                raise TransactionDuplucateError(name="Transição duplicada", message="Transição já existe na base de dados;")
             
             self.db.add(transaction)
             self.db.commit()

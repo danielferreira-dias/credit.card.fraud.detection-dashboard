@@ -83,7 +83,6 @@ def test_test_extract_features_none_device(transaction_request_mock):
 
 def test_extract_features_valid_values_channel(transaction_request_mock):
     features = TransactionService.extract_features(transaction_request_mock)
-    assert features['channel_large'] == 1
     assert features['channel_medium'] == 0
     assert features['channel_mobile'] == 0
     assert features['channel_web'] == 0

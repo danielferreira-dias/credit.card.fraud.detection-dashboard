@@ -3,15 +3,19 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 FEATURE_COLUMNS = [
-    "channel_large","channel_medium","device_Android App","device_Safari","device_Firefox",
+    "channel_medium","device_Android App","device_Safari","device_Firefox",
     "USD_converted_total_amount","device_Chrome","device_iOS App","city_Unknown City",
     "country_USA","country_Australia","country_Germany","country_UK","country_Canada",
     "country_Japan","country_France","device_Edge","country_Singapore","channel_mobile",
     "country_Nigeria","country_Brazil","country_Russia","country_Mexico","is_off_hours",
     "max_single_amount","USD_converted_amount","channel_web","is_high_amount","is_low_amount",
     "transaction_hour","hour","device_NFC Payment","device_Magnetic Stripe","device_Chip Reader",
-    "high_risk_transaction","channel_pos","card_present","distance_from_home"
+    "high_risk_transaction","channel_pos","card_present","suspicious_device","distance_from_home"
 ]
+
+
+
+
 
 conversion_rates = {
             'EUR': 1.06,
@@ -51,7 +55,6 @@ KEYMAP = {
 
 class TransactionFeatures(BaseModel):
     model_config = dict(populate_by_name=True)
-    channel_large: int = Field(alias="channel_large")
     channel_medium: int = Field(alias="channel_medium")
     device_android_app: int = Field(alias="device_Android App")
     device_safari: int = Field(alias="device_Safari")
@@ -87,6 +90,7 @@ class TransactionFeatures(BaseModel):
     device_chip_reader: int = Field(alias="device_Chip Reader")
     high_risk_transaction: int = Field(alias="high_risk_transaction")
     channel_pos: int = Field(alias="channel_pos")
+    suspicious_device: int = Field(alias="suspicious_device")
     card_present: int = Field(alias="card_present")
     distance_from_home: int = Field(alias="distance_from_home")
 
