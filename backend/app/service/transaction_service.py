@@ -28,7 +28,7 @@ class TransactionService:
             logger.critical("Erro ao carregar artefactos de ML", exc_info=True)
             raise ModelNotLoadedError("Erro ao carregar artefactos de ML") from e
 
-    def list_transactions_service(self) -> List[TransactionResponse]:
+    def get_transactions(self) -> List[TransactionResponse]:
         transaction_list = self.repo.get_all_transactions()
         if transaction_list is None:
             logger.error("No transactions found in the database.")
@@ -36,25 +36,25 @@ class TransactionService:
         
         return [self._to_response(ts) for ts in transaction_list]
     
-    def get_transaction_by_id(self, transaction_id: str) -> TransactionResponse:
+    def get_transaction_id(self, transaction_id: str) -> TransactionResponse:
         if transaction_id is None:
             logger.error(f"{transaction_id} cannot be None for prediction.")
             raise TransactionInvalidDataError("transaction_id cannot be None")
 
-        transaction = self.repo.get_transaction_by_id(transaction_id)
+        transaction = self.repo.get_transaction_id(transaction_id)
         if transaction is None:
             logger.error(f"Transaction with ID {transaction_id} not found.")
             raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
         
         return self._to_response(transaction)
 
-    def predict_transaction_service(self, transaction_id: str) -> dict:
+    def predict_transaction(self, transaction_id: str) -> dict:
 
         if transaction_id is None:
             logger.error(f"{transaction_id} cannot be None for prediction.")
             raise TransactionInvalidDataError("transaction_id cannot be None")
 
-        transaction = self.repo.get_transaction_by_id(transaction_id)
+        transaction = self.repo.get_transaction_id(transaction_id)
         logger.info(f"Fetched transaction for prediction: {transaction}")
 
         if transaction is None:
@@ -113,6 +113,28 @@ class TransactionService:
     
     def create_transaction(self, new_transaction: TransactionCreate) -> TransactionResponse:
         return self._to_response(self.repo.create_transaction(new_transaction))
+    
+    def delete_transaction(self, transaction_id: str) -> str:
+        transaction = self.repo.get_transaction_id(transaction_id)
+        if transaction is None:
+            logger.error(f"Transaction with ID {transaction_id} not found for deletion.")
+            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
+        
+        self.repo.delete_transaction(transaction_id)
+        return f"Transaction with ID {transaction_id} deleted successfully."
+
+    def update_transaction(self, transaction_id: str, updated_transaction: TransactionCreate) -> TransactionResponse:
+        existing_transaction = self.repo.get_transaction_id(transaction_id)
+        
+        if existing_transaction is None:
+            logger.error(f"Transaction with ID {transaction_id} not found for update.")
+            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
+
+        for key, value in updated_transaction.__dict__.items():
+                if key != "transaction_id" and value is not None:
+                    setattr(existing_transaction, key, value)
+
+        return self._to_response(self.repo.update_transaction(existing_transaction))
     
     @staticmethod
     def mask_card(card: str) -> str:

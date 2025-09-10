@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, status
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.routers.transaction_router import router as transaction_router
 from app.settings.database import engine
 from app.models.transaction_model import Transaction
@@ -22,6 +23,8 @@ app = FastAPI(
     description="API for detecting credit card fraud using machine learning",
     version="1.0.0"
 )
+
+Instrumentator().instrument(app).expose(app)
 
 # Include routers --------------------------------------------------
 app.include_router(transaction_router)

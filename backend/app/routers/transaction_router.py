@@ -1,11 +1,6 @@
 # app/routers/transactions.py
-import datetime
-
-from fastapi.exceptions import RequestValidationError
-import joblib
-from psycopg2 import IntegrityError
 from app.settings.database import get_db
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from typing import List
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -28,19 +23,19 @@ def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService
 
 @router.get("/{transaction_id}/predict", response_model=TransactionPredictionResponse)
 async def predict_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
-    response = service.predict_transaction_service(transaction_id)
+    response = service.predict_transaction(transaction_id)
     logger.info(f"Response of router predict_transaction: {response}")
     return response
     
 @router.get("/", response_model=List[TransactionResponse])
 async def list_transactions(service: TransactionService = Depends(get_transaction_service),):
-    response_list = service.list_transactions_service()
+    response_list = service.get_transactions()
     logger.info(f"Response of router list_transactions: {response_list}")
     return response_list
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
-    response = service.get_transaction_by_id(transaction_id)
+    response = service.get_transaction_id(transaction_id)
     logger.info(f"Response of get transaction_id {transaction_id}: {response}")
     return response
 
@@ -49,5 +44,21 @@ async def create_new_transaction(new_transaction: TransactionCreate, service: Tr
     response = service.create_transaction(new_transaction)
     return ResponseWithMessage(
         message="Transição criada com successo",
+        data=response
+    )
+
+@router.delete("/{transaction_id}", response_model=ResponseWithMessage)
+async def delete_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
+    response = service.delete_transaction(transaction_id)
+    return ResponseWithMessage(
+        message=f"Transaction with id {transaction_id} deleted successfully",
+        data=response
+    )
+
+@router.put("/{transaction_id}", response_model=ResponseWithMessage)
+async def update_transaction(transaction_id: str, updated_transaction: TransactionCreate, service: TransactionService = Depends(get_transaction_service)):
+    response = service.update_transaction(transaction_id, updated_transaction)
+    return ResponseWithMessage(
+        message=f"Transaction with id {transaction_id} updated successfully",
         data=response
     )

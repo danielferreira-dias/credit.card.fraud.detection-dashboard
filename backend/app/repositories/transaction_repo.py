@@ -22,7 +22,7 @@ class TransactionRepository:
             logger.error(f"Erro ao obter transações: {e}")
             raise DatabaseException("Erro ao aceder às transações na base de dados") from e
     
-    def get_transaction_by_id(self, transaction_id: str) -> Transaction:
+    def get_transaction_id(self, transaction_id: str) -> Transaction:
         try:
             transaction = self.db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
             logger.info(f"The transaction fetched by the database was the following: {transaction}")
@@ -46,11 +46,7 @@ class TransactionRepository:
         
     def delete_transaction(self, transaction_id: str):
         try:
-            transaction = self.get_transaction_by_id(transaction_id)
-            if transaction is None:
-                logger.warning(f"Transação com ID {transaction_id} não encontrada para remoção")
-                raise TransactionNotFoundError("Transação não encontrada na base de dados")
-            
+            transaction = self.get_transaction_id(transaction_id)
             logger.info(f"Transação com ID {transaction_id} removida com sucesso")
             self.db.delete(transaction)
             self.db.commit()
@@ -59,25 +55,13 @@ class TransactionRepository:
             logger.error(f"Erro ao remover transação com ID {transaction_id}: {e}")
             raise DatabaseException("Erro ao remover a transação na base de dados") from e
         
-    def update_transaction(self, transaction_id: str, updated_transaction: Transaction) -> Transaction:
+    def update_transaction(self, updated_transaction: Transaction) -> Transaction:
         try:
-            transaction = self.get_transaction_by_id(transaction_id)
-
-            if transaction is None:
-                logger.warning(f"Transação com ID {transaction_id} não encontrada para atualização")
-                raise TransactionNotFoundError("Transação não encontrada na base de dados")
-            
-            for key, value in updated_transaction.__dict__.items():
-                if key != "transaction_id" and value is not None:
-                    setattr(transaction, key, value)
-
-            logger.info(f"Transação com ID {transaction_id} atualizada com sucesso")
             self.db.commit()
-            self.db.refresh(transaction)
-            return transaction
-        
+            self.db.refresh(updated_transaction)
+            return updated_transaction
         except SQLAlchemyError as e:
-            logger.error(f"Erro ao atualizar transação com ID {transaction_id}: {e}")
+            logger.error(f"Erro ao atualizar transação: {e}")
             raise DatabaseException("Erro ao atualizar a transação na base de dados") from e
         
         
