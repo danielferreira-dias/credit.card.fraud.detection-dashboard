@@ -120,6 +120,61 @@ def fraud_transaction(**overrides) -> Transaction:
     base.update(overrides)
     return Transaction(**base)
 
+def test_create_transaction(client):
+    payload = {
+        "transaction_id": "tx_create_test",
+        "customer_id": "CUST_70474",
+        "card_number": "1454535342727",
+        "timestamp": "2024-09-30T00:00:01.764464",
+        "merchant": "Steam",
+        "merchant_category": "Entertainment",
+        "merchant_type": "gaming",
+        "amount": 3368.97,
+        "currency": "BRL",
+        "country": "Brazil",
+        "city": "Unknown City",
+        "city_size": "medium",
+        "card_type": "Platinum Credit",
+        "card_present": 0,
+        "device": "Edge",
+        "channel": "web",
+        "device_fingerprint": "a73043a57091e775af37f252b3a32af9",
+        "ip_address": "208.123.221.203",
+        "distance_from_home": 1,
+        "high_risk_merchant": True,
+        "transaction_hour": 0,
+        "weekend_transaction": False,
+        "velocity_last_hour": {
+            "num_transactions": 509,
+            "total_amount": 20114759.055250417,
+            "unique_merchants": 100,
+            "unique_countries": 12,
+            "max_single_amount": 5149117.011434267
+        }
+    }
+    r = client.post("/transactions/create_transaction", json=payload)
+    logger.info("Response for create transaction: %s", r.json())
+    assert r.status_code == 200
+    data = r.json()
+    assert data["message"] == "Transição criada com successo"
+    assert data["data"].get("customer_id") == "CUST_70474"
+
+def test_create_transaction_duplicate_id(client, pg_sessionmaker):
+    db = pg_sessionmaker()
+    tx1 = build_transaction(transaction_id="tx_duplicate")
+    db.add(tx1)
+    db.commit()
+    
+    r = client.post("/transaction", json=tx1.dict())
+    logger.info("Response for duplicate ID: %s", r.json())
+    assert r.status_code == 409  # Bad Request devido a IntegrityError
+
+def test_create_transaction_missing_field(client, pg_sessionmaker):
+    db = pg_sessionmaker()
+    tx = build_transaction(transaction_id="tx_missing_field", amount=None)
+    r = client.post("/transaction", json=tx.dict())
+    assert r.status_code == 422  # Unprocessable Entity devido a validação do Pydantic
+    
 def test_get_transaction_not_found(client):
     r = client.get("/transactions/UNKNOWN_ID")
     assert r.status_code == 404

@@ -44,7 +44,7 @@ async def get_transaction(transaction_id: str, service: TransactionService = Dep
     logger.info(f"Response of get transaction_id {transaction_id}: {response}")
     return response
 
-@router.post("/transaction", response_model=ResponseWithMessage)
+@router.post("/create_transaction", response_model=ResponseWithMessage)
 async def create_new_transaction(new_transaction: TransactionCreate, service: TransactionService = Depends(get_transaction_service)):
     response = service.create_transaction(new_transaction)
     return ResponseWithMessage(

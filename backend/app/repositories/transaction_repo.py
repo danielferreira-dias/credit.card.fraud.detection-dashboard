@@ -6,6 +6,8 @@ from app.infra.logger import setup_logger
 from app.exception.transaction_exceptions import DatabaseException, TransactionDuplucateError, TransactionNotFoundError
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.schemas.transaction_schema import TransactionCreate
+
 logger = setup_logger(__name__)
 
 class TransactionRepository:
@@ -29,18 +31,16 @@ class TransactionRepository:
             logger.error(f"Erro ao obter transação por ID {transaction_id}: {e}")
             raise DatabaseException("Erro ao aceder à transação na base de dados") from e
     
-    def create_transaction(self, transaction: Transaction) -> Transaction:
+    def create_transaction(self, transaction: TransactionCreate) -> Transaction:
         try:
-            existing_transaction = self.get_transaction_by_id(transaction.transaction_id)
-            if existing_transaction:   
-                logger.warning(f"Transação com ID {transaction.transaction_id} já existe")
-                raise TransactionDuplucateError(name="Transição duplicada", message="Transição já existe na base de dados;")
-            
+            transaction = Transaction(**transaction.model_dump())
             self.db.add(transaction)
             self.db.commit()
             self.db.refresh(transaction)
             return transaction
         except SQLAlchemyError as e:
+            if "duplicate key" in str(e).lower():
+                raise TransactionDuplucateError(name="Transição duplicada", message="Transição já existe na base de dados;")
             logger.error(f"Erro ao criar transação: {e}")
             raise DatabaseException("Erro ao criar a transação na base de dados") from e
         

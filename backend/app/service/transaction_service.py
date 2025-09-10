@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.exceptions import NotFittedError
 from app.models.transaction_model import FEATURE_COLUMNS, Transaction
 from sqlalchemy.orm import Session
-from app.schemas.transaction_schema import TransactionPredictionResponse, TransactionRequest, TransactionResponse
+from app.schemas.transaction_schema import TransactionCreate, TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
 from app.exception.transaction_exceptions import TransactionInvalidDataError, TransactionNotFoundError, ModelNotLoadedError
@@ -111,7 +111,7 @@ class TransactionService:
             probability=p_pos
         )
     
-    def create_transaction(self, new_transaction: Transaction) -> TransactionResponse:
+    def create_transaction(self, new_transaction: TransactionCreate) -> TransactionResponse:
         return self._to_response(self.repo.create_transaction(new_transaction))
     
     @staticmethod
@@ -133,7 +133,7 @@ class TransactionService:
             raise ValueError("Transaction instance cannot be None")
 
         return TransactionResponse(
-            costumer_id=ts.customer_id,
+            customer_id=ts.customer_id,
             card_number=cls.mask_card(ts.card_number),
             timestamp=ts.timestamp,
             merchant=ts.merchant,
