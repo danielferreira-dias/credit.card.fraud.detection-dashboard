@@ -1,13 +1,13 @@
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 
 export default function Navbar(){
     
-    const TransactionIcon = () => <img src="../../public/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
-    const DashboardIcon = () => <img src="../../public/dashboard-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
-    const AgentIcon = () => <img src="../../public/artificial-intelligence-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
-    const SettingsIcon = () => <img src="../../public/settings-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
-    const AboutIcon = () => <img src="../../public/about-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
-    const LogoutIcon = () => <img src="../../public/logout-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
+    const TransactionIcon = () => <img src="/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
+    const DashboardIcon = () => <img src="/dashboard-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
+    const AgentIcon = () => <img src="/artificial-intelligence-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
+    const SettingsIcon = () => <img src="/settings-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
+    const AboutIcon = () => <img src="/about-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
+    const LogoutIcon = () => <img src="/logout-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
 
     const navBarElements : { element : string , symbol : ReactNode }[] = [
         { element: "Transactions", symbol: <TransactionIcon /> },
@@ -24,21 +24,22 @@ export default function Navbar(){
     const userInformation : { userName: string, userPosition: string, userProfile: string } = {
         userName : "Daniel Dias",
         userPosition : "Software Engineer",
-        userProfile : "../../public/profile.png"
+        userProfile : "/profile.png"
     }
 
-    return (
-        <div className="h-screen w-[15%] bg-[#0F0F11] flex flex-col border-1 rounded-xl border-[#2A2A2A] p-2 shadow-lg shadow-zinc-800 items-center">
+    const [sideBarCollaped, setState] = useState(false) 
 
-            <div className="w-10 h-10 bg-transparent border-1 rounded-full absolute right-0 border-[#2A2A2A] shadow-lg shadow-zinc-800">
-                <img src="../../public/left-arrow-backup-2-svgrepo-com.svg" alt="Agent" className="w-10 h-10 p-3" />;    
-            </div>
+    return (
+        <div className="h-screen w-[15%] bg-[#0F0F11] flex flex-col border-1 rounded-xl border-[#2A2A2A] p-2 shadow-lg shadow-zinc-800 items-center relative">
+            <button className="transform transition duration-300 ease-in-out opacity-70 hover:shadow-2xl hover:shadow-zinc-800 w-10 h-10 bg-[#0F0F11] border rounded-full absolute top-1/2 -translate-y-1/2 -right-4 border-[#2A2A2A] shadow-r-lg flex items-center justify-center">
+                <img src="/left-arrow-backup-2-svgrepo-com.svg" alt="Toggle sidebar" className="w-3 h-3" />
+            </button>
 
             /* User's information */
             <div className="w-[90%] h-fit flex flex-col justify-left items-center">
-                <div className="w-full h-fit flex flex-row justify-left gap-4 text-zinc-300">
+                <div className="w-full h-fit flex flex-row justify-left gap-4 text-zinc-200">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
-                        <img src="" className="w-full h-full object-cover bg-white" />
+                        <img src="/profile.png" className="w-full h-full object-cover " />
                     </div>
                     <div className="flex flex-col gap-y-0.5 text-sm">
                         <span className="font-semibold">{userInformation.userPosition}</span>
@@ -48,13 +49,13 @@ export default function Navbar(){
                 <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>
             </div>
 
-            <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 opacity-90 gap-y-5 text-sm mt-6">
+            <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 gap-y-5 text-sm mt-6">
                 <span className="text-xs opacity-80">Features</span>
                 <div className="flex flex-col gap-y-5">
                     {navBarElements.map(({ element, symbol }) => (
                         <div key={element} className="flex items-center space-x-2">
                         <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                        <span>{element}</span>
+                        <button className="transform transition duration-300 ease-in-out opacity-70 hover:opacity-100  hover:text-white ">{element}</button>
                         </div>
                     ))}
                 </div>
@@ -67,8 +68,10 @@ export default function Navbar(){
                     {navBarSettings.map(({ element, symbol }) => (
                         <div key={element} className="flex items-center space-x-2">
                         <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                        <span>{element}</span>
-                        </div>
+                        <button className={`transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? "text-red-400 opacity-100 hover:text-red-300" : "text-zinc-300 hover:text-white"}`}>
+                            {element}
+                        </button>
+                </div>
                     ))}
                 </div>
             </div>
