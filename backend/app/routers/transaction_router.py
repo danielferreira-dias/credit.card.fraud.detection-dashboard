@@ -1,4 +1,5 @@
 # app/routers/transactions.py
+from fastapi import Query
 from app.settings.database import get_db
 from fastapi import APIRouter
 from typing import List
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.schemas.transaction_schema import ResponseWithMessage, TransactionCreate, TransactionResponse, TransactionPredictionResponse
 from app.service.transaction_service import TransactionService
 from app.infra.logger import setup_logger
+from app.schemas.filter_schema import TransactionFilter
 
 router = APIRouter(
     prefix="/transactions",
@@ -28,8 +30,9 @@ async def predict_transaction(transaction_id: str, service: TransactionService =
     return response
     
 @router.get("/", response_model=List[TransactionResponse])
-async def list_transactions(service: TransactionService = Depends(get_transaction_service),):
-    response_list = service.get_transactions()
+async def list_transactions(filters: TransactionFilter = Depends(), limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0) ,service: TransactionService = Depends(get_transaction_service),):
+    response_list = service.get_transactions(filters, limit, skip)
     logger.info(f"Response of router list_transactions: {response_list}")
     return response_list
 

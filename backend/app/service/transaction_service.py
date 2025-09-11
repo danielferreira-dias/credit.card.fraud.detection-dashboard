@@ -2,16 +2,16 @@
 from typing import List
 import numpy as np
 import pandas as pd
+import logging
 from sklearn.exceptions import NotFittedError
-from app.models.transaction_model import FEATURE_COLUMNS, Transaction
 from sqlalchemy.orm import Session
+from app.models.transaction_model import FEATURE_COLUMNS, Transaction
 from app.schemas.transaction_schema import TransactionCreate, TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
 from app.infra.model_loader import ModelLoader
 from app.exception.transaction_exceptions import TransactionInvalidDataError, TransactionNotFoundError, ModelNotLoadedError
-import logging
-
 from app.schemas.features_schema import TransactionFeatures, conversion_rates
+from app.schemas.filter_schema import TransactionFilter
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +28,11 @@ class TransactionService:
             logger.critical("Erro ao carregar artefactos de ML", exc_info=True)
             raise ModelNotLoadedError("Erro ao carregar artefactos de ML") from e
 
-    def get_transactions(self) -> List[TransactionResponse]:
-        transaction_list = self.repo.get_all_transactions()
-        if transaction_list is None:
+    def get_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[TransactionResponse]:
+        transaction_list = self.repo.get_all_transactions(filters, limit, skip)
+        if transaction_list is None or len(transaction_list) == 0:
             logger.error("No transactions found in the database.")
             raise TransactionNotFoundError(name="Transactions Not Found", message="Transactions do not exist.") 
-        
         return [self._to_response(ts) for ts in transaction_list]
     
     def get_transaction_id(self, transaction_id: str) -> TransactionResponse:

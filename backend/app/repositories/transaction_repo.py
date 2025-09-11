@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 from app.models.transaction_model import Transaction
 from typing import List, Optional
 from app.infra.logger import setup_logger
-from app.exception.transaction_exceptions import DatabaseException, TransactionDuplucateError, TransactionNotFoundError
+from app.exception.transaction_exceptions import DatabaseException, TransactionDuplucateError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.schemas.transaction_schema import TransactionCreate
+from app.schemas.filter_schema import TransactionFilter
 
 logger = setup_logger(__name__)
 
@@ -14,9 +15,46 @@ class TransactionRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def get_all_transactions(self) -> List[Transaction]:
+    def get_all_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[Transaction]:
         try:
-            transactions = self.db.query(Transaction).all()
+            query = self.db.query(Transaction)
+
+            if filters.customer_id:
+                query = query.filter(Transaction.customer_id == filters.customer_id)
+            if filters.country:
+                query = query.filter(Transaction.country.ilike(f"%{filters.country}%"))
+            if filters.city:
+                query = query.filter(Transaction.city.ilike(f"%{filters.city}%"))
+            if filters.merchant_category:
+                query = query.filter(Transaction.merchant_category.ilike(f"%{filters.merchant_category}%"))
+            if filters.merchant:
+                query = query.filter(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+            if filters.card_type:
+                query = query.filter(Transaction.card_type.ilike(f"%{filters.card_type}%"))
+            if filters.card_present is not None:
+                query = query.filter(Transaction.card_present == filters.card_present)
+            if filters.channel:
+                query = query.filter(Transaction.channel.ilike(f"%{filters.channel}%"))
+            if filters.device:
+                query = query.filter(Transaction.device.ilike(f"%{filters.device}%"))
+            if filters.distance_from_home:
+                query = query.filter(Transaction.distance_from_home == filters.distance_from_home)
+            if filters.high_risk_merchant is not None:
+                query = query.filter(Transaction.high_risk_merchant == filters.high_risk_merchant)
+            if filters.start_date:
+                query = query.filter(Transaction.date >= filters.start_date)
+            if filters.end_date:
+                query = query.filter(Transaction.date <= filters.end_date)
+            if filters.min_amount:
+                query = query.filter(Transaction.amount >= filters.min_amount)
+            if filters.max_amount:
+                query = query.filter(Transaction.amount <= filters.max_amount)
+            if filters.merchant:
+                query = query.filter(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+            if filters.is_fraud is not None:
+                query = query.filter(Transaction.is_fraud == filters.is_fraud)
+
+            transactions = query.offset(skip).limit(limit).all()
             return transactions
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transações: {e}")
