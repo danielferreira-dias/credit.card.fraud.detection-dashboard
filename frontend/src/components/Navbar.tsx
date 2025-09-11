@@ -52,8 +52,8 @@ export default function Navbar(){
             setIsMobileOpen={setIsMobileOpen}
         />
 
-        <div className={`${isCollapsed ? "lg:w-20" : "lg:w-[17.5%]"} border-[1px] border-zinc-700 w-20 max-[500px]:w-full ${!isMobileOpen ? "max-[500px]:hidden" : ""} min-h-screen max-h-[fit] bg-[#0F0F11] flex flex-col border-1 rounded-xl border-[#2A2A2A] p-2 shadow-lg shadow-zinc-800 items-center relative transition-all duration-300 ease-in-out`}>
-            <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform transition duration-300 ease-in-out opacity-70 hover:shadow-2xl hover:shadow-zinc-800 w-10 h-10 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-4 border-[#2A2A2A] shadow-r-lg items-center justify-center">
+        <div className={`${isCollapsed ? "lg:w-20" : "lg:w-[17.5%]"} border-[1px] border-zinc-700 w-20 max-[500px]:w-full ${!isMobileOpen ? "max-[500px]:hidden" : ""} min-h-screen max-h-[fit] bg-[#0F0F11] flex flex-col border-1 rounded-xl border-[#2A2A2A] p-2  items-center relative transition-all duration-300 ease-in-out`}>
+            <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform   transition duration-300 ease-in-out opacity-100 hover:shadow-2xl hover:shadow-zinc-800 w-9 h-9 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-[1rem] border-[#2A2A2A] shadow-r-lg items-center justify-center">
                 <img src={isCollapsed ? "/right-chevron-svgrepo-com.svg":"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-3 h-3 transform transition duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
             </button>
             {/* Mobile close button (only under 500px when sidebar is open at full width) */}
