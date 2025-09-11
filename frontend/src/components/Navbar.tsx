@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react"
+import { Link } from "react-router-dom"
 
 function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boolean, setIsMobileOpen : (setIsMobileOpen:boolean) => void  }){
     return(
@@ -23,10 +24,10 @@ export default function Navbar(){
     const AboutIcon = () => <img src="/about-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
     const LogoutIcon = () => <img src="/logout-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
 
-    const navBarElements : { element : string , symbol : ReactNode }[] = [
-        { element: "Transactions", symbol: <TransactionIcon /> },
-        { element: "Dashboard", symbol: <DashboardIcon /> },
-        { element: "Agent", symbol: <AgentIcon /> },
+    const navBarElements : { element : string , path?: string, symbol : ReactNode }[] = [
+        { element: "Transactions", path: "/", symbol: <TransactionIcon /> },
+        { element: "Dashboard", path: "/dashboard", symbol: <DashboardIcon /> },
+        { element: "Agent", path: "/agent", symbol: <AgentIcon /> },
     ]
 
     const navBarSettings : { element : string , symbol: ReactNode}[] = [
@@ -79,11 +80,11 @@ export default function Navbar(){
             <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 gap-y-5 text-sm mt-6">
                 <span className={`text-xs opacity-80 hidden max-[500px]:block ${isCollapsed ? "lg:hidden" : "lg:block"}`}>Features</span>
                 <div className="flex flex-col gap-y-5">
-                    {navBarElements.map(({ element, symbol }) => (
-                        <div key={element} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
+                    {navBarElements.map(({ element, path, symbol }) => (
+                        <Link key={element} to={path ?? "#"} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
                             <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                            <button className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out opacity-70 hover:opacity-100 hover:text-white `}>{element}</button>
-                        </div>
+                            <span className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out opacity-70 hover:opacity-100 hover:text-white`}>{element}</span>
+                        </Link>
                     ))}
                 </div>
             </div>

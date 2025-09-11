@@ -1,5 +1,5 @@
 export default function TransactionPage(){
     return (
-        <div>Transaction Page</div>
+        <div className="flex h-full w-full text-white justify-center items-center">Transaction Page</div>
     )
 }

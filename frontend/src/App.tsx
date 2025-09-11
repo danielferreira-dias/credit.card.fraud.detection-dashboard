@@ -1,13 +1,19 @@
-import Navbar from "./components/Navbar"
-
+import { Routes, Route, Navigate } from "react-router-dom"
+import Layout from "./components/Layout"
+import Transactions from "./pages/Transactions"
+import DashboardPage from "./pages/Dashboard"
+import AgentPage from "./pages/Agent"
 
 function App() {
   return (
-    <div className="flex flex-row p-2 gap-x-4 m-auto min-h-screen max-h-[fit] ">
-      <Navbar></Navbar>
-      <div className="flex-1  rounded-xl mr-3 border-[1px] border-zinc-700 min-h-screen max-h-[fit] flex">
-      </div>
-    </div>
+    <Routes>
+      <Route element={<Layout />}> 
+        <Route index element={<Transactions />} />
+        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="agent" element={<AgentPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }
 
