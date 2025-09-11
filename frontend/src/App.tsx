@@ -4,10 +4,9 @@ import Navbar from "./components/Navbar"
 function App() {
   return (
     <>
-      <div className="flex flex-row p-2">
+      <div className="flex flex-row p-1">
         <Navbar></Navbar>
-        <h1 className="text-yellow-700">
-          Hello World
+        <h1 >
         </h1>
       </div>
     </>
