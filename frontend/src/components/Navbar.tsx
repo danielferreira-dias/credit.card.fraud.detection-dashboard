@@ -30,12 +30,12 @@ export default function Navbar(){
     const [isCollapsed, setIsCollapsed] = useState(false)
 
     return (
-        <div className={`${isCollapsed ? "w-20" : "w-70"} h-screen bg-[#0F0F11] flex flex-col border-1 rounded-xl border-[#2A2A2A] p-2 shadow-lg shadow-zinc-800 items-center relative transition-all duration-300 ease-in-out`}>
-            <button onClick={() => setIsCollapsed(v => !v)} className="transform transition duration-300 ease-in-out opacity-70 hover:shadow-2xl hover:shadow-zinc-800 w-10 h-10 bg-[#0F0F11] border rounded-full absolute top-1/2 -translate-y-1/2 -right-4 border-[#2A2A2A] shadow-r-lg flex items-center justify-center">
+        <div className={`${isCollapsed ? "w-20" : "w-full sm:w-[10%] lg:w-[17.5%] "} h-screen bg-[#0F0F11] flex flex-col border-1 rounded-xl border-[#2A2A2A] p-2 shadow-lg shadow-zinc-800 items-center relative transition-all duration-300 ease-in-out`}>
+            <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform transition duration-300 ease-in-out opacity-70 hover:shadow-2xl hover:shadow-zinc-800 w-10 h-10 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-4 border-[#2A2A2A] shadow-r-lg items-center justify-center">
                 <img src="/left-arrow-backup-2-svgrepo-com.svg" alt="Toggle sidebar" className={`w-3 h-3 transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
             </button>
 
-            <div className="w-[90%] h-fit flex flex-col justify-left items-center mt-6">
+            <div className="w-[90%] h-fit  xs:flex flex-col justify-left items-center mt-6">
                 <div className={`w-full h-fit flex flex-row ${isCollapsed ? "justify-center" : "justify-left"} gap-4 text-zinc-200 items-center`}>
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                         <img src="/profile.png" className="w-full h-full object-cover " />
