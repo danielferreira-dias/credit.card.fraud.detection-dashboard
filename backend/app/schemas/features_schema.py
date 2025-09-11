@@ -13,22 +13,18 @@ FEATURE_COLUMNS = [
     "high_risk_transaction","channel_pos","card_present","suspicious_device","distance_from_home"
 ]
 
-
-
-
-
 conversion_rates = {
-            'EUR': 1.06,
-            'CAD': 0.72,
-            'RUB': 0.01,
-            'NGN': 0.0006,
-            'SGD': 0.75,
-            'MXN': 0.049,
-            'BRL': 0.17,
-            'AUD': 0.65,
-            'JPY': 0.0065,
-            'USD': 1.0
-        }
+    'EUR': 1.06,
+    'CAD': 0.72,
+    'RUB': 0.01,
+    'NGN': 0.0006,
+    'SGD': 0.75,
+    'MXN': 0.049,
+    'BRL': 0.17,
+    'AUD': 0.65,
+    'JPY': 0.0065,
+    'USD': 1.0
+}
 
 KEYMAP = {
     "device_android_app": "device_Android App",
@@ -54,6 +50,8 @@ KEYMAP = {
 }
 
 class TransactionFeatures(BaseModel):
+    """Schema representing the features used for transaction fraud prediction."""
+    
     model_config = dict(populate_by_name=True)
     channel_medium: int = Field(alias="channel_medium")
     device_android_app: int = Field(alias="device_Android App")
