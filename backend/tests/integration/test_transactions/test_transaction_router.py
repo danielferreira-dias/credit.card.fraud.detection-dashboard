@@ -291,4 +291,55 @@ def test_predict_transaction_is_true(client, pg_sessionmaker, fraud_transaction)
     assert r.status_code == 200
     data = r.json()
     assert data.get('is_fraud') == True
+
+def test_delete_transaction_success(client, pg_sessionmaker):
+    db = pg_sessionmaker()
+    tx = build_transaction(transaction_id="tx_to_delete")
+    db.add(tx)
+    db.commit()
+
+    r = client.delete(f"/transactions/{tx.transaction_id}")
+    assert r.status_code == 200
+    data = r.json()
+    # router returns a message and the data holds the service response string
+    assert data.get("message") == f"Transaction with id {tx.transaction_id} deleted successfully"
+    assert isinstance(data.get("data"), str) and tx.transaction_id in data.get("data")
+
+def test_delete_transaction_not_found(client):
+    r = client.delete("/transactions/ID_DOES_NOT_EXIST")
+    assert r.status_code == 404
+    data = r.json()
+    assert "does not exist" in data.get("message", "")
+
+def test_update_transaction_not_found(client):
+    payload = {
+        "transaction_id": "nonexistent",
+        "customer_id": "C_X",
+        "card_number": "0000",
+        "timestamp": "2024-09-30T00:00:01.000000",
+        "merchant": "No One",
+        "merchant_category": "None",
+        "merchant_type": "none",
+        "amount": 1.0,
+        "currency": "USD",
+        "country": "USA",
+        "city": "Nowhere",
+        "city_size": "small",
+        "card_type": "VISA",
+        "card_present": 1,
+        "device": "Edge",
+        "channel": "web",
+        "device_fingerprint": "fp",
+        "ip_address": "0.0.0.0",
+        "distance_from_home": 0,
+        "high_risk_merchant": False,
+        "transaction_hour": 12,
+        "weekend_transaction": False,
+        "velocity_last_hour": {"num_transactions": 0, "total_amount": 0.0, "unique_merchants": 0, "unique_countries": 0, "max_single_amount": 0.0},
+    }
+
+    r = client.put("/transactions/ID_NOT_FOUND", json=payload)
+    assert r.status_code == 404
+    data = r.json()
+    assert "does not exist" in data.get("message", "")
     
