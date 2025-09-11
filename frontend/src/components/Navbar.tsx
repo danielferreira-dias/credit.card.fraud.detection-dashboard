@@ -4,12 +4,21 @@ export default function Navbar(){
     
     const TransactionIcon = () => <img src="../../public/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
     const DashboardIcon = () => <img src="../../public/dashboard-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
-    const AgentIcon = () => <img src="../../public/bitconnect-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
+    const AgentIcon = () => <img src="../../public/artificial-intelligence-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
+    const SettingsIcon = () => <img src="../../public/settings-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
+    const AboutIcon = () => <img src="../../public/about-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
+    const LogoutIcon = () => <img src="../../public/logout-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
 
     const navBarElements : { element : string , symbol : ReactNode }[] = [
         { element: "Transactions", symbol: <TransactionIcon /> },
         { element: "Dashboard", symbol: <DashboardIcon /> },
         { element: "Agent", symbol: <AgentIcon /> },
+    ]
+
+    const navBarSettings : { element : string , symbol: ReactNode}[] = [
+        { element: "Settings", symbol: <SettingsIcon /> },
+        { element: "About", symbol: <AboutIcon /> },
+        { element: "Logout", symbol: <LogoutIcon /> },
     ]
 
     const userInformation : { userName: string, userPosition: string, userProfile: string } = {
@@ -40,15 +49,28 @@ export default function Navbar(){
             </div>
 
             <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 opacity-90 gap-y-5 text-sm mt-6">
-            <span className="text-xs opacity-80">Features</span>
-            <div className="flex flex-col gap-y-5">
-                {navBarElements.map(({ element, symbol }) => (
-                    <div key={element} className="flex items-center space-x-2">
-                    <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                    <span>{element}</span>
-                    </div>
-                ))}
+                <span className="text-xs opacity-80">Features</span>
+                <div className="flex flex-col gap-y-5">
+                    {navBarElements.map(({ element, symbol }) => (
+                        <div key={element} className="flex items-center space-x-2">
+                        <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
+                        <span>{element}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
+
+            <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 opacity-90 gap-y-5 text-sm mt-auto mb-6">
+                <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>
+                <span className="text-xs opacity-80">More</span>
+                <div className="flex flex-col gap-y-5">
+                    {navBarSettings.map(({ element, symbol }) => (
+                        <div key={element} className="flex items-center space-x-2">
+                        <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
+                        <span>{element}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             
