@@ -1,9 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
-import { useState } from "react";
 
 export default function Layout() {
-  const [updateStateMobile, setStateMobile] = useState(false)
 
   return (
     <div className="flex flex-row gap-x-4 m-auto min-h-[screen] max-h-[fit]">
