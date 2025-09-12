@@ -12,7 +12,7 @@ export default function StatsCard( { typeStat, statValue , colour } : StatsCardP
                 <span className="opacity-100 text-[0.90rem]">{typeStat}</span>
                 <img src={"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-5 h-5 transform transition duration-300 }`} />
             </div>
-            <span className="text-2xl font-semibold">{formattedValue}</span>
+            <span className="text-2xl font-bold">{formattedValue}</span>
         </div>
     )
 }

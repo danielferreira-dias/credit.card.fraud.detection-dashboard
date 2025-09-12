@@ -38,7 +38,7 @@ export default function Navbar(){
 
     const userInformation : { userName: string, userPosition: string, userProfile: string } = {
         userName : "Daniel Dias",
-        userPosition : "Software Engineer",
+        userPosition : "Data Analyst",
         userProfile : "/profile.png"
     }
 
