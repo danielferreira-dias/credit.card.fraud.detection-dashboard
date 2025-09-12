@@ -37,7 +37,7 @@ export default function TransactionInfo() {
                 
                 const mockData: TransactionData = {
                     customer_id: "CUST_72886",
-                    card_number: "************3109",
+                    card_number: "458435843543393109",
                     timestamp: "2024-09-30T00:00:01.034820",
                     merchant: "Taco Bell",
                     merchant_type: "fast_food",
@@ -85,7 +85,7 @@ export default function TransactionInfo() {
             case "Processed": return "text-green-400";
             case "Under Review": return "text-yellow-400";
             case "Blocked": return "text-red-400";
-            default: return "text-gray-200";
+            default: return "text-white";
         }
     };
 
@@ -99,7 +99,7 @@ export default function TransactionInfo() {
 
     if (!transaction) {
         return (
-            <div className="text-center p-8 text-gray-200">
+            <div className="text-center p-8 text-white">
                 No transaction data available
             </div>
         );
@@ -112,54 +112,54 @@ export default function TransactionInfo() {
                 <div className="flex justify-between items-start">
                     <div>
                         <h3 className="text-lg font-semibold text-white">{transaction.merchant}</h3>
-                        <p className="text-xs text-gray-200">{transaction.merchant_type}</p>
+                        <p className="text-xs text-white">{transaction.merchant_type}</p>
                     </div>
                     <div className="text-right  ">
                         <p className="text-lg font-bold text-white">{formatAmount(transaction.amount, transaction.currency)}</p>
-                        <p className="text-xs text-gray-200">{formatTimestamp(transaction.timestamp)}</p>
+                        <p className="text-xs text-white">{formatTimestamp(transaction.timestamp)}</p>
                     </div>
                 </div>
 
                 <div className="flex flex-row w-full justify-between">
                     {/* Transaction details grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs w-[95%]">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 text-xs w-[95%]">
                         <div>
-                            <p className="text-gray-200">Customer ID</p>
+                            <p className="text-white">Customer ID</p>
                             <p className="text-white font-medium">{transaction.customer_id}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">Card Number</p>
+                            <p className="text-white">Card Number</p>
                             <p className="text-white font-medium">{transaction.card_number}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">Card Type</p>
+                            <p className="text-white">Card Type</p>
                             <p className="text-white font-medium">{transaction.card_type}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">Location</p>
+                            <p className="text-white">Location</p>
                             <p className="text-white font-medium">{transaction.city}, {transaction.country}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">Device</p>
+                            <p className="text-white">Device</p>
                             <p className="text-white font-medium">{transaction.device}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">Channel</p>
+                            <p className="text-white">Channel</p>
                             <p className="text-white font-medium capitalize">{transaction.channel}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">IP Address</p>
+                            <p className="text-white">IP Address</p>
                             <p className="text-white font-medium font-mono">{transaction.ip_address}</p>
                         </div>
                         <div>
-                            <p className="text-gray-200">Status</p>
+                            <p className="text-white">Status</p>
                             <p className={`font-medium ${getStatusColor(transaction.status.status)}`}>
                                 {transaction.status.status}
                             </p>
                         </div>
                     </div>
                     <div className="flex flex-col justify-end">
-                        <p className="text-gray-200 text-xs">Probability</p>
+                        <p className="text-white text-xs">Probability</p>
                         <p className="text-red-400 font-bold text-sm">{transaction.status.fraud_probability}</p>
                     </div>
                 </div>
