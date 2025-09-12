@@ -1,4 +1,13 @@
+
+
 export default function AgentPage(){
+
+    const userInteraction: { userInfo: string; userMessage: string } = {
+        userInfo: "Daniel Dias",
+        userMessage: "This message was sent by Daniel Dias",
+    };
+      
+
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
             <div className="flex flex-col h-full w-[80%] text-white border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 min-h-screen max-h-[fit]">
