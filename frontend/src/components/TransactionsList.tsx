@@ -1,6 +1,41 @@
 import { useEffect, useState } from "react";
 
-interface FilterElement  { filterName : string, filterValue : number }
+interface FilterElement  { 
+    filterName : string, 
+    filterValue : number 
+}
+
+type SortBy = "timestamp" | "amount" | "score";
+
+interface TransactionFilters {
+    date_from?: string;
+    date_to?: string;
+    amount_min?: number;
+    amount_max?: number;
+    currency?: string[];
+    country?: string[];
+    city?: string[];
+    merchant?: string[];
+    merchant_category?: string[];
+    merchant_type?: string[];
+    card_type?: string[];
+    card_present?: (0 | 1)[];
+    channel?: string[];
+    device?: string[];
+    device_fingerprint?: string | null;
+    high_risk_merchant?: boolean | null;
+    distance_from_home_min?: number;
+    distance_from_home_max?: number;
+    weekend_transaction?: boolean | null;
+    hour_of_day?: number[];
+    ip_address?: string | null;
+    score_min?: number | null;
+    score_max?: number | null;
+    sort_by?: SortBy;
+    sort_dir?: "asc" | "desc";
+    page?: number;
+    page_size?: number;
+  }
 
 function formatValue(value: number): string {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -28,15 +63,20 @@ export default function TransactionList(){
       }, []);
 
     return (
-        <div className="flex flex-col w-full mt-6 gap-y-4">
+        <div className="flex flex-col w-full mt-6 gap-y-4 items-center sm:items-start">
             <h2 className="text-xl font-semibold opacity-70 mt-6">Recent Transactions</h2>
-            <div className="flex flex-col md:flex-row h-fit pt-4 pb-4 px-6 py-6 w-full gap-x-6 gap-y-2 rounded-xl border-[1px] border-amber-400 flex-wrap">
-                { filterElements.map( (filter) => (
-                    <div className="flex flex-row flex-wrap gap-x-2">
-                        <span className="text-sm opacity-90 ">{filter.filterName}</span>
-                        <span className="text-sm opacity-55 ">{formatValue(filter.filterValue)}</span>
-                    </div>
-                ))}
+            <div className="flex flex-row justify-between">
+                <div className="flex sm:flex-row  items-center h-fit w-fit md:w-fit gap-y-4 border-zinc-800 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 rounded-xl border-[1px] flex-wrap">
+                    { filterElements.map( (filter) => (
+                        <button className="trasnform transition duration-100 ease-in flex h-fit flex-row flex-wrap w-full sm:w-fit gap-x-2 rounded-lg hover:bg-zinc-900 px-8 py-4">
+                            <span className="text-sm opacity-90 h-fit ">{filter.filterName}</span>
+                            <span className="text-sm opacity-55  h-fit">{formatValue(filter.filterValue)}</span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className=""></div>
+
             </div>
         </div>
     )

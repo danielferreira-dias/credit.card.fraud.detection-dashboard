@@ -7,25 +7,25 @@ html, body, #root {
 }
 
 .card-1{
-    background: linear-gradient(to bottom right, #4c0d2e, transparent, #020617);
+    background: linear-gradient(to bottom right, #41162c, transparent, #020617);
     border-color: #560e3380;
     border-width: 2px;
 }
 
 .card-2{
-    background: linear-gradient(to bottom right, #166534, transparent, #020617);
+    background: linear-gradient(to bottom right, #113b21, transparent, #020617);
     border-color: #0f4a2680;
     border-width: 2px;
 }
 
 .card-3{
-    background: linear-gradient(to bottom right, #7f1d1d, transparent, #020617);
+    background: linear-gradient(to bottom right, #451111, transparent, #020617);
     border-color: #3f0e0e7d;
     border-width: 2px;
 }
 
 .card-4{
-    background: linear-gradient(to bottom right, #2564ebc6, transparent, #020617);
+    background: linear-gradient(to bottom right, #10285bc6, transparent, #020617);
     border-color: #0d224e79;
     border-width: 2px;
 }
