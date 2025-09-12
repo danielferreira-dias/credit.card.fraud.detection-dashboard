@@ -17,7 +17,7 @@ export default function TransactionPage(){
     ];
 
     return (
-        <div className="flex flex-col h-full w-full text-white p-3 gap-y-1">
+        <div className="flex flex-col h-full w-full text-white p-4  gap-y-1">
             <h2 className="text-2xl font-semibold opacity-90 mt-4">Transactions Analytics</h2>
             <h3 className="text-sm opacity-70">Monitor your transactions in real-time</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full gap-4 items-center mt-6">
