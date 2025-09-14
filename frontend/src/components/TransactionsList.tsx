@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import List from "./List";
+import type { Transaction } from "../types/transactions";
 
 interface FilterElement  { 
     filterName : string, 
@@ -15,22 +16,37 @@ function formatValue(value: number): string {
 export default function TransactionList(){
     const [filterElements, setFilterElements] = useState<FilterElement[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
+    const [dataTransactions, setDataTransactions] = useState<Transaction[]>([]);
 
     useEffect(() => {
-        // Simulando fetch
         const fetchFilters = async () => {
-          // Simulando dados vindos da API
-          const dataFromAPI = [
-            { filterName: "All", filterValue: 2000000 },
-            { filterName: "Normal", filterValue: 1000000 },
-            { filterName: "Suspicious", filterValue: 700000 },
-            { filterName: "Fraudulent", filterValue: 900000 },
-          ];
-          setFilterElements(dataFromAPI);
+          try {
+            const res = await fetch("http://localhost:80/transactions");
+            if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
+            const data = await res.json();
+            setDataTransactions(data);
+
+            // Process the data to create filter elements with counts
+            const allTransactions = data.length;
+            const nonFraudTransactions : number = data.filter((t: any) => t.is_fraud === false).length;
+            const fraudTransactions : number = data.filter((t: any) => t.is_fraud === true).length;
+
+            const filterData = [
+              { filterName: "All", filterValue: allTransactions },
+              { filterName: "Normal", filterValue: nonFraudTransactions },
+              { filterName: "Fraudulent", filterValue: fraudTransactions },
+            ];
+            setFilterElements(filterData);
+          } catch (error) {
+            console.error('Failed to fetch transactions:', error);
+            // Fallback to empty filters on error
+            setFilterElements([]);
+          }
         };
-    
         fetchFilters();
       }, []);
+
+      console.log("dataTransactions in TransactionList component -> ", dataTransactions);
 
     return (
         <div className="flex flex-col w-full h-full mt-6 gap-y-4 items-center sm:items-start">
@@ -60,8 +76,7 @@ export default function TransactionList(){
                     />
                 </div>
             </div>
-
-            <List />
+            <List transactionsList={dataTransactions}/>
         </div>
     )
 }

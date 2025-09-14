@@ -4,7 +4,7 @@ from app.routers.transaction_router import router as transaction_router
 from app.settings.database import engine
 from app.models.transaction_model import Transaction
 from pydantic import BaseModel
-
+from fastapi.middleware.cors import CORSMiddleware
 from app.exception.transaction_exceptions import TransactionsException
 from app.exception.handler import transaction_handler
 from app.infra.logger import setup_logger
@@ -22,6 +22,14 @@ app = FastAPI(
     title="Credit Card Fraud Detection API",
     description="API for detecting credit card fraud using machine learning",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 Instrumentator().instrument(app).expose(app)

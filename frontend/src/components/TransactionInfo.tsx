@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
+import type { Transaction } from "../types/transactions";
 
-interface TransactionData {
-    customer_id: string,
-    card_number: string,
-    timestamp: string,
-    merchant: string,
-    merchant_type: string,
-    amount: number,
-    currency: string,
-    country: string,
-    city: string,
-    card_type: string,
-    device: string,
-    channel: string,
-    ip_address: string,
-    status: TransactionStatus,
+interface TransactionCardProps {
+  transaction: Transaction;
 }
 
 type statusType = "Processed" | "Under Review" | "Blocked"
@@ -24,48 +12,8 @@ interface TransactionStatus {
     status: statusType,
 }
 
-export default function TransactionInfo() {
-    const [transaction, setTransaction] = useState<TransactionData | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-
-    useEffect(() => {
-        const fetchTransaction = async () => {
-            try {
-                setLoading(true);
-                // Simulating API call
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                const mockData: TransactionData = {
-                    customer_id: "CUST_72886",
-                    card_number: "458435843543393109",
-                    timestamp: "2024-09-30T00:00:01.034820",
-                    merchant: "Taco Bell",
-                    merchant_type: "fast_food",
-                    amount: 294.87,
-                    currency: "GBP",
-                    country: "UK",
-                    city: "London",
-                    card_type: "Platinum Credit",
-                    device: "iOS App",
-                    channel: "mobile",
-                    ip_address: "197.153.60.199",
-                    status: {
-                        fraud_probability: "85%",
-                        status: "Under Review"
-                    }
-                };
-                
-                setTransaction(mockData);
-            } catch (error) {
-                console.error("Error fetching transaction:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTransaction();
-    }, []);
-
+export default function TransactionInfo({ transaction }: TransactionCardProps) {
+    
     const formatAmount = (amount: number, currency: string) => {
         return `${amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
     };
@@ -89,21 +37,7 @@ export default function TransactionInfo() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-            </div>
-        );
-    }
-
-    if (!transaction) {
-        return (
-            <div className="text-center p-8 text-white">
-                No transaction data available
-            </div>
-        );
-    }
+   
 
     return (
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 shadow-[0_0_8px_rgba(0,0,0,0.5)]">
@@ -153,14 +87,14 @@ export default function TransactionInfo() {
                         </div>
                         <div>
                             <p className="text-white">Status</p>
-                            <p className={`font-medium ${getStatusColor(transaction.status.status)}`}>
-                                {transaction.status.status}
+                            <p className={`font-medium ${getStatusColor('Under Review')}`}>
+                                Under Review
                             </p>
                         </div>
                     </div>
                     <div className="flex flex-col justify-end">
                         <p className="text-white text-xs">Probability</p>
-                        <p className="text-red-400 font-bold text-sm">{transaction.status.fraud_probability}</p>
+                        <p className="text-red-400 font-bold text-sm">0.80</p>
                     </div>
                 </div>
             </div>

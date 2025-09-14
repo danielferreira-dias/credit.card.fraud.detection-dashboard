@@ -1,25 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import TransactionInfo from "./TransactionInfo";
+import type { Transaction } from "../types/transactions";
 
-export default function List(){
-    const [total, setTotal] = useState<number>(42);
+export default function List( { transactionsList } : { transactionsList : Transaction[] } ){
+    console.log("transactionsList in List component -> ", transactionsList);
+    const totalTransactions = transactionsList.length;
+    const listTransactions : Transaction[] = transactionsList;
+
     const [page, setPage] = useState<number>(1);
     const pageSize = 5;
 
-    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    const pageCount = Math.max(1, Math.ceil(totalTransactions / pageSize));
     
     useEffect(() => {
         if (page > pageCount) setPage(pageCount);
     }, [pageCount, page]);
 
-    
     const items = useMemo(() => {
         const start = (page - 1) * pageSize;
-        const remaining = Math.max(0, total - start);
+        const remaining = Math.max(0, totalTransactions - start);
         const count = Math.min(pageSize, remaining);
         return Array.from({ length: count }, (_, i) => i);
-    }, [page, total]);
-
+    }, [page, totalTransactions]);
     const trio = useMemo(() => {
         if (pageCount <= 5) {
             return Array.from({ length: pageCount }, (_, i) => i + 1);
@@ -34,13 +36,14 @@ export default function List(){
     }, [page, pageCount]);
 
     const showRightEllipsis = pageCount > 5 && (trio[trio.length - 1] < pageCount - 2);
-
     const isInTrio = (n: number) => trio.includes(n);
+
+    console.log("listTransactions -> ", listTransactions);
 
     return (
         <div className="w-full h-fit text-white rounded-xl flex flex-col opacity-50 gap-y-1">
-            {items.map((i) => (
-                <TransactionInfo key={`${page}-${i}`} />
+            {listTransactions.map((currTransaction) => (
+                <TransactionInfo key={currTransaction.timestamp} transaction={currTransaction} />
             ))}
 
             <div className="flex items-center justify-center gap-4 mt-3">
