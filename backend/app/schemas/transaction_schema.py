@@ -44,6 +44,8 @@ class TransactionResponse(BaseModel):
     transaction_hour: int
     weekend_transaction: bool
     velocity_last_hour: VelocityResponse 
+    is_fraud: bool
+    fraud_probability: float
 
 class ResponseWithMessage(BaseModel):
     message: str

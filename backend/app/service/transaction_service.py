@@ -176,6 +176,8 @@ class TransactionService:
             transaction_hour=ts.transaction_hour,
             weekend_transaction=ts.weekend_transaction,
             velocity_last_hour=ts.velocity_last_hour,
+            is_fraud=ts.is_fraud,
+            fraud_probability=100.0
         )
     
     @staticmethod

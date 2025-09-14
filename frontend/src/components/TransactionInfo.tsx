@@ -13,7 +13,7 @@ interface TransactionStatus {
 }
 
 export default function TransactionInfo({ transaction }: TransactionCardProps) {
-    
+
     const formatAmount = (amount: number, currency: string) => {
         return `${amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
     };
@@ -36,8 +36,6 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
             default: return "text-white";
         }
     };
-
-   
 
     return (
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 shadow-[0_0_8px_rgba(0,0,0,0.5)]">
