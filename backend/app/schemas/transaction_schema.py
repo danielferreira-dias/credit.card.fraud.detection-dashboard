@@ -49,7 +49,7 @@ class TransactionResponse(BaseModel):
 
 class ResponseWithMessage(BaseModel):
     message: str
-    data: TransactionResponse | str
+    data: TransactionResponse | str | None
 
 class TransactionCreate(BaseModel):
     transaction_id : str 

@@ -17,11 +17,16 @@ export default function TransactionList(){
     const [filterElements, setFilterElements] = useState<FilterElement[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [dataTransactions, setDataTransactions] = useState<Transaction[]>([]);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [totalPages, setTotalPages] = useState<number>(100);
+    const [totalTransactions, setTotalTransactions] = useState<number>(0);
+    const limit = 20;
 
     useEffect(() => {
         const fetchFilters = async () => {
           try {
-            const res = await fetch("http://localhost:80/transactions");
+            const skip = (currentPage - 1) * limit;
+            const res = await fetch(`http://localhost:80/transactions?limit=${limit}&skip=${skip}`);
             if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
             const data = await res.json();
             setDataTransactions(data);
@@ -44,9 +49,7 @@ export default function TransactionList(){
           }
         };
         fetchFilters();
-      }, []);
-
-      console.log("dataTransactions in TransactionList component -> ", dataTransactions);
+      }, [currentPage]);
 
     return (
         <div className="flex flex-col w-full h-full mt-6 gap-y-4 items-center sm:items-start">
@@ -77,6 +80,43 @@ export default function TransactionList(){
                 </div>
             </div>
             <List transactionsList={dataTransactions}/>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-x-4 mt-4 w-full">
+                    <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {"<<"}
+                    </button>
+                    <button
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {"<"}
+                    </button>
+                    <div className="flex items-center justify-center px-4 py-2 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 bg-zinc-900 text-sm font-medium min-w-[60px]">
+                        {currentPage}
+                    </div>
+                    <button
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {">"}
+                    </button>
+                    <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {">>"}
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

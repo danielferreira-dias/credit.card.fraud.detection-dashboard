@@ -15,6 +15,15 @@ class TransactionRepository:
     def __init__(self, db: Session):
         self.db = db
     
+    def get_transaction_count(self) -> dict[str, int]:
+        total = self.db.query(Transaction).count()
+        frauds = self.db.query(Transaction).filter(Transaction.is_fraud == True).count()
+        
+        return {
+            "total_transactions": total,
+            "fraud_transactions": frauds
+        }
+    
     def get_all_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[Transaction]:
         try:
             query = self.db.query(Transaction)

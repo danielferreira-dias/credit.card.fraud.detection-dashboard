@@ -24,6 +24,19 @@ def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService
 
 # --- router ------------------------
 
+@router.get("transactions/count", response_model=ResponseWithMessage)
+async def count_transactions(service: TransactionService = Depends(get_transaction_service)):
+    """
+    Count the total number of transactions in the database.
+
+    Returns the total count of transactions.
+    """
+    response = service.get_transactions_qt()
+    return ResponseWithMessage(
+        message=f"There's currently {response} transactions in the database",
+        data=None
+    )
+
 @router.get("/{transaction_id}/predict", response_model=TransactionPredictionResponse)
 async def predict_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
     """

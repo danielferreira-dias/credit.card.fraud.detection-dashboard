@@ -27,6 +27,9 @@ class TransactionService:
         except Exception as e:
             logger.critical("Erro ao carregar artefactos de ML", exc_info=True)
             raise ModelNotLoadedError("Erro ao carregar artefactos de ML") from e
+    
+    def get_transactions_qt(self) -> dict[str, int]:
+        return self.repo.get_transaction_count()
 
     def get_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[TransactionResponse]:
         transaction_list = self.repo.get_all_transactions(filters, limit, skip)
@@ -137,6 +140,13 @@ class TransactionService:
     
     @staticmethod
     def mask_card(card: str) -> str:
+        """
+        Masks all but the last four digits of a card number.
+        Args:
+            card (str): The original card number.
+        Returns:
+            str: The masked card number.
+        """
         if len(card) <= 4:
             return card
         return f"{'*'*(len(card)-4)}{card[-4:]}"
@@ -160,8 +170,8 @@ class TransactionService:
             merchant=ts.merchant,
             merchant_category=ts.merchant_category,
             merchant_type=ts.merchant_type,
-            amount=ts.amount,
-            currency=ts.currency,
+            amount=ts.amount * conversion_rates.get(ts.currency, 1.28),  # Convert to USD
+            currency='USD',  # Assuming all amounts are converted to USD
             country=ts.country,
             city=ts.city,
             city_size=ts.city_size,

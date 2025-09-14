@@ -20,3 +20,7 @@ class TransactionFilter(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     is_fraud: Optional[bool] = None
+
+class TransactionTypeFilter(BaseModel):
+    """Schema for filtering transactions by type."""
+    transaction_type: Optional[str] = None

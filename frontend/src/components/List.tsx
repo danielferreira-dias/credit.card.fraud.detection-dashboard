@@ -23,8 +23,6 @@ export default function List( { transactionsList } : { transactionsList : Transa
             {listTransactions.map((currTransaction) => (
                 <TransactionInfo key={currTransaction.timestamp} transaction={currTransaction} />
             ))}
-
-            
         </div>
     )
 }
