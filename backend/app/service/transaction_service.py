@@ -180,6 +180,29 @@ class TransactionService:
     
     @staticmethod
     def extract_features(transaction_request: TransactionRequest, conversion_rates: dict) -> TransactionFeatures:
+        if transaction_request is None:
+            raise TransactionInvalidDataError("Transaction request cannot be None for feature extraction.")
+
+        required_fields = [
+            "channel",
+            "device",
+            "country",
+            "city",
+            "transaction_hour",
+            "amount",
+            "max_single_amount",
+            "total_amount",
+            "currency",
+            "distance_from_home",
+            "card_present",
+        ]
+
+        for field in required_fields:
+            if getattr(transaction_request, field) is None:
+                raise TransactionInvalidDataError(
+                    f"Transaction {field} cannot be None for feature extraction."
+                )
+
         return TransactionFeatures(
             channel_medium=1 if transaction_request.channel == "medium" else 0,
             **{"device_Android App": 1 if transaction_request.device == "Android App" else 0},

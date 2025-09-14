@@ -1,7 +1,11 @@
+from app.exception.transaction_exceptions import TransactionInvalidDataError
 import pytest
 from app.schemas.transaction_schema import TransactionRequest
 from app.service.transaction_service import TransactionService
 from app.models.transaction_model import Transaction
+
+import logging
+logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def transaction_request_mock() -> TransactionRequest:
@@ -54,6 +58,21 @@ def fake_transaction() -> Transaction:
         is_fraud=False,
     )
 
+@pytest.fixture
+def get_currency_conversion_rate() -> dict:
+    conversion_rates = {
+        'EUR': 1.06,
+        'CAD': 0.72,
+        'RUB': 0.01,
+        'NGN': 0.0006,
+        'SGD': 0.75,
+        'MXN': 0.049,
+        'BRL': 0.17,
+        'AUD': 0.65,
+        'JPY': 0.0065,
+        'USD': 1.0
+    }
+    return conversion_rates
 
 # ---- Teste ----
 @pytest.mark.parametrize(
@@ -67,32 +86,35 @@ def fake_transaction() -> Transaction:
 def test_mask_card_basic(card, expected):
     assert TransactionService.mask_card(card) == expected
 
-def test_extract_features_missing():
-    with pytest.raises(TypeError):
-        TransactionService.extract_features(None)
+def test_extract_features_missing(get_currency_conversion_rate):
+    with pytest.raises(TransactionInvalidDataError):
+        TransactionService.extract_features(None, get_currency_conversion_rate)
 
-def test_extract_features_none_channel(transaction_request_mock):
-    transaction_request_mock.channel = None
-    with pytest.raises(ValueError):
-        TransactionService.extract_features(transaction_request_mock)
+def test_extract_features_none_channel(transaction_request_mock, get_currency_conversion_rate):
+    transaction_request_mock = None
+    with pytest.raises(TransactionInvalidDataError):
+        TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
 
-def test_test_extract_features_none_device(transaction_request_mock):
+def test_test_extract_features_none_device(transaction_request_mock, get_currency_conversion_rate):
     transaction_request_mock.device = None
-    with pytest.raises(ValueError):
-        TransactionService.extract_features(transaction_request_mock)
+    with pytest.raises(TransactionInvalidDataError):
+        TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
 
-def test_extract_features_valid_values_channel(transaction_request_mock):
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['channel_medium'] == 0
-    assert features['channel_mobile'] == 0
-    assert features['channel_web'] == 0
-    assert features['channel_pos'] == 0
+def test_extract_features_valid_values_channel(transaction_request_mock, get_currency_conversion_rate):
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['channel_medium'] == 0
+    assert features_dict['channel_mobile'] == 0
+    assert features_dict['channel_web'] == 0
+    assert features_dict['channel_pos'] == 0
 
 @pytest.mark.parametrize("city,expected", [("New York", 0), ("Unknown City", 1), ("Los Angeles", 0), ("", 0)])
-def test_extract_features_city(transaction_request_mock, city, expected):
+def test_extract_features_city(transaction_request_mock, get_currency_conversion_rate, city, expected):
     transaction_request_mock.city = city
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['city_Unknown_City'] == expected
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    logger.info(features_dict)
+    assert features_dict['city_Unknown City'] == expected
 
 
 @pytest.mark.parametrize(
@@ -113,10 +135,11 @@ def test_extract_features_city(transaction_request_mock, city, expected):
         ("device_Android App", "Magnetic Stripe", 0),
     ],
 )
-def test_extract_features_valid_values_device(transaction_request_mock, device_type, device, expected):
+def test_extract_features_valid_values_device(transaction_request_mock, get_currency_conversion_rate, device_type, device, expected):
     transaction_request_mock.device = device
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features[device_type] == expected
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict[device_type] == expected
 
 @pytest.mark.parametrize(
     "country_type,country,expected",
@@ -147,22 +170,11 @@ def test_extract_features_valid_values_device(transaction_request_mock, device_t
         ("country_USA", "Portugal", 0),
     ],
 )
-def test_extract_features_valid_values_country(transaction_request_mock, country_type, country, expected):
+def test_extract_features_valid_values_country(transaction_request_mock, get_currency_conversion_rate, country_type, country, expected):
     transaction_request_mock.country = country
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features[country_type] == expected
-
-conversion_rates = {
-            'EUR': 1.06,
-            'CAD': 0.72,
-            'RUB': 0.01,
-            'NGN': 0.0006,
-            'SGD': 0.75,
-            'MXN': 0.049,
-            'BRL': 0.17,
-            'AUD': 0.65,
-            'JPY': 0.0065
-        }
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict[country_type] == expected
 
 @pytest.mark.parametrize(
     "currency,amount,value_conversion",
@@ -174,46 +186,55 @@ conversion_rates = {
         ("AUD", 100.0, 65.0),
         ]
     )
-def test_extract_features_amount_conversion(transaction_request_mock, currency, amount, value_conversion):
+def test_extract_features_amount_conversion(transaction_request_mock, get_currency_conversion_rate, currency, amount, value_conversion):
     transaction_request_mock.currency = currency
     transaction_request_mock.amount = amount
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['USD_converted_amount'] == pytest.approx(value_conversion, 0.01)
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['USD_converted_amount'] == pytest.approx(value_conversion, 0.01)
 
-def test_extract_features_high_low_amount(transaction_request_mock):
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['is_high_amount'] == 0
-    assert features['is_low_amount'] == 0
+def test_extract_features_high_low_amount(transaction_request_mock, get_currency_conversion_rate):
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['is_high_amount'] == 0
+    assert features_dict['is_low_amount'] == 0
 
-def test_extract_features_off_hours(transaction_request_mock):
+def test_extract_features_off_hours(transaction_request_mock, get_currency_conversion_rate):
     transaction_request_mock.transaction_hour = 20
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['is_off_hours'] == 1
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['is_off_hours'] == 1
     transaction_request_mock.transaction_hour = 10
-    features = TransactionService.extract_features(transaction_request_mock)
+    features_dict = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
     # Implementation uses a non-standard condition; ensure function returns an int
-    assert isinstance(features['is_off_hours'], int)
+    assert isinstance(features_dict['is_off_hours'], int)
 
-def test_extract_features_card_present(transaction_request_mock):
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['card_present'] == 0
+def test_extract_features_card_present(transaction_request_mock, get_currency_conversion_rate):
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['card_present'] == 0
 
-def test_extract_features_distance_home_frome(transaction_request_mock):
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['distance_from_home'] == transaction_request_mock.distance_from_home
+def test_extract_features_distance_home_frome(transaction_request_mock, get_currency_conversion_rate):
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['distance_from_home'] == transaction_request_mock.distance_from_home
 
-def test_extract_features_high_risk_transaction(transaction_request_mock):
+def test_extract_features_high_risk_transaction(transaction_request_mock, get_currency_conversion_rate):
     transaction_request_mock.country = "Brazil"
     transaction_request_mock.device = "Magnetic Stripe"
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['high_risk_transaction'] == 1
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['high_risk_transaction'] == 1
     transaction_request_mock.country = "USA"
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['high_risk_transaction'] == 0
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['high_risk_transaction'] == 0
     transaction_request_mock.country = "Brazil"
     transaction_request_mock.device = "Chrome"
-    features = TransactionService.extract_features(transaction_request_mock)
-    assert features['high_risk_transaction'] == 0
+    features = TransactionService.extract_features(transaction_request_mock, get_currency_conversion_rate)
+    features_dict = features.model_dump(by_alias=True)
+    assert features_dict['high_risk_transaction'] == 0
 
 def test_to_response_masks_card_number(fake_transaction):
     dto = TransactionService._to_response(fake_transaction)
