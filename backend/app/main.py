@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Request, status
+from app.models.user_model import User
+from app.routers.user_router import router as user_router
+from fastapi import FastAPI, status
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.routers.transaction_router import router as transaction_router
 from app.settings.database import async_engine
@@ -19,6 +21,7 @@ async def create_tables():
     """Create database tables on startup"""
     async with async_engine.begin() as conn:
         await conn.run_sync(Transaction.metadata.create_all)
+        await conn.run_sync(User.metadata.create_all)
 
 app = FastAPI(
     title="Credit Card Fraud Detection API",
@@ -38,6 +41,7 @@ Instrumentator().instrument(app).expose(app)
 
 # Include routers --------------------------------------------------
 app.include_router(transaction_router)
+app.include_router(user_router)
 
 # Register exception handlers --------------------------------------------------
 app.add_exception_handler(TransactionsException, transaction_handler)

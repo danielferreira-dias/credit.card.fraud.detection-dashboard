@@ -1,11 +1,23 @@
 from mcp.server.fastmcp import FastMCP
 import httpx
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create an MCP server
 mcp = FastMCP("Fraud Analysis Agent")
 
 BASE_URL = "http://localhost:80"
+
+"""
+What I’d like to allow users to ask for the agent:
+- Get a specific transaction;
+- Get a list of transactions limited to maximum 20;
+- Get the number of total transactions and fraudulent 
+- Get the number of total transactions fraudulent or not from some filters like city, country, device payment, IP.
+- Get a prediction of a transaction;
+"""
 
 async def _make_request(endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Helper function for making HTTP requests with error handling."""
@@ -102,5 +114,10 @@ async def get_fraud_statistics() -> Dict[str, Any]:
         Statistical overview of transactions and fraud detection metrics
     """
     return await _make_request("/transactions/transactions/count")
+
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='stdio')
 
 
