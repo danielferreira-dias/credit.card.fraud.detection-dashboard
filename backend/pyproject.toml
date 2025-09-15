@@ -77,4 +77,5 @@ dependencies = [
   "pytest-asyncio==1.1.0",
   "prometheus-fastapi-instrumentator>=7.1.0",
   "asyncpg==0.30.0",
+  "passlib[bcrypt]==1.7.4",
 ]
