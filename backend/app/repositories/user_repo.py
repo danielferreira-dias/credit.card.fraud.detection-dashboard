@@ -34,11 +34,7 @@ class UserRepository:
 
     async def create_user(self, user_data: UserCreate) -> User:
         try:
-            user = User(
-                email=user_data.email,
-                name=user_data.name,
-                password=user_data.password
-            )
+            user = User(**user_data.model_dump())
             self.db.add(user)
             await self.db.commit()
             await self.db.refresh(user)
