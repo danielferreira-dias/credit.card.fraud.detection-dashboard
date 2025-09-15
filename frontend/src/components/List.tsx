@@ -22,8 +22,6 @@ export default function List( { transactionsList, isLoadingPage } : { transactio
         if (page > pageCount) setPage(pageCount);
     }, [pageCount, page]);
 
-    console.log("listTransactions -> ", listTransactions);
-
     return (
         <div className="w-full h-fit text-white rounded-xl flex flex-col opacity-50 gap-y-1">
             {

@@ -10,13 +10,13 @@ def remover_duplicados_csv(clean_csv: str, save: bool = False) -> pd.DataFrame:
         clean_csv (str): Path.
         save (bool): If true, save in the same path as '_clean'.
 
-    Returns:
+    Returns:-
         pd.DataFrame: DataFrame sem duplicados.
     """
     df = pd.read_csv(clean_csv)
 
     # Remove duplicates
-    df_non_duplicates = df.drop_duplicates()
+    df_non_duplicates = df.drop_duplicates(subset="transaction_id", keep="first")
 
     # Convert velocity_last_hour from Python dict string to JSON
     if 'velocity_last_hour' in df_non_duplicates.columns:
