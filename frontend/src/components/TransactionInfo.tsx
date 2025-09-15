@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import type { Transaction } from "../types/transactions";
 
 interface TransactionCardProps {

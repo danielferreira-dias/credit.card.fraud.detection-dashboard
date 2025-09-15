@@ -20,7 +20,8 @@ export default function TransactionList(){
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(100);
     const [totalTransactions, setTotalTransactions] = useState<number>(0);
-    const limit = 20;
+    const [loadingPage, setLoadingPage] = useState(true);
+    const limit : number = 20;
 
     useEffect(() => {
         const fetchFilters = async () => {
@@ -44,8 +45,9 @@ export default function TransactionList(){
             setFilterElements(filterData);
           } catch (error) {
             console.error('Failed to fetch transactions:', error);
-            // Fallback to empty filters on error
             setFilterElements([]);
+          } finally {
+            //setLoadingPage(false);
           }
         };
         fetchFilters();
@@ -79,8 +81,8 @@ export default function TransactionList(){
                     />
                 </div>
             </div>
-            <List transactionsList={dataTransactions}/>
-
+            <List transactionsList={dataTransactions} isLoadingPage={loadingPage}/>
+            
             {/* Pagination Controls */}
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-x-4 mt-4 w-full">
