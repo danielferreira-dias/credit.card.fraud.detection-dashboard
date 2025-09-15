@@ -47,9 +47,9 @@ class UserService:
             raise UserNotFoundException(f"User with ID {user_id} not found")
         return result
 
-    @staticmethod
-    def hash_password(password: str) -> str:
-        return pwd_context.hash(password)
+    @classmethod
+    def hash_password(cls, password: str) -> str:
+        return cls.pwd_context.hash(password)
 
     @staticmethod
     def _to_response_model(user: User) -> UserResponse:
