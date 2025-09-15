@@ -13,13 +13,14 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # Instala dependências com ambiente virtual isolado
-RUN uv venv && \
-    uv sync --frozen --no-cache
+RUN uv venv && uv sync --frozen --no-cache
 
 # Copia a aplicação (usa o cache eficientemente)
 COPY app/ ./app/
 COPY tests/ ./tests/
-COPY . .
+
+# Add curl for health checks:
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Expõe a porta
 EXPOSE 80

@@ -1,26 +1,44 @@
 import pandas as pd
+import json
+import ast
 
-def remover_duplicados_csv(caminho_csv: str, guardar: bool = False) -> pd.DataFrame:
+def remover_duplicados_csv(clean_csv: str, save: bool = False) -> pd.DataFrame:
     """
-    Lê um ficheiro .csv, remove duplicados e (opcionalmente) guarda o ficheiro limpo.
+    Reads .csv excel file and removes the duplicated rows
 
     Args:
-        caminho_csv (str): Caminho para o ficheiro CSV.
-        guardar (bool): Se True, guarda o ficheiro limpo no mesmo local com sufixo '_limpo'.
+        clean_csv (str): Path.
+        save (bool): If true, save in the same path as '_clean'.
 
     Returns:
         pd.DataFrame: DataFrame sem duplicados.
     """
-    # Lê o CSV
-    df = pd.read_csv(caminho_csv)
+    df = pd.read_csv(clean_csv)
 
-    # Remove duplicados
-    df_sem_duplicados = df.drop_duplicates()
+    # Remove duplicates
+    df_non_duplicates = df.drop_duplicates()
 
-    # Guarda se for necessário
-    if guardar:
-        caminho_limpo = caminho_csv.replace(".csv", "_limpo.csv")
-        df_sem_duplicados.to_csv(caminho_limpo, index=False)
-        print(f"Ficheiro limpo guardado em: {caminho_limpo}")
+    # Convert velocity_last_hour from Python dict string to JSON
+    if 'velocity_last_hour' in df_non_duplicates.columns:
+        def convert_to_json(value):
+            if pd.isna(value) or value == '':
+                return None
+            try:
+                # Convert Python dict string to actual dict, then to JSON
+                dict_obj = ast.literal_eval(str(value))
+                return json.dumps(dict_obj)
+            except (ValueError, SyntaxError):
+                return None
 
-    return df_sem_duplicados
+        df_non_duplicates['velocity_last_hour'] = df_non_duplicates['velocity_last_hour'].apply(convert_to_json)
+
+    # Save
+    if save:
+        clean_path = clean_csv.replace(".csv", "_clean.csv")
+        df_non_duplicates.to_csv(clean_path, index=False)
+        print(f"File saved: {clean_path}")
+
+    return df_non_duplicates
+
+if __name__ == "__main__":
+    remover_duplicados_csv("./synthetic_fraud_data.csv", True)
