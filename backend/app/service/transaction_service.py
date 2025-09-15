@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import logging
 from sklearn.exceptions import NotFittedError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.transaction_model import FEATURE_COLUMNS, Transaction
 from app.schemas.transaction_schema import TransactionCreate, TransactionPredictionResponse, TransactionRequest, TransactionResponse
 from app.repositories.transaction_repo import TransactionRepository
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class TransactionService:
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.repo = TransactionRepository(db)
         self.artifacts = ModelLoader.load()
         try:
@@ -28,35 +28,35 @@ class TransactionService:
             logger.critical("Erro ao carregar artefactos de ML", exc_info=True)
             raise ModelNotLoadedError("Erro ao carregar artefactos de ML") from e
     
-    def get_transactions_qt(self) -> dict[str, int]:
-        return self.repo.get_transaction_count()
+    async def get_transactions_qt(self) -> dict[str, int]:
+        return await self.repo.get_transaction_count()
 
-    def get_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[TransactionResponse]:
-        transaction_list = self.repo.get_all_transactions(filters, limit, skip)
+    async def get_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[TransactionResponse]:
+        transaction_list = await self.repo.get_all_transactions(filters, limit, skip)
         if transaction_list is None or len(transaction_list) == 0:
             logger.error("No transactions found in the database.")
             raise TransactionNotFoundError(name="Transactions Not Found", message="Transactions do not exist.") 
         return [self._to_response(ts) for ts in transaction_list]
     
-    def get_transaction_id(self, transaction_id: str) -> TransactionResponse:
+    async def get_transaction_id(self, transaction_id: str) -> TransactionResponse:
         if transaction_id is None:
             logger.error(f"{transaction_id} cannot be None for prediction.")
             raise TransactionInvalidDataError("transaction_id cannot be None")
 
-        transaction = self.repo.get_transaction_id(transaction_id)
+        transaction = await self.repo.get_transaction_id(transaction_id)
         if transaction is None:
             logger.error(f"Transaction with ID {transaction_id} not found.")
             raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
         
         return self._to_response(transaction)
 
-    def predict_transaction(self, transaction_id: str) -> dict:
+    async def predict_transaction(self, transaction_id: str) -> dict:
 
         if transaction_id is None:
             logger.error(f"{transaction_id} cannot be None for prediction.")
             raise TransactionInvalidDataError("transaction_id cannot be None")
 
-        transaction = self.repo.get_transaction_id(transaction_id)
+        transaction = await self.repo.get_transaction_id(transaction_id)
         logger.info(f"Fetched transaction for prediction: {transaction}")
 
         if transaction is None:
@@ -113,30 +113,32 @@ class TransactionService:
             probability=p_pos
         )
     
-    def create_transaction(self, new_transaction: TransactionCreate) -> TransactionResponse:
-        return self._to_response(self.repo.create_transaction(new_transaction))
+    async def create_transaction(self, new_transaction: TransactionCreate) -> TransactionResponse:
+        created_transaction = await self.repo.create_transaction(new_transaction)
+        return self._to_response(created_transaction)
     
-    def delete_transaction(self, transaction_id: str) -> str:
-        transaction = self.repo.get_transaction_id(transaction_id)
+    async def delete_transaction(self, transaction_id: str) -> str:
+        transaction = await self.repo.get_transaction_id(transaction_id)
         if transaction is None:
             logger.error(f"Transaction with ID {transaction_id} not found for deletion.")
-            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
-        
-        self.repo.delete_transaction(transaction_id)
+            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")
+
+        await self.repo.delete_transaction(transaction_id)
         return f"Transaction with ID {transaction_id} deleted successfully."
 
-    def update_transaction(self, transaction_id: str, updated_transaction: TransactionCreate) -> TransactionResponse:
-        existing_transaction = self.repo.get_transaction_id(transaction_id)
-        
+    async def update_transaction(self, transaction_id: str, updated_transaction: TransactionCreate) -> TransactionResponse:
+        existing_transaction = await self.repo.get_transaction_id(transaction_id)
+
         if existing_transaction is None:
             logger.error(f"Transaction with ID {transaction_id} not found for update.")
-            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
+            raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")
 
         for key, value in updated_transaction.__dict__.items():
                 if key != "transaction_id" and value is not None:
                     setattr(existing_transaction, key, value)
 
-        return self._to_response(self.repo.update_transaction(existing_transaction))
+        updated_result = await self.repo.update_transaction(existing_transaction)
+        return self._to_response(updated_result)
     
     @staticmethod
     def mask_card(card: str) -> str:

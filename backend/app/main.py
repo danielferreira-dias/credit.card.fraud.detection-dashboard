@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, status
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.routers.transaction_router import router as transaction_router
-from app.settings.database import engine
+from app.settings.database import async_engine
 from app.models.transaction_model import Transaction
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,8 +15,10 @@ class HealthCheck(BaseModel):
     """Response model to validate and return when performing a health check."""
     status: str = "OK"
 
-# Create database tables
-Transaction.metadata.create_all(bind=engine)
+async def create_tables():
+    """Create database tables on startup"""
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Transaction.metadata.create_all)
 
 app = FastAPI(
     title="Credit Card Fraud Detection API",
@@ -40,6 +42,10 @@ app.include_router(transaction_router)
 # Register exception handlers --------------------------------------------------
 app.add_exception_handler(TransactionsException, transaction_handler)
 
+# Startup event to create tables
+@app.on_event("startup")
+async def startup_event():
+    await create_tables()
 
 @app.get("/")
 def read_root():

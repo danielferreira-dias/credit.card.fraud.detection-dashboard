@@ -1,10 +1,8 @@
 # app/routers/transactions.py
-from fastapi import Query
-from app.settings.database import get_db
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
 from typing import List
-from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.settings.database import get_db
 from app.schemas.transaction_schema import ResponseWithMessage, TransactionCreate, TransactionResponse, TransactionPredictionResponse
 from app.service.transaction_service import TransactionService
 from app.infra.logger import setup_logger
@@ -18,7 +16,7 @@ router = APIRouter(
 logger = setup_logger(__name__)
 
 # --- dependencies ------------------------
-def get_transaction_service(db: Session = Depends(get_db)) -> TransactionService:
+def get_transaction_service(db: AsyncSession = Depends(get_db)) -> TransactionService:
     """ Dependency to get the TransactionService with a database session. """
     return TransactionService(db)
 
@@ -31,7 +29,7 @@ async def count_transactions(service: TransactionService = Depends(get_transacti
 
     Returns the total count of transactions.
     """
-    response = service.get_transactions_qt()
+    response = await service.get_transactions_qt()
     return ResponseWithMessage(
         message=f"There's currently {response} transactions in the database",
         data=None
@@ -46,7 +44,7 @@ async def predict_transaction(transaction_id: str, service: TransactionService =
 
     Returns the prediction result along with the transaction details.
     """
-    response = service.predict_transaction(transaction_id)
+    response = await service.predict_transaction(transaction_id)
     logger.info(f"Response of router predict_transaction: {response}")
     return response
     
@@ -61,7 +59,7 @@ async def list_transactions(filters: TransactionFilter = Depends(), limit: int =
     - **skip**: Number of transactions to skip for pagination (default is 0).
     
     Returns a list of transactions matching the criteria."""
-    response_list = service.get_transactions(filters, limit, skip)
+    response_list = await service.get_transactions(filters, limit, skip)
     logger.info(f"Response of router list_transactions: {response_list}")
     return response_list
 
@@ -74,7 +72,7 @@ async def get_transaction(transaction_id: str, service: TransactionService = Dep
     
     Returns the transaction details.
     """
-    response = service.get_transaction_id(transaction_id)
+    response = await service.get_transaction_id(transaction_id)
     logger.info(f"Response of get transaction_id {transaction_id}: {response}")
     return response
 
@@ -87,7 +85,7 @@ async def create_new_transaction(new_transaction: TransactionCreate, service: Tr
 
     Returns a message indicating the success of the operation along with the created transaction data.
     """
-    response = service.create_transaction(new_transaction)
+    response = await service.create_transaction(new_transaction)
     return ResponseWithMessage(
         message="Transição criada com successo",
         data=response
@@ -102,7 +100,7 @@ async def delete_transaction(transaction_id: str, service: TransactionService = 
     
     Returns a message indicating the success of the operation along with the deleted transaction data.
     """
-    response = service.delete_transaction(transaction_id)
+    response = await service.delete_transaction(transaction_id)
     return ResponseWithMessage(
         message=f"Transaction with id {transaction_id} deleted successfully",
         data=response
@@ -119,7 +117,7 @@ async def update_transaction(transaction_id: str, updated_transaction: Transacti
     Returns a message indicating the success of the operation along with the updated transaction data.
     """
 
-    response = service.update_transaction(transaction_id, updated_transaction)
+    response = await service.update_transaction(transaction_id, updated_transaction)
     return ResponseWithMessage(
         message=f"Transaction with id {transaction_id} updated successfully",
         data=response

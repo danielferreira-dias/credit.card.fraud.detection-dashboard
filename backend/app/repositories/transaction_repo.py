@@ -1,5 +1,6 @@
 # repositories/transaction_repo.py
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from app.models.transaction_model import Transaction
 from typing import List, Optional
 from app.infra.logger import setup_logger
@@ -12,102 +13,114 @@ from app.schemas.filter_schema import TransactionFilter
 logger = setup_logger(__name__)
 
 class TransactionRepository:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
     
-    def get_transaction_count(self) -> dict[str, int]:
-        total = self.db.query(Transaction).count()
-        frauds = self.db.query(Transaction).filter(Transaction.is_fraud == True).count()
-        
+    async def get_transaction_count(self) -> dict[str, int]:
+        total_stmt = select(func.count(Transaction.transaction_id))
+        fraud_stmt = select(func.count(Transaction.transaction_id)).where(Transaction.is_fraud == True)
+
+        total_result = await self.db.execute(total_stmt)
+        fraud_result = await self.db.execute(fraud_stmt)
+
+        total = total_result.scalar()
+        frauds = fraud_result.scalar()
+
         return {
             "total_transactions": total,
             "fraud_transactions": frauds
         }
     
-    def get_all_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[Transaction]:
+    async def get_all_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[Transaction]:
         try:
-            query = self.db.query(Transaction)
+            stmt = select(Transaction)
 
             if filters.customer_id:
-                query = query.filter(Transaction.customer_id == filters.customer_id)
+                stmt = stmt.where(Transaction.customer_id == filters.customer_id)
             if filters.country:
-                query = query.filter(Transaction.country.ilike(f"%{filters.country}%"))
+                stmt = stmt.where(Transaction.country.ilike(f"%{filters.country}%"))
             if filters.city:
-                query = query.filter(Transaction.city.ilike(f"%{filters.city}%"))
+                stmt = stmt.where(Transaction.city.ilike(f"%{filters.city}%"))
             if filters.merchant_category:
-                query = query.filter(Transaction.merchant_category.ilike(f"%{filters.merchant_category}%"))
+                stmt = stmt.where(Transaction.merchant_category.ilike(f"%{filters.merchant_category}%"))
             if filters.merchant:
-                query = query.filter(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+                stmt = stmt.where(Transaction.merchant.ilike(f"%{filters.merchant}%"))
             if filters.card_type:
-                query = query.filter(Transaction.card_type.ilike(f"%{filters.card_type}%"))
+                stmt = stmt.where(Transaction.card_type.ilike(f"%{filters.card_type}%"))
             if filters.card_present is not None:
-                query = query.filter(Transaction.card_present == filters.card_present)
+                stmt = stmt.where(Transaction.card_present == filters.card_present)
             if filters.channel:
-                query = query.filter(Transaction.channel.ilike(f"%{filters.channel}%"))
+                stmt = stmt.where(Transaction.channel.ilike(f"%{filters.channel}%"))
             if filters.device:
-                query = query.filter(Transaction.device.ilike(f"%{filters.device}%"))
+                stmt = stmt.where(Transaction.device.ilike(f"%{filters.device}%"))
             if filters.distance_from_home:
-                query = query.filter(Transaction.distance_from_home == filters.distance_from_home)
+                stmt = stmt.where(Transaction.distance_from_home == filters.distance_from_home)
             if filters.high_risk_merchant is not None:
-                query = query.filter(Transaction.high_risk_merchant == filters.high_risk_merchant)
+                stmt = stmt.where(Transaction.high_risk_merchant == filters.high_risk_merchant)
             if filters.start_date:
-                query = query.filter(Transaction.date >= filters.start_date)
+                stmt = stmt.where(Transaction.date >= filters.start_date)
             if filters.end_date:
-                query = query.filter(Transaction.date <= filters.end_date)
+                stmt = stmt.where(Transaction.date <= filters.end_date)
             if filters.min_amount:
-                query = query.filter(Transaction.amount >= filters.min_amount)
+                stmt = stmt.where(Transaction.amount >= filters.min_amount)
             if filters.max_amount:
-                query = query.filter(Transaction.amount <= filters.max_amount)
-            if filters.merchant:
-                query = query.filter(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+                stmt = stmt.where(Transaction.amount <= filters.max_amount)
             if filters.is_fraud is not None:
-                query = query.filter(Transaction.is_fraud == filters.is_fraud)
+                stmt = stmt.where(Transaction.is_fraud == filters.is_fraud)
 
-            transactions = query.offset(skip).limit(limit).all()
+            stmt = stmt.offset(skip).limit(limit)
+            result = await self.db.execute(stmt)
+            transactions = result.scalars().all()
             return transactions
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transações: {e}")
             raise DatabaseException("Erro ao aceder às transações na base de dados") from e
     
-    def get_transaction_id(self, transaction_id: str) -> Transaction:
+    async def get_transaction_id(self, transaction_id: str) -> Transaction:
         try:
-            transaction = self.db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
+            stmt = select(Transaction).where(Transaction.transaction_id == transaction_id)
+            result = await self.db.execute(stmt)
+            transaction = result.scalar_one_or_none()
             logger.info(f"The transaction fetched by the database was the following: {transaction}")
             return transaction
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transação por ID {transaction_id}: {e}")
             raise DatabaseException("Erro ao aceder à transação na base de dados") from e
     
-    def create_transaction(self, transaction: TransactionCreate) -> Transaction:
+    async def create_transaction(self, transaction: TransactionCreate) -> Transaction:
         try:
-            transaction = Transaction(**transaction.model_dump())
-            self.db.add(transaction)
-            self.db.commit()
-            self.db.refresh(transaction)
-            return transaction
+            db_transaction = Transaction(**transaction.model_dump())
+            self.db.add(db_transaction)
+            await self.db.commit()
+            await self.db.refresh(db_transaction)
+            return db_transaction
         except SQLAlchemyError as e:
+            await self.db.rollback()
             if "duplicate key" in str(e).lower():
                 raise TransactionDuplucateError(name="Transição duplicada", message="Transição já existe na base de dados;")
             logger.error(f"Erro ao criar transação: {e}")
             raise DatabaseException("Erro ao criar a transação na base de dados") from e
         
-    def delete_transaction(self, transaction_id: str):
+    async def delete_transaction(self, transaction_id: str):
         try:
-            transaction = self.get_transaction_id(transaction_id)
-            logger.info(f"Transação com ID {transaction_id} removida com sucesso")
-            self.db.delete(transaction)
-            self.db.commit()
-
+            transaction = await self.get_transaction_id(transaction_id)
+            if transaction:
+                await self.db.delete(transaction)
+                await self.db.commit()
+                logger.info(f"Transação com ID {transaction_id} removida com sucesso")
+            return transaction
         except SQLAlchemyError as e:
+            await self.db.rollback()
             logger.error(f"Erro ao remover transação com ID {transaction_id}: {e}")
             raise DatabaseException("Erro ao remover a transação na base de dados") from e
         
-    def update_transaction(self, updated_transaction: Transaction) -> Transaction:
+    async def update_transaction(self, updated_transaction: Transaction) -> Transaction:
         try:
-            self.db.commit()
-            self.db.refresh(updated_transaction)
+            await self.db.commit()
+            await self.db.refresh(updated_transaction)
             return updated_transaction
         except SQLAlchemyError as e:
+            await self.db.rollback()
             logger.error(f"Erro ao atualizar transação: {e}")
             raise DatabaseException("Erro ao atualizar a transação na base de dados") from e
         
