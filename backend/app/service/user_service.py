@@ -1,20 +1,19 @@
 
+from pydantic import EmailStr
 from app.schemas.user_schema import UserCreate, UserResponse
 from app.models.user_model import User
 from app.repositories.user_repo import UserRepository
 from app.exception.user_exceptions import UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from passlib.context import CryptContext
+from app.security.password_utils import hash_password
 
 class UserService:
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
     def __init__(self, db: AsyncSession):
         self.repo = UserRepository(db)
 
     async def create_user_service(self, user_data: UserCreate) -> UserResponse:
-        hashed_password = self.hash_password(user_data.password)
+        hashed_password = hash_password(user_data.password)
         user_data_with_hash = UserCreate(
             email=user_data.email,
             name=user_data.name,
@@ -28,6 +27,12 @@ class UserService:
         if user is None:
             raise UserNotFoundException(f"User with ID {user_id} not found")
         return self._to_response_model(user)
+    
+    async def get_user_service_email(self, email: EmailStr) -> UserResponse:
+        user = await self.repo.get_user_by_email(email)
+        if user is None:
+            raise UserNotFoundException(f"User with email {email} not found")
+        return self._to_response_model(user)
 
     async def get_users_service(self, skip: int = 0, limit: int = 100) -> List[UserResponse]:
         users = await self.repo.get_users(skip=skip, limit=limit)
@@ -35,7 +40,7 @@ class UserService:
 
     async def update_user_service(self, user_id: int, user_data: dict) -> UserResponse:
         if 'password' in user_data:
-            user_data['password'] = self.hash_password(user_data['password'])
+            user_data['password'] = hash_password(user_data['password'])
         user = await self.repo.update_user(user_id, user_data)
         if user is None:
             raise UserNotFoundException(f"User with ID {user_id} not found")
@@ -46,10 +51,6 @@ class UserService:
         if result == "User not found":
             raise UserNotFoundException(f"User with ID {user_id} not found")
         return result
-
-    @classmethod
-    def hash_password(cls, password: str) -> str:
-        return cls.pwd_context.hash(password)
 
     @staticmethod
     def _to_response_model(user: User) -> UserResponse:

@@ -1,4 +1,5 @@
 
+from pydantic import EmailStr
 from app.exception.transaction_exceptions import DatabaseException
 from app.infra.logger import setup_logger
 from app.exception.user_exceptions import UserNotFoundException
@@ -22,6 +23,14 @@ class UserRepository:
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter user com ID {user_id}: {e}")
+            raise DatabaseException("Erro ao obter o utilizador da base de dados") from e
+        
+    async def get_user_by_email(self, user_email: EmailStr) -> User:
+        try:
+            result = await self.db.execute(select(User).where(User.email == user_email))
+            return result.scalar_one_or_none()
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao obter user com ID {user_email}: {e}")
             raise DatabaseException("Erro ao obter o utilizador da base de dados") from e
         
     async def get_users(self, skip: int = 0, limit: int = 100) -> List[User]:
