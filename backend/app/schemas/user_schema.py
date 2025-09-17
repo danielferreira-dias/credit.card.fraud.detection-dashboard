@@ -15,7 +15,7 @@ class UserResponse(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
     
     def __repr__(self):
         return f"<UserResponse(id={self.id}, email={self.email}, name={self.name})>"
