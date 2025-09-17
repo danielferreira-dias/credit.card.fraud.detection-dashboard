@@ -38,7 +38,7 @@ async function RegisterUser(userData: RegisterProps): Promise<void> {
   try {
     console.log('Sending registration data:', registerData);
     console.log('JSON payload:', JSON.stringify(registerData));
-    const response = await fetch('/auth/register', {
+    const response = await fetch('http://localhost:80/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(registerData)
