@@ -8,6 +8,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
     password = Column(String, nullable=False)
+    confirmed = Column(Boolean, nullable=False)
 
     def __repr__(self):
         return f"<User(username={self.name}, email={self.email})>"
