@@ -6,7 +6,7 @@ from typing import List, Optional
 from app.infra.logger import setup_logger
 from app.exception.transaction_exceptions import DatabaseException, TransactionDuplucateError
 from sqlalchemy.exc import SQLAlchemyError
-
+from sqlalchemy import delete
 from app.schemas.transaction_schema import TransactionCreate
 from app.schemas.filter_schema import TransactionFilter
 
@@ -105,7 +105,7 @@ class TransactionRepository:
         try:
             transaction = await self.get_transaction_id(transaction_id)
             if transaction:
-                await self.db.delete(transaction)
+                await self.db.execute(delete(Transaction).where(Transaction.transaction_id == transaction_id))
                 await self.db.commit()
                 logger.info(f"Transação com ID {transaction_id} removida com sucesso")
             return transaction

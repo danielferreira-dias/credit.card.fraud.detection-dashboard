@@ -10,4 +10,4 @@ class User(Base):
     password = Column(String, nullable=False)
 
     def __repr__(self):
-        return f"<User(username={self.username}, email={self.email})>"
+        return f"<User(username={self.name}, email={self.email})>"

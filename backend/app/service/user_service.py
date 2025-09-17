@@ -1,9 +1,10 @@
 
+from http.client import HTTPException
 from pydantic import EmailStr
-from app.schemas.user_schema import UserCreate, UserResponse, UserSchema
+from app.schemas.user_schema import UserCreate, UserRegisterSchema, UserResponse, UserSchema
 from app.models.user_model import User
 from app.repositories.user_repo import UserRepository
-from app.exception.user_exceptions import UserNotFoundException
+from app.exception.user_exceptions import UserCredentialInvalid, UserDuplicateException, UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Tuple
 from app.security.password_utils import hash_password
@@ -12,7 +13,14 @@ class UserService:
     def __init__(self, db: AsyncSession):
         self.repo = UserRepository(db)
 
-    async def create_user_service(self, user_data: UserCreate) -> UserResponse:
+    async def create_user_service(self, user_data: UserRegisterSchema) -> UserResponse:
+        if user_data.password != user_data.confirm_password:
+            raise UserCredentialInvalid('Password is not matching the confirm password')
+        new_user = await self.repo.get_user_by_email(user_data.email)
+        if new_user:
+            raise UserDuplicateException(
+                message="User with this email already exists"
+            )
         hashed_password = hash_password(user_data.password)
         user_data_with_hash = UserCreate(
             email=user_data.email,
@@ -47,11 +55,9 @@ class UserService:
         return self._to_response_model(user)
 
     async def delete_user_service(self, user_id: int) -> str:
-        result = await self.repo.delete_user(user_id)
-        if result == "User not found":
-            raise UserNotFoundException(f"User with ID {user_id} not found")
-        return result
-
+        user: User = await self.repo.get_user(user_id)
+        return await self.repo.delete_user(user.id)
+    
     @staticmethod
     def _to_response_model(user: User) -> UserResponse:
         return UserResponse(

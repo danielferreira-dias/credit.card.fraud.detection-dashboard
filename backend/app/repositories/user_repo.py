@@ -2,7 +2,7 @@
 from pydantic import EmailStr
 from app.exception.transaction_exceptions import DatabaseException
 from app.infra.logger import setup_logger
-from app.exception.user_exceptions import UserNotFoundException
+from app.exception.user_exceptions import UserException, UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
@@ -23,7 +23,7 @@ class UserRepository:
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter user com ID {user_id}: {e}")
-            raise DatabaseException("Erro ao obter o utilizador da base de dados") from e
+            raise UserException("Erro ao obter o utilizador da base de dados") from e
         
     async def get_user_by_email(self, user_email: EmailStr) -> User:
         try:
@@ -31,7 +31,7 @@ class UserRepository:
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter user com ID {user_email}: {e}")
-            raise DatabaseException("Erro ao obter o utilizador da base de dados") from e
+            raise UserException("Erro ao obter o utilizador da base de dados") from e
         
     async def get_users(self, skip: int = 0, limit: int = 100) -> List[User]:
         try:
@@ -39,7 +39,7 @@ class UserRepository:
             return result.scalars().all()
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter users: {e}")
-            raise DatabaseException("Erro ao obter os utilizadores da base de dados") from e
+            raise UserException("Erro ao obter os utilizadores da base de dados") from e
 
     async def create_user(self, user_data: UserCreate) -> User:
         try:
@@ -51,7 +51,7 @@ class UserRepository:
         except SQLAlchemyError as e:
             await self.db.rollback()
             logger.error(f"Erro ao criar user: {e}")
-            raise DatabaseException("Erro ao criar o utilizador na base de dados") from e
+            raise UserException("Erro ao criar o utilizador na base de dados") from e
 
     async def update_user(self, user_id: int, user_data: dict) -> User:
         try:
@@ -66,21 +66,20 @@ class UserRepository:
         except SQLAlchemyError as e:
             await self.db.rollback()
             logger.error(f"Erro ao atualizar user com ID {user_id}: {e}")
-            raise DatabaseException("Erro ao atualizar o utilizador na base de dados") from e
+            raise UserException("Erro ao atualizar o utilizador na base de dados") from e
         
     async def delete_user(self, user_id: int) -> str:
         try:
-            user = await self.get_user(user_id)
-            if not user:
-                return "User not found"
-            
-            result = await self.db.execute(delete(user))
+            result = await self.db.execute(delete(User).where(User.id == user_id))
+            if result.rowcount == 0:
+                raise UserNotFoundException(f"User com ID {user_id} não encontrado")
             await self.db.commit()
+            logger.info(f"User com ID {user_id} removida com sucesso")
             return "User deleted successfully"
         except SQLAlchemyError as e:
             await self.db.rollback()
             logger.error(f"Erro ao remover user com ID {user_id}: {e}")
-            raise DatabaseException("Erro ao remover o utilizador da base de dados") from e
+            raise UserException("Erro ao remover o utilizador da base de dados") from e
 
 
         

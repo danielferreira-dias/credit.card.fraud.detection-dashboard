@@ -19,10 +19,7 @@ class AuthService:
             raise UserCredentialInvalid('Invalid Email')
         if password is None or email == "":
             raise UserCredentialInvalid('Invalid Password')
-
-        logger.info(f"Current info ->  {email}, + {password}")
         user_data : UserAuthenticationReponse = await self.security.authenticate_user(email, password) 
-        logger.info(f"user_data -> {user_data}")
 
         if not user_data:
             raise UserCredentialInvalid('Invalid Credentials by the User')

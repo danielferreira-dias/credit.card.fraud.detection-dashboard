@@ -1,5 +1,5 @@
 from app.infra.logger import setup_logger
-from app.schemas.user_schema import UserCreate, UserResponse
+from app.schemas.user_schema import UserCreate, UserRegisterSchema, UserResponse
 from app.service.user_service import UserService
 from app.settings.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,7 +18,7 @@ def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
     return UserService(db)
 
 @router.post("/", response_model=UserResponse)
-async def create_user( user: UserCreate, user_service: UserService = Depends(get_user_service)):
+async def create_user( user: UserRegisterSchema, user_service: UserService = Depends(get_user_service)):
     """
     Create a new user in the system.
 
@@ -72,7 +72,7 @@ async def update_user(user_id: int,user_data: dict,user_service: UserService = D
     return await user_service.update_user_service(user_id, user_data)
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: int,user_service: UserService = Depends(get_user_service)):
+async def delete_user(user_id: int , user_service: UserService = Depends(get_user_service)):
     """
     Delete a user by ID.
 
@@ -81,6 +81,7 @@ async def delete_user(user_id: int,user_service: UserService = Depends(get_user_
     Returns a success message.
     """
     logger.info(f"Deleting user with ID: {user_id}")
-    result = await user_service.delete_user_service(user_id)
+    user = await user_service.get_user_service(user_id)
+    result = await user_service.delete_user_service(user.id)
     return {"message": result}
 

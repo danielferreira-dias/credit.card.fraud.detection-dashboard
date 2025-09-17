@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from app.schemas.auth_schema import TokenResponse
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -19,6 +20,10 @@ class UserResponse(BaseModel):
     def __repr__(self):
         return f"<UserResponse(id={self.id}, email={self.email}, name={self.name})>"
 
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    token: TokenResponse
+
 class UserSchema(BaseModel):
     email: EmailStr
     password: str
@@ -31,3 +36,9 @@ class UserAuthenticationReponse(BaseModel):
 class UserLoginAuthentication(BaseModel):
     email: EmailStr
     password: str
+
+class UserRegisterSchema(BaseModel):
+    email: EmailStr
+    name: str 
+    password: str
+    confirm_password: str

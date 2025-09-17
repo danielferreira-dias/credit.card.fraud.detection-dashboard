@@ -22,3 +22,7 @@ class UserCredentialInvalid(UserException):
 class UserCredentialsException(UserException):
     def to_http_status(self):
         return HTTP_401_UNAUTHORIZED
+    
+class UserDuplicateException(UserException):
+    def to_http_status(self):
+        return HTTP_400_BAD_REQUEST
