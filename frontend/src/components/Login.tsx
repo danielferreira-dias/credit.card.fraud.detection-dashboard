@@ -1,21 +1,129 @@
 import { useState } from "react";
 
+async function LoginUser(email: string, password: string): Promise<void> {
+  const loginData = { email, password };
+
+  try {
+    const response = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(loginData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Login failed');
+    }
+
+    const data = await response.json();
+    console.log('Login successful:', data);
+
+    // Store the token securely (consider using HttpOnly cookies for better security)
+    localStorage.setItem('access_token', data.access_token);
+
+    // Redirect or update UI as needed
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error; // Let the calling component handle the error display
+  }
+}
+
 export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [touched, setTouched] = useState<{[key: string]: boolean}>({});
+
+  const validateField = (name: string, value: string) => {
+    const errors: {[key: string]: string} = {};
+
+    switch (name) {
+      case 'email':
+        if (!value.trim()) errors.email = 'Email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.email = 'Please enter a valid email';
+        break;
+      case 'password':
+        if (!value) errors.password = 'Password is required';
+        break;
+    }
+
+    return errors;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
+    });
+
+    // Validate field if it's been touched
+    if (touched[name]) {
+      const fieldError = validateField(name, value);
+      setFieldErrors(prev => {
+        const newErrors = { ...prev, ...fieldError };
+        if (Object.keys(fieldError).length === 0) {
+          delete newErrors[name];
+        }
+        return newErrors;
+      });
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+
+    const fieldError = validateField(name, value);
+    setFieldErrors(prev => {
+      const newErrors = { ...prev, ...fieldError };
+      if (Object.keys(fieldError).length === 0) {
+        delete newErrors[name];
+      }
+      return newErrors;
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login form submitted:", formData);
+
+    // Validate all fields
+    const allErrors: {[key: string]: string} = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      const fieldError = validateField(key, value);
+      Object.assign(allErrors, fieldError);
+    });
+
+    // Mark all fields as touched
+    setTouched({
+      email: true,
+      password: true
+    });
+
+    setFieldErrors(allErrors);
+
+    // Don't submit if there are validation errors
+    if (Object.keys(allErrors).length > 0) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await LoginUser(formData.email, formData.password);
+      // ToDo: Add success handling here
+      // Login successful - could redirect or show success message
+      window.location.href = "/";
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -35,10 +143,18 @@ export default function Login() {
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-[#1A1A1D] border border-zinc-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-zinc-400"
+            onBlur={handleBlur}
+            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${
+              fieldErrors.email
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
+            }`}
             placeholder="Enter your email"
             required
           />
+          {fieldErrors.email && (
+            <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+          )}
         </div>
 
         <div>
@@ -53,16 +169,31 @@ export default function Login() {
             name="password"
             value={formData.password}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-[#1A1A1D] border mb-6 border-zinc-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-zinc-400"
+            onBlur={handleBlur}
+            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${
+              fieldErrors.password
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
+            }`}
             placeholder="Enter your password"
             required
           />
+          {fieldErrors.password && (
+            <p className="text-red-400 text-xs mt-1 mb-4">{fieldErrors.password}</p>
+          )}
         </div>
+
+        {error && (
+          <div className="text-red-400 text-sm text-center">
+            {error}
+          </div>
+        )}
 
         <button
           type="submit"
-          className="w-[50%] bg-amber-100 text-black font-medium m-auto py-3 mt-6 px-4 rounded-lg transition duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#0F0F11]">
-          Sign In
+          disabled={isLoading}
+          className="w-[50%] bg-amber-100 text-black font-medium m-auto py-3 mt-6 px-4 rounded-lg transition duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#0F0F11] disabled:opacity-50 disabled:cursor-not-allowed">
+          {isLoading ? 'Signing In...' : 'Sign In'}
         </button>
 
         <div className="text-center">
