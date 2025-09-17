@@ -19,6 +19,11 @@ class UserResponse(BaseModel):
     def __repr__(self):
         return f"<UserResponse(id={self.id}, email={self.email}, name={self.name})>"
 
+class UserSchema(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+
 class UserAuthenticationReponse(BaseModel):
     email: EmailStr
     name: str

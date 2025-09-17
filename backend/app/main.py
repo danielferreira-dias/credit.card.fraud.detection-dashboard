@@ -1,6 +1,7 @@
 from app.models.user_model import User
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
+from app.exception.user_exceptions import UserException
 from fastapi import FastAPI, status
 from app.routers.transaction_router import router as transaction_router
 from app.settings.database import async_engine
@@ -8,7 +9,7 @@ from app.models.transaction_model import Transaction
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from app.exception.transaction_exceptions import TransactionsException
-from app.exception.handler import transaction_handler
+from app.exception.handler import transaction_handler, user_handler
 from app.infra.logger import setup_logger
 
 logger = setup_logger("main")
@@ -44,6 +45,7 @@ app.include_router(auth_router)
 
 # Register exception handlers --------------------------------------------------
 app.add_exception_handler(TransactionsException, transaction_handler)
+app.add_exception_handler(UserException, user_handler)
 
 # Startup event to create tables
 @app.on_event("startup")

@@ -8,6 +8,7 @@ from app.security.security import SecurityManager
 from fastapi import APIRouter, Depends
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas.auth_schema import TokenResponse
 
 router = APIRouter(
     prefix="/auth",
@@ -39,14 +40,7 @@ def get_security_service(db: AsyncSession = Depends(get_db)) -> AuthService:
 # --- router ------------------------
 
 @router.post('/login')
-async def login( credentials: UserLoginAuthentication, auth_service: AuthService = Depends(get_security_service)):
-    """
-        Login endpoint uses POST method instead of        
-        GET, avoid exposing credentials in URL parameters, server logs,      
-        and browser history
-    """
+async def login( credentials: UserLoginAuthentication, auth_service: AuthService = Depends(get_security_service)) -> TokenResponse:
     token = await auth_service.login_service(credentials.email, credentials.password)
-    return {
-        'access_token': token,
-        'token_type': 'bearer'
-    }
+    return token
+    

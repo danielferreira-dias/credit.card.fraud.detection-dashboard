@@ -1,17 +1,18 @@
 from datetime import datetime, timedelta, timezone
 import os
+from app.service.user_service import UserService
 import jwt
 from dotenv import load_dotenv
 from pydantic import BaseModel, EmailStr
 from app.exception.user_exceptions import UserCredentialInvalid, UserCredentialsException, UserException, UserNotFoundException
-from app.schemas.user_schema import UserAuthenticationReponse, UserResponse
+from app.schemas.user_schema import UserAuthenticationReponse, UserResponse, UserSchema
 from jwt.exceptions import InvalidTokenError
 from .password_utils import verify_password, hash_password
 
 load_dotenv()
 
 class SecurityManager:
-    def __init__(self, user_service):
+    def __init__(self, user_service: UserService):
         self.secret_key = os.getenv("SECRET_KEY")
         if self.secret_key is None:
             raise UserException('Secret Key is not set;')
@@ -28,7 +29,7 @@ class SecurityManager:
     
     async def authenticate_user(self, user_email : EmailStr, password: str) -> UserAuthenticationReponse:
         try:
-            user = await self.user_service.get_user_service_email(user_email)
+            user : UserSchema = await self.user_service.get_user_service_email(user_email)
             is_valid = verify_password(password, user.password)
         except UserNotFoundException:
             hash_password("dummy_password")

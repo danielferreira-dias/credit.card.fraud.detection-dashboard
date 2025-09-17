@@ -6,6 +6,9 @@ ENV PYTHONUNBUFFERED=1 \
 # Instala o uv diretamente
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# Add curl for health checks early in the build
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Define diretório de trabalho
 WORKDIR /app
 
@@ -15,15 +18,11 @@ COPY pyproject.toml uv.lock ./
 # Instala dependências com ambiente virtual isolado
 RUN uv venv && uv sync --frozen --no-cache
 
-# Copia a aplicação (usa o cache eficientemente)
-COPY app/ ./app/
-COPY tests/ ./tests/
-
-# Add curl for health checks:
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Create app and tests directories (code will be mounted via volumes)
+RUN mkdir -p app tests
 
 # Expõe a porta
 EXPOSE 80
 
-# Comando para correr a app
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+# Comando para correr a app with reload for development
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]

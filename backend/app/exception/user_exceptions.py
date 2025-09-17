@@ -17,7 +17,7 @@ class UserNotFoundException(UserException):
 class UserCredentialInvalid(UserException):
     """Exception raised when invalid credentials"""
     def to_http_status(self):
-        return super().to_http_status()
+        return HTTP_401_UNAUTHORIZED
     
 class UserCredentialsException(UserException):
     def to_http_status(self):

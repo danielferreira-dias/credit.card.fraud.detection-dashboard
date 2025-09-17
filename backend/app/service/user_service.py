@@ -1,11 +1,11 @@
 
 from pydantic import EmailStr
-from app.schemas.user_schema import UserCreate, UserResponse
+from app.schemas.user_schema import UserCreate, UserResponse, UserSchema
 from app.models.user_model import User
 from app.repositories.user_repo import UserRepository
 from app.exception.user_exceptions import UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Tuple
 from app.security.password_utils import hash_password
 
 class UserService:
@@ -28,11 +28,11 @@ class UserService:
             raise UserNotFoundException(f"User with ID {user_id} not found")
         return self._to_response_model(user)
     
-    async def get_user_service_email(self, email: EmailStr) -> UserResponse:
+    async def get_user_service_email(self, email: EmailStr) -> UserSchema:
         user = await self.repo.get_user_by_email(email)
         if user is None:
             raise UserNotFoundException(f"User with email {email} not found")
-        return self._to_response_model(user)
+        return UserSchema(email=user.email,password=user.password,name=user.name)
 
     async def get_users_service(self, skip: int = 0, limit: int = 100) -> List[UserResponse]:
         users = await self.repo.get_users(skip=skip, limit=limit)
