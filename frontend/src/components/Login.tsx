@@ -24,7 +24,6 @@ async function LoginUser(email: string, password: string): Promise<void> {
       localStorage.setItem('access_token', data.token.access_token);
     }
     window.location.href = "/";
-    // Redirect or update UI as needed
   } catch (error) {
     console.error('Login error:', error);
     throw error; // Let the calling component handle the error display

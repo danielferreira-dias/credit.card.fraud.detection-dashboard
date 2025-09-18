@@ -25,4 +25,4 @@ class AuthService:
             raise UserCredentialInvalid('Invalid Credentials by the User')
         
         access_token = self.security.create_access_token(user_data.model_dump())
-        return TokenResponse( user_email=user_data.email , token=Token(access_token=access_token, token_type="bearer"))
+        return TokenResponse( user_email=user_data.email, name = user_data.name , token=Token(access_token=access_token, token_type="bearer"))

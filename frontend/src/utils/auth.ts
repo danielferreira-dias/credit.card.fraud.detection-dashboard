@@ -48,7 +48,7 @@ export async function verifyTokenWithAPI(): Promise<TokenPayload | null> {
   if (!token) return null;
 
   try {
-    const response = await fetch('/auth/verify-token', {
+    const response = await fetch('http://localhost:80/auth/verify-token', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'

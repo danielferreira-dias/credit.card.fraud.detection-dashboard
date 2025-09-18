@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Login from "../components/Login";
 import Register from "../components/Register";
+import { useUser } from "../context/UserContext";
 
 export default function AuthenticationPage() {
-  const [loginPage, setLoginPage] = useState(false);
+  const [loginPage, setLoginPage] = useState(true);
+  const { user, loading } = useUser();
+
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('User is logged in, redirecting...', user);
+      window.location.href = "/";
+    }
+  }, [user, loading]);
 
   return (
     <div className="flex flex-col w-full text-white justify-center items-center border-[1px] bg-[#0F0F11] border-zinc-700 min-h-screen ">

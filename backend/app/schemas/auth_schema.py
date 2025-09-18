@@ -8,4 +8,5 @@ class Token:
 
 class TokenResponse(BaseModel):
     user_email: EmailStr
+    name: str
     token: Token

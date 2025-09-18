@@ -26,15 +26,6 @@ def get_security_manager(db: AsyncSession = Depends(get_db)) -> SecurityManager:
 def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
     return UserService(db)
 
-def get_current_user(token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager)):
-    """
-        Gets the current User's token to see if it matches to request protected Router
-    """
-    payload = security_manager.verify_token(token.credentials)
-    if payload is None:
-        raise UserCredentialsException("User is not authorized")
-    return payload
-
 def get_security_service(db: AsyncSession = Depends(get_db)) -> AuthService:
     user_service = UserService(db)
     security_manager = SecurityManager(user_service)
@@ -51,8 +42,11 @@ async def get_current_user(token: str = Depends(security), security_manager: Sec
 # --- router ------------------------
 
 @router.get("/verify-token")
-async def protected_route(current_user: dict = Depends(get_current_user)):
-    return {"valid": True, "user": current_user}
+async def verify_token(token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager)):
+    payload = security_manager.verify_token(token.credentials)
+    if payload is None:
+        raise UserCredentialsException('Invalid token')
+    return {"valid": True, "user": payload}
 
 @router.post('/login')
 async def login( credentials: UserLoginAuthentication, auth_service: AuthService = Depends(get_security_service)) -> TokenResponse:
