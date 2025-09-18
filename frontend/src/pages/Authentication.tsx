@@ -16,14 +16,9 @@ export default function AuthenticationPage() {
       navigate("/", { replace: true, state: { from: location } });
     }
   }, [user, loading, navigate, location]);
-  if (loading) {
-    return (
-      <Loading />
-    );
-  }
   
   return (
-    <div className="flex flex-col w-full text-white justify-center items-center border-[1px] bg-[#0F0F11] border-zinc-700 min-h-screen ">
+    loading ? <Loading /> : <div className="flex flex-col w-full h-[80%] text-white justify-center items-center border-[1px] bg-[#0F0F11] border-zinc-700 min-h-screen ">
       <div className="flex flex-col w-[50%] h-[80%] min-w-[400px] border-[1px] bg-[#0F0F11] border-zinc-700 shadow-xl shadow-zinc-900 rounded-xl min-h-[600px]">
         <div className="flex flex-row w-full h-16 bg-[#121214bb] rounded-t-xl  border-b-[1px] border-zinc-700" >
           <button
