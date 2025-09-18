@@ -47,7 +47,7 @@ export default function TransactionList(){
             console.error('Failed to fetch transactions:', error);
             setFilterElements([]);
           } finally {
-            //setLoadingPage(false);
+            setLoadingPage(false);
           }
         };
         fetchFilters();

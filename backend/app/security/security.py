@@ -35,7 +35,6 @@ class SecurityManager:
             hash_password("dummy_password")
             is_valid = False
             user = None
-
         if not is_valid or user is None:
             raise UserCredentialInvalid("Invalid credentials")
 
@@ -44,6 +43,11 @@ class SecurityManager:
     def verify_token(self, token: str) -> dict | None:
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            expiration = payload.get('exp')
+
+            if expiration and datetime.now(timezone.utc).timestamp() > expiration:
+                raise UserCredentialsException('The token has been expired;')
+
             return payload
         except InvalidTokenError as e:
-            raise UserCredentialsException("Invalid Credentials") from e
+            raise UserCredentialsException("Invalid Token;") from e

@@ -1,8 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import AuthRouter from "./AuthRouter";
-import { useUser } from "../context/UserContext";
-import { useEffect } from "react";
 
 export default function Layout() {
   const location = useLocation();

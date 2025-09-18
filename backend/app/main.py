@@ -1,4 +1,4 @@
-from app.models.user_model import User
+from app.models.user_model import Conversation, Message, User
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
 from app.exception.user_exceptions import UserException
@@ -23,6 +23,8 @@ async def create_tables():
     async with async_engine.begin() as conn:
         await conn.run_sync(Transaction.metadata.create_all)
         await conn.run_sync(User.metadata.create_all)
+        await conn.run_sync(Conversation.metadata.create_all)
+        await conn.run_sync(Message.metadata.create_all)
 
 app = FastAPI(
     title="Credit Card Fraud Detection API",
