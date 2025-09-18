@@ -12,7 +12,7 @@ export function decodeJWT(token: string): TokenPayload | null {
         .join('')
     );
     return JSON.parse(jsonPayload);
-  } catch (error) {
+  } catch {
     return null;
   }
 }

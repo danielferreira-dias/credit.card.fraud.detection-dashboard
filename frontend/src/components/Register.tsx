@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FormInput from "./FormInput";
 
 interface RegisterProps {
   email: string;
@@ -83,29 +84,54 @@ export default function Register() {
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
 
+  const formFields = [
+    {
+      name: "name",
+      type: "text",
+      label: "Full Name",
+      placeholder: "Enter your full name",
+    },
+    {
+      name: "email",
+      type: "email",
+      label: "Email Address",
+      placeholder: "Enter your email",
+    },
+    {
+      name: "password",
+      type: "password",
+      label: "Password",
+      placeholder: "Enter your password",
+    },
+    {
+      name: "confirm_password",
+      type: "password",
+      label: "Confirm Password",
+      placeholder: "Confirm your password",
+    },
+  ];
+
   const validateField = (name: string, value: string) => {
-  const errors: { [key: string]: string } = {};
-
-  switch (name) {
-      case 'name':
-        if (!value.trim()) errors.name = 'Full name is required';
-        else if (value.trim().length < 2) errors.name = 'Name must be at least 2 characters';
-        break;
-      case 'email':
-        if (!value.trim()) errors.email = 'Email is required';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.email = 'Please enter a valid email';
-        break;
-      case 'password':
-        if (!value) errors.password = 'Password is required';
-        else if (value.length < 8) errors.password = 'Password must be at least 8 characters';
-        break;
-      case 'confirm_password':
-        if (!value) errors.confirm_password = 'Please confirm your password';
-        else if (value !== formData.password) errors.confirm_password = 'Passwords do not match';
-        break;
-    }
-
-    return errors;
+    const errors: { [key: string]: string } = {};
+    switch (name) {
+        case 'name':
+          if (!value.trim()) errors.name = 'Full name is required';
+          else if (value.trim().length < 2) errors.name = 'Name must be at least 2 characters';
+          break;
+        case 'email':
+          if (!value.trim()) errors.email = 'Email is required';
+          else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.email = 'Please enter a valid email';
+          break;
+        case 'password':
+          if (!value) errors.password = 'Password is required';
+          else if (value.length < 8) errors.password = 'Password must be at least 8 characters';
+          break;
+        case 'confirm_password':
+          if (!value) errors.confirm_password = 'Please confirm your password';
+          else if (value !== formData.password) errors.confirm_password = 'Passwords do not match';
+          break;
+      }
+      return errors;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,8 +203,6 @@ export default function Register() {
         password: formData.password,
         confirm_password: formData.confirm_password
       });
-      // ToDo: Add success handling here
-      // Registration successful - could redirect or show success message
       window.location.href = "/";
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Registration failed');
@@ -191,106 +215,11 @@ export default function Register() {
     <div className="w-full h-full flex justify-center items-center p-8 flex-col gap-y-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full h-fit min-h-[80%] max-w-md space-y-4 flex flex-col">
-        <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium opacity-80 mb-2">
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${fieldErrors.name
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
-              }`}
-            placeholder="Enter your full name"
-            required
+        className="w-full max-w-md flex flex-col ">
+        {formFields.map((field) => (
+          <FormInput key={field.name} id={field.name} name={field.name} type={field.type} value={formData[field.name as keyof typeof formData]} onChange={handleInputChange} onBlur={handleBlur} placeholder={field.placeholder} label={field.label} error={fieldErrors[field.name]} required
           />
-          {fieldErrors.name && (
-            <p className="text-red-400 text-xs mt-1">{fieldErrors.name}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium opacity-80 mb-2">
-            Email Address
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${fieldErrors.email
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
-              }`}
-            placeholder="Enter your email"
-            required
-          />
-          {fieldErrors.email && (
-            <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium opacity-80 mb-2">
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${fieldErrors.password
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
-              }`}
-            placeholder="Enter your password"
-            required
-          />
-          {fieldErrors.password && (
-            <p className="text-red-400 text-xs mt-1">{fieldErrors.password}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="confirm_password"
-            className="block text-sm font-medium opacity-80 mb-2">
-            Confirm Password
-          </label>
-          <input
-            type="password"
-            id="confirm_password"
-            name="confirm_password"
-            value={formData.confirm_password}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${fieldErrors.confirm_password
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
-              }`}
-            placeholder="Confirm your password"
-            required
-          />
-          {fieldErrors.confirm_password && (
-            <p className="text-red-400 text-xs mt-1">{fieldErrors.confirm_password}</p>
-          )}
-        </div>
+        ))}
 
         {error && (
           <div className="text-red-400 text-sm text-center">
@@ -298,11 +227,7 @@ export default function Register() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-[50%] bg-amber-100 text-black font-medium m-auto py-3 mt-6 px-4 rounded-lg transition duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#0F0F11] disabled:opacity-50 disabled:cursor-not-allowed">
-          {isLoading ? 'Creating Account...' : 'Create Account'}
+        <button type="submit" disabled={isLoading} className="w-[50%] bg-amber-100 text-black font-medium m-auto py-3 mt-6 px-4 rounded-lg transition duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-o [#0F0F11] disabled:opacity-50 disabled:cursor-not-allowed"> {isLoading ? 'Creating Account...' : 'Create Account'}
         </button>
       </form>
       <div className="flex flex-row gap-x-10">

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import TransactionInfo from "./TransactionInfo";
 import type { Transaction } from "../types/transactions";
-import ContentLoader, { Facebook } from 'react-content-loader'
 import CardLoader from "./LoadingCard";
 
 

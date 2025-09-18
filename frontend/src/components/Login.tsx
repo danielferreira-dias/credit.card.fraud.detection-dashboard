@@ -1,10 +1,11 @@
 import { useState } from "react";
+import FormInput from "./FormInput";
 
 async function LoginUser(email: string, password: string): Promise<void> {
   const loginData = { email, password };
 
   try {
-    const response = await fetch('/auth/login', {
+    const response = await fetch('http://localhost:80/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(loginData)
@@ -19,7 +20,11 @@ async function LoginUser(email: string, password: string): Promise<void> {
     console.log('Login successful:', data);
 
     // Store the token securely (consider using HttpOnly cookies for better security)
-    localStorage.setItem('access_token', data.access_token);
+    if (data.token && data.token.access_token) {
+      localStorage.setItem('access_token', data.token.access_token);
+    }
+    console.log('Current data -> ' + data)
+    window.location.href = "/";
     // Redirect or update UI as needed
   } catch (error) {
     console.error('Login error:', error);
@@ -36,6 +41,21 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   const [touched, setTouched] = useState<{[key: string]: boolean}>({});
+
+  const formFields = [
+    {
+      name: "email",
+      type: "email",
+      label: "Email Address",
+      placeholder: "Enter your email",
+    },
+    {
+      name: "password",
+      type: "password",
+      label: "Password",
+      placeholder: "Enter your password",
+    },
+  ];
 
   const validateField = (name: string, value: string) => {
     const errors: {[key: string]: string} = {};
@@ -127,58 +147,10 @@ export default function Login() {
     <div className="w-full h-full flex flex-col justify-center items-center p-8 gap-y-10 ">
       <form
         onSubmit={handleSubmit}
-        className="w-full h-[60%] max-w-md space-y-4 flex flex-col">
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium opacity-80 mb-2">
-            Email Address
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${
-              fieldErrors.email
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
-            }`}
-            placeholder="Enter your email"
-            required
-          />
-          {fieldErrors.email && (
-            <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium opacity-80 mb-2">
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className={`w-full px-4 py-3 bg-[#1A1A1D] border rounded-lg focus:ring-2 text-white placeholder-zinc-400 ${
-              fieldErrors.password
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-zinc-600 focus:ring-purple-500 focus:border-transparent'
-            }`}
-            placeholder="Enter your password"
-            required
-          />
-          {fieldErrors.password && (
-            <p className="text-red-400 text-xs mt-1 mb-4">{fieldErrors.password}</p>
-          )}
-        </div>
+        className="w-full max-w-md  flex flex-col">
+        {formFields.map((field) => (
+          <FormInput key={field.name} id={field.name} name={field.name} type={field.type} value={formData[field.name as keyof typeof formData]} onChange={handleInputChange} onBlur={handleBlur} placeholder={field.placeholder} label={field.label} error={fieldErrors[field.name]} required />
+        ))}
 
         {error && (
           <div className="text-red-400 text-sm text-center">
@@ -186,17 +158,11 @@ export default function Login() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-[50%] bg-amber-100 text-black font-medium m-auto py-3 mt-6 px-4 rounded-lg transition duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#0F0F11] disabled:opacity-50 disabled:cursor-not-allowed">
-          {isLoading ? 'Signing In...' : 'Sign In'}
+        <button type="submit" disabled={isLoading} className="w-[50%] bg-amber-100 text-black font-medium m-auto py-3 mt-6 px-4 rounded-lg transition duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-o [#0F0F11] disabled:opacity-50 disabled:cursor-not-allowed"> {isLoading ? 'Signing In...' : 'Sign In'}
         </button>
 
         <div className="text-center">
-          <button
-            type="button"
-            className="text-sm text-amber-200 hover:text-purple-300 transition duration-200 mt-3">
+          <button type="button" className="text-sm text-amber-200 hover:text-purple-300 transition duration-200 mt-3">
             Forgot your password?
           </button>
         </div>
