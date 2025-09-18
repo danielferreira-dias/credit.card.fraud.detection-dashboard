@@ -1,19 +1,6 @@
 import { useState } from "react";
 import FormInput from "./FormInput";
-
-interface RegisterProps {
-  email: string;
-  name: string;
-  password: string;
-  confirm_password: string;
-}
-
-interface RegisterRequest {
-  email: string;
-  name: string;
-  password: string;
-  confirm_password: string;
-}
+import type { RegisterProps, RegisterRequest } from "../types/register";
 
 interface ApiError {
   detail: string | Array<{ loc: string[], msg: string, type: string }>;
@@ -37,8 +24,6 @@ async function RegisterUser(userData: RegisterProps): Promise<void> {
   };
 
   try {
-    console.log('Sending registration data:', registerData);
-    console.log('JSON payload:', JSON.stringify(registerData));
     const response = await fetch('http://localhost:80/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

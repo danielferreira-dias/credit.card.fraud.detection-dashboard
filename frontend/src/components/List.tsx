@@ -5,7 +5,6 @@ import CardLoader from "./LoadingCard";
 
 
 export default function List( { transactionsList, isLoadingPage } : { transactionsList : Transaction[] , isLoadingPage : boolean } ){
-    console.log("transactionsList in List component -> ", transactionsList);
     const totalTransactions = transactionsList.length;
     const listTransactions : Transaction[] = transactionsList;
     const dataLoading : boolean = isLoadingPage

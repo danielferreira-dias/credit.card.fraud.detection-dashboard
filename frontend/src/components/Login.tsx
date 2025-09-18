@@ -1,5 +1,6 @@
 import { useState } from "react";
 import FormInput from "./FormInput";
+import { useUser } from "../context/UserContext";
 
 async function LoginUser(email: string, password: string): Promise<void> {
   const loginData = { email, password };
@@ -17,13 +18,11 @@ async function LoginUser(email: string, password: string): Promise<void> {
     }
 
     const data = await response.json();
-    console.log('Login successful:', data);
 
     // Store the token securely (consider using HttpOnly cookies for better security)
     if (data.token && data.token.access_token) {
       localStorage.setItem('access_token', data.token.access_token);
     }
-    console.log('Current data -> ' + data)
     window.location.href = "/";
     // Redirect or update UI as needed
   } catch (error) {
@@ -33,6 +32,7 @@ async function LoginUser(email: string, password: string): Promise<void> {
 }
 
 export default function Login() {
+  const { refreshUser } = useUser();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -135,6 +135,7 @@ export default function Login() {
 
     try {
       await LoginUser(formData.email, formData.password);
+      await refreshUser();
       window.location.href = "/";
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed');

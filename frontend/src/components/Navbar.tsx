@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
+import { useUser } from "../context/UserContext"
 
 function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boolean, setIsMobileOpen : (setIsMobileOpen:boolean) => void  }){
     return(
@@ -16,7 +17,8 @@ function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boole
 }
 
 export default function Navbar(){
-    
+    const { user, logout } = useUser();
+
     const TransactionIcon = () => <img src="/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
     const DashboardIcon = () => <img src="/dashboard-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
     const AgentIcon = () => <img src="/artificial-intelligence-svgrepo-com.svg" alt="Agent" className="w-4 h-4" />;
@@ -30,17 +32,11 @@ export default function Navbar(){
         { element: "Agent", path: "/agent", symbol: <AgentIcon /> },
     ]
 
-    const navBarSettings : { element : string , symbol: ReactNode}[] = [
+    const navBarSettings : { element : string , symbol: ReactNode, onClick?: () => void}[] = [
         { element: "Settings", symbol: <SettingsIcon /> },
         { element: "About", symbol: <AboutIcon /> },
-        { element: "Logout", symbol: <LogoutIcon /> },
+        { element: "Logout", symbol: <LogoutIcon />, onClick: logout },
     ]
-
-    const userInformation : { userName: string, userPosition: string, userProfile: string } = {
-        userName : "Daniel Dias",
-        userPosition : "Data Analyst",
-        userProfile : "/profile.png"
-    }
 
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [isMobileOpen, setIsMobileOpen] = useState(true)
@@ -70,8 +66,8 @@ export default function Navbar(){
                         <img src="/profile.png" className="w-full h-full object-cover " />
                     </div>
                     <div className={`hidden max-[500px]:flex ${isCollapsed ? "lg:hidden" : "lg:flex"} flex-col gap-y-0.5 text-sm`}>
-                        <span className="font-semibold">{userInformation.userPosition}</span>
-                        <span className="text-xs">{userInformation.userName}</span>
+                        <span className="font-semibold">{user?.name || "User"}</span>
+                        <span className="text-xs">{user?.email || "Loading..."}</span>
                     </div>
                 </div>
                 <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>
@@ -93,10 +89,12 @@ export default function Navbar(){
                 <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>
                 <span className={`text-xs opacity-80 hidden max-[500px]:block ${isCollapsed ? "lg:hidden" : "lg:block"}`}>More</span>
                 <div className="flex flex-col gap-y-5">
-                    {navBarSettings.map(({ element, symbol }) => (
+                    {navBarSettings.map(({ element, symbol, onClick }) => (
                         <div key={element} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
                             <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                            <button className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? "text-red-400 opacity-100 hover:text-red-300" : "text-zinc-300 hover:text-white"}`}>
+                            <button
+                                onClick={onClick}
+                                className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? "text-red-400 opacity-100 hover:text-red-300" : "text-zinc-300 hover:text-white"}`}>
                                 {element}
                             </button>
                         </div>

@@ -44,17 +44,15 @@ async def get_current_user(token: str = Depends(security), security_manager: Sec
     logger.info(f'The content in the token from Bear is -> ${token}')
     payload = security_manager.verify_token(token.credentials)
     logger.info(f'The content in the token from payload is -> ${payload}')
-
     if payload is None:
         raise UserCredentialsException('The credentials have expired')
-    
     return payload
 
 # --- router ------------------------
 
-@router.get("/protected")
+@router.get("/verify-token")
 async def protected_route(current_user: dict = Depends(get_current_user)):
-    return {"message": f"Hello {current_user['name']}!"}
+    return {"valid": True, "user": current_user}
 
 @router.post('/login')
 async def login( credentials: UserLoginAuthentication, auth_service: AuthService = Depends(get_security_service)) -> TokenResponse:

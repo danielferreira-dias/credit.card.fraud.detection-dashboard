@@ -42,3 +42,28 @@ export function getCurrentUser(): TokenPayload | null {
   if (!token || isTokenExpired(token)) return null;
   return decodeJWT(token);
 }
+
+export async function verifyTokenWithAPI(): Promise<TokenPayload | null> {
+  const token = localStorage.getItem('access_token');
+  if (!token) return null;
+
+  try {
+    const response = await fetch('/auth/verify-token', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      localStorage.removeItem('access_token');
+      return null;
+    }
+
+    const data = await response.json();
+    return data.user;
+  } catch {
+    localStorage.removeItem('access_token');
+    return null;
+  }
+}
