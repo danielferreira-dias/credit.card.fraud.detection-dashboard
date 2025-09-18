@@ -20,7 +20,6 @@ async function LoginUser(email: string, password: string): Promise<void> {
 
     // Store the token securely (consider using HttpOnly cookies for better security)
     localStorage.setItem('access_token', data.access_token);
-
     // Redirect or update UI as needed
   } catch (error) {
     console.error('Login error:', error);
@@ -116,8 +115,6 @@ export default function Login() {
 
     try {
       await LoginUser(formData.email, formData.password);
-      // ToDo: Add success handling here
-      // Login successful - could redirect or show success message
       window.location.href = "/";
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed');

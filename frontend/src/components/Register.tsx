@@ -59,14 +59,12 @@ async function RegisterUser(userData: RegisterProps): Promise<void> {
     const data = await response.json();
     console.log('Registration successful:', data);
 
-    // Store the token from the response structure
-    // Backend returns: { user: UserResponse, token: TokenResponse }
+    
     if (data.token && data.token.access_token) {
       localStorage.setItem('access_token', data.token.access_token);
     }
-
+    window.location.href = "/";
     return data;
-
   } catch (error) {
     console.error('Registration error:', error);
     throw error;
