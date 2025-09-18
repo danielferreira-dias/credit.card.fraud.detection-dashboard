@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isUserLoggedIn } from "../utils/auth";
+import { useUser } from "../context/UserContext";
 
 interface AuthRouterProps {
   children: ReactNode;
@@ -10,18 +10,19 @@ interface AuthRouterProps {
 export default function AuthRouter({ children }: AuthRouterProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading } = useUser();
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (!isUserLoggedIn()) {
-        navigate("/auth", { replace: true, state: { from: location } });
-      }
-    };
+    if (!loading && !user) {
+      navigate("/auth", { replace: true, state: { from: location } });
+    }
+  }, [user, loading, navigate, location]);
 
-    checkAuth();
-  }, [navigate, location]);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-  if (!isUserLoggedIn()) {
+  if (!user) {
     return null;
   }
 
