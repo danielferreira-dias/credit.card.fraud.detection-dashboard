@@ -1,3 +1,4 @@
+from typing import List
 from app.models.user_model import Conversation, Message
 from app.infra.logger import setup_logger
 from app.exception.chat_exceptions import ChatException, ChatNotFound
@@ -18,6 +19,14 @@ class ConversationRepository:
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter user com ID {conversation_id}: {e}")
+            raise ChatException("Error in the Conversation Database;") from e
+    
+    async def get_conversations_by_user_id(self, user_id: int) -> List[Conversation]:
+        try:
+            result = await self.db.execute(select(Conversation).where(Conversation.user_id == user_id))
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao obter conversas do user com ID {user_id}: {e}")
             raise ChatException("Error in the Conversation Database;") from e
     
     async def create_conversation(self, conversation: Conversation) -> int:
@@ -50,7 +59,7 @@ class MessageRepository:
             self.db.add(message)
             await self.db.commit()
             await self.db.refresh(message) # ← This fetches the latest data
-            return Message
+            return message
         except SQLAlchemyError as e:
             await self.db.rollback()
             logger.error(f"Erro ao atualizar transação: {e}")

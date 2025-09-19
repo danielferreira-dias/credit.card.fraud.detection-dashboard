@@ -1,6 +1,6 @@
 from datetime import datetime
 from app.infra.logger import setup_logger
-from app.routers.auth_router import get_security_manager
+from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
 from app.exception.user_exceptions import UserCredentialsException
 from app.schemas.message_schema import ConversationCreate, ConversationResponse, MessageResponse
@@ -22,7 +22,7 @@ security = HTTPBearer()
 # --- Dependencies ---------------------------
 
 def get_conversation_service(db: AsyncSession = Depends(get_db)):
-    return ConversationService(db, get_conversation_repository(db))
+    return ConversationService(db, get_conversation_repository(db) , get_user_service(db))
 
 def get_conversation_repository(db: AsyncSession = Depends(get_db)):
     return ConversationRepository(db)

@@ -33,7 +33,7 @@ class ConversationService():
         updated_conversation = await self.repo.add_conversation_message(conversation_id)
         return f'Conversation {updated_conversation.id} was updated'
 
-    async def get_conversations(self, user_id: int) -> List[Conversation]:
+    async def get_conversations(self, user_id: int) -> List[str]:
         # Verify user exists
         await self.user_service.get_user_service(user_id)
 
@@ -41,7 +41,7 @@ class ConversationService():
         conversations = await self.repo.get_conversations_by_user_id(user_id)
 
         # Convert to response format
-        return [conv for conv in conversations]
+        return [conv.title for conv in conversations]
 
     @classmethod
     def _to_response(cls, conv: Conversation, user_name: str, user_role: str, message: str) -> ConversationResponse:
