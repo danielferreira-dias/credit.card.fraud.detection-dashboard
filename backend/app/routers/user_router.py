@@ -2,7 +2,7 @@ from app.infra.logger import setup_logger
 from app.schemas.user_schema import UserCreate, UserRegisterSchema, UserResponse
 from app.service.user_service import UserService
 from app.settings.database import get_db
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
@@ -84,4 +84,23 @@ async def delete_user(user_id: int , user_service: UserService = Depends(get_use
     user = await user_service.get_user_service(user_id)
     result = await user_service.delete_user_service(user.id)
     return {"message": result}
+
+@router.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    """
+    WebSocket endpoint for testing real-time communication.
+
+    - **client_id**: The ID of the client connecting
+    """
+    await websocket.accept()
+    logger.info(f"WebSocket connection established for client: {client_id}")
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            logger.info(f"Received message from client {client_id}: {data}")
+            response = f"Echo from server: {data} (client #{client_id})"
+            await websocket.send_text(response)
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for client: {client_id}")
 

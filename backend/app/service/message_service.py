@@ -8,10 +8,10 @@ from app.service.user_service import UserService
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class ConversationService():
-    def __init__( self, db: AsyncSession, repo: ConversationRepository, message_repo: MessageRepository, user_service : UserService) :
-        self.repo = repo(db)
-        self.message_repo = message_repo(db)
-        self.user_service = user_service(db)
+    def __init__( self, repo: ConversationRepository, message_repo: MessageRepository, user_service : UserService) :
+        self.repo = repo
+        self.message_repo = message_repo
+        self.user_service = user_service
 
     async def create_conversation(self, conversation: ConversationCreate) -> int:
         conversation_model = Conversation(
@@ -84,8 +84,8 @@ class ConversationService():
 
 class MessageService():
     def __init__(self, db: AsyncSession, repo: MessageRepository, conversation_repo: ConversationRepository):
-        self.repo = repo(db)
-        self.conversation_repo = conversation_repo(db)
+        self.repo = repo
+        self.conversation_repo = conversation_repo
 
     async def create_message(self, conversation_id : int , message: ConversationCreate) -> MessageResponse:
         # Verify conversation exists
