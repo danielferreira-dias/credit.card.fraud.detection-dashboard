@@ -10,12 +10,16 @@ class ConversationCreate(BaseModel):
     content: str
     created_at: datetime
 
+class ConversationListResponse(BaseModel):
+    conversation_id: Optional[int] = None
+    conversation_title: Optional[str] = None
+
 class MessageResponse(BaseModel):
     email: EmailStr
     name: str 
 
+
 class ConversationResponse(BaseModel):
-    name: str 
     role: str
     content: str
     created_at: datetime

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 from app.infra.logger import setup_logger
 from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
@@ -12,8 +13,8 @@ from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(
-    prefix = ['/messages'],
-    tags ='messages'
+    prefix = ['/chat'],
+    tags ='chat'
 )
 
 logger = setup_logger(__name__)
@@ -59,7 +60,27 @@ async def send_message(role : str , conversation : ConversationCreate, conversat
         created_at = datetime.now()
     )
 
-@router.get('/{user_id}')
-async def get_messages( user_id : int,  token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager)):
+@router.get('/{user_id}', response_model = MessageResponse)
+async def get_messages( user_id : int,  token: str = Depends(security), conversation_service: ConversationService = Depends(get_conversation_service) ,security_manager: SecurityManager = Depends(get_security_manager)) -> List[dict]:
     # This is a protected router, so let's check for a token;
-    payload = await security_manager.verify_token(token)
+    await security_manager.verify_token(token)
+    
+    # Let's create the message and the respective conversation and store in the database;
+    return await conversation_service.get_conversations(user_id)
+
+@router.get('/{user_id}/{conversation_id}')
+async def get_messages( user_id : int, conversation_id : int, message_service : MessageService = Depends(get_message_service) ,token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager)):
+    # This is a protected router, so let's check for a token;
+    await security_manager.verify_token(token)
+
+    # Let's create the message and the respective conversation and store in the database;
+    return await message_service.get_messages(user_id)
+
+
+@router.delete('/{user_id}/{conversation_id}')
+async def delete_conversation( user_id : int, conversation_id : int,  token: str = Depends(security), conversation_service: ConversationService = Depends(get_conversation_service), security_manager: SecurityManager = Depends(get_security_manager)) -> str:
+    # This is a protected router, so let's check for a token;
+    await security_manager.verify_token(token)
+
+    # Let's delete the conversation
+    return await conversation_service.delete_conversation(conversation_id, user_id)

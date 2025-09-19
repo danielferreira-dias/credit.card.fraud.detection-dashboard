@@ -49,6 +49,19 @@ class ConversationRepository:
             logger.error(f"Erro ao atualizar transação: {e}")
             raise ChatException("Error in the Conversation Database;") from e
 
+    async def delete_conversation(self, conversation_id: int) -> None:
+        try:
+            conversation = await self.get_conversation(conversation_id)
+            if conversation is None:
+                raise ChatNotFound(f"Conversation with id {conversation_id} not found")
+
+            await self.db.delete(conversation)
+            await self.db.commit()
+        except SQLAlchemyError as e:
+            await self.db.rollback()
+            logger.error(f"Erro ao deletar conversa com ID {conversation_id}: {e}")
+            raise ChatException("Error in the Conversation Database;") from e
+
 class MessageRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -64,6 +77,28 @@ class MessageRepository:
             await self.db.rollback()
             logger.error(f"Erro ao atualizar transação: {e}")
             raise ChatException("Error in the Messages Database;") from e
-    
-    
+
+    async def get_messages_by_conversation_id(self, conversation_id: int) -> List[Message]:
+        try:
+            result = await self.db.execute(
+                select(Message)
+                .where(Message.conversation_id == conversation_id)
+                .order_by(Message.created_at)
+            )
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao obter mensagens da conversa com ID {conversation_id}: {e}")
+            raise ChatException("Error in the Messages Database;") from e
+
+    async def delete_conversation_messages(self, conversation_id: int) -> None:
+        try:
+            messages = await self.db.execute(select(Message).where(Message.conversation_id == conversation_id))
+            for message in messages.scalars():
+                await self.db.delete(message)
+            await self.db.commit()
+        except SQLAlchemyError as e:
+            await self.db.rollback()
+            logger.error(f"Erro ao deletar mensagens da conversa com ID {conversation_id}: {e}")
+            raise ChatException("Error in the Messages Database;") from e
+
 
