@@ -3,10 +3,9 @@ from typing import List
 from app.repositories.message_repo import ConversationRepository, MessageRepository
 from app.schemas.message_schema import ConversationResponse, ConversationCreate, MessageResponse
 from app.models.user_model import Conversation
-from app.exception.chat_exceptions import ChatException, ChatNotFound
+from app.exception.chat_exceptions import ChatNotFound
 from app.service.user_service import UserService
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
 class ConversationService():
     def __init__( self, db: AsyncSession, repo: ConversationRepository, user_service : UserService) :
@@ -33,7 +32,7 @@ class ConversationService():
         updated_conversation = await self.repo.add_conversation_message(conversation_id)
         return f'Conversation {updated_conversation.id} was updated'
 
-    async def get_conversations(self, user_id: int) -> List[str]:
+    async def get_conversations(self, user_id: int) -> List[dict]:
         # Verify user exists
         await self.user_service.get_user_service(user_id)
 
@@ -41,7 +40,7 @@ class ConversationService():
         conversations = await self.repo.get_conversations_by_user_id(user_id)
 
         # Convert to response format
-        return [conv.title for conv in conversations]
+        return [{"id": conv.id, "title": conv.title} for conv in conversations]
 
     @classmethod
     def _to_response(cls, conv: Conversation, user_name: str, user_role: str, message: str) -> ConversationResponse:
@@ -74,4 +73,14 @@ class MessageService():
         if conversation is None:
             raise ChatNotFound(f"Conversation with id {conversation_id} not found")
         return await self.repo.create_message(conversation_id, message.content)
+
+    async def get_messages(self, user_id: int) -> List[MessageResponse]:
+        # Verify user exists
+        await self.user_service.get_user_service(user_id)
+
+        # Get all conversations for the user
+        conversations = await self.repo.get_conversations_by_user_id(user_id)
+
+        # Convert to response format
+        return [conv.title for conv in conversations]
 
