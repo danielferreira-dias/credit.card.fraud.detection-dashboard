@@ -127,7 +127,7 @@ class TransactionService:
         return f"Transaction with ID {transaction_id} deleted successfully."
 
     async def update_transaction(self, transaction_id: str, updated_transaction: TransactionCreate) -> TransactionResponse:
-        existing_transaction = await self.repo.get_transaction_id(transaction_id)
+        existing_transaction : Transaction = await self.repo.get_transaction_id(transaction_id)
 
         if existing_transaction is None:
             logger.error(f"Transaction with ID {transaction_id} not found for update.")

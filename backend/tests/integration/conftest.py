@@ -2,7 +2,7 @@
 import os
 import pytest
 from testcontainers.postgres import PostgresContainer
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
@@ -13,16 +13,28 @@ from app.settings.base import Base  # isto não cria ligações
 def pg_url():
     with PostgresContainer("postgres:16") as pg:
         url = pg.get_connection_url()  # ex: postgresql+psycopg2://...
+        # Convert to async URL
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://")
         os.environ["DATABASE_URL"] = url  # garantir que o app usa esta DB ao importar
         yield url  # container vive até ao fim da sessão
 
-# 2) Sessionmaker ligado ao container
+# 2) Async sessionmaker ligado ao container
 @pytest.fixture(scope="session")
-def pg_sessionmaker(pg_url):
-    engine = create_engine(pg_url, future=True)
-    Base.metadata.create_all(bind=engine)   # cria schema de teste
-    TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-    return TestingSessionLocal
+async def pg_sessionmaker(pg_url):
+    async_engine = create_async_engine(pg_url, echo=False)
+
+    # Create tables
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    TestingAsyncSessionLocal = sessionmaker(
+        bind=async_engine,
+        class_=AsyncSession,
+        autocommit=False,
+        autoflush=False
+    )
+    return TestingAsyncSessionLocal
 
 # 3) TestClient com override do get_db (importa app SÓ agora)
 @pytest.fixture(scope="function")
@@ -31,12 +43,9 @@ def client(pg_sessionmaker):
     from app.main import app
     from app.settings.database import get_db
 
-    def _override_get_db():
-        db = pg_sessionmaker()
-        try:
-            yield db
-        finally:
-            db.close()
+    async def _override_get_db():
+        async with pg_sessionmaker() as session:
+            yield session
 
     app.dependency_overrides[get_db] = _override_get_db
     with TestClient(app) as c:

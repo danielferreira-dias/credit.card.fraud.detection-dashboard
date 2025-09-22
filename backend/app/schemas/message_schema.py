@@ -1,20 +1,25 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 
-class MessageCreate(BaseModel):
+class ConversationCreate(BaseModel):
     user_id: int 
-    title : str
+    conversation_id: Optional[int] = None
+    conversation_title: Optional[str] = None
     content: str
-    sent_at: datetime
+    created_at: datetime
+
+class ConversationListResponse(BaseModel):
+    conversation_id: Optional[int] = None
+    conversation_title: Optional[str] = None
 
 class MessageResponse(BaseModel):
     email: EmailStr
     name: str 
 
+
 class ConversationResponse(BaseModel):
-    email: EmailStr
-    name: str 
     role: str
     content: str
     created_at: datetime

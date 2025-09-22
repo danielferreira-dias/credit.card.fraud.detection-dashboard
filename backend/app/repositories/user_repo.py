@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy import delete
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate
-from typing import List, Optional
+from typing import List
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = setup_logger(__name__)

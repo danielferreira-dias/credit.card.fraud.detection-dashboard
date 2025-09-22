@@ -4,6 +4,7 @@ from app.routers.auth_router import router as auth_router
 from app.exception.user_exceptions import UserException
 from fastapi import FastAPI, status
 from app.routers.transaction_router import router as transaction_router
+from app.routers.chat_router import router as chat_router
 from app.settings.database import async_engine
 from app.models.transaction_model import Transaction
 from pydantic import BaseModel
@@ -44,6 +45,7 @@ app.add_middleware(
 app.include_router(transaction_router)
 app.include_router(user_router)
 app.include_router(auth_router)
+app.include_router(chat_router) 
 
 # Register exception handlers --------------------------------------------------
 app.add_exception_handler(TransactionsException, transaction_handler)

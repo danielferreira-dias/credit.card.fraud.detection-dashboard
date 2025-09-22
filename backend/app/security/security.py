@@ -48,6 +48,9 @@ class SecurityManager:
             if expiration and datetime.now(timezone.utc).timestamp() > expiration:
                 raise UserCredentialsException('The token has been expired;')
 
+            if payload is None:
+                raise UserCredentialsException('Invalid token')
+
             return payload
         except InvalidTokenError as e:
             raise UserCredentialsException("Invalid Token;") from e
