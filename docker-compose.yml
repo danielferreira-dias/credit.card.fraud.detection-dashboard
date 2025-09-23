@@ -11,7 +11,7 @@ services:
     environment:
       - PYTHONPATH=/app
     volumes:
-      - ./backend/models:/app/models
+      # - ./backend/models:/app/models
       - ./backend/app:/app/app
     restart: unless-stopped
     healthcheck:

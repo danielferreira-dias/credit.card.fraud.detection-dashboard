@@ -1,12 +1,11 @@
 import sqlite3
-import json
-from typing import Optional, Dict, Any
-from pathlib import Path
+import os
+from typing import Optional
 
 class TransactionsDB:
-    def __init__(self, db_path: str = "transactions.db"):
+    def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
-            db_path = os.path.join(os.path.dirname(__file__), '..', 'database', 'transactions.db')
+            db_path = os.path.join(os.path.dirname(__file__), 'transactions.db')
         self.db_path = db_path
         self.init_database()
 
