@@ -1,0 +1,9 @@
+[project]
+name = "agent-service-analyst"
+version = "0.1.0"
+description = "Fraud detection System"
+requires-python = "==3.11.13"
+dependencies = [
+    "langchain>=1.0.0a7",
+    "langgraph>=1.0.0a3",
+]

@@ -11,20 +11,20 @@ class ProviderService:
         """
         self.db = db
 
-    def get_connection(self):
+    async def get_connection(self):
         """Get database connection through the TransactionsDB instance"""
         return self.db.get_connection()
 
-    def get_all_transactions(self) -> List[Dict[str, Any]]:
+    async def get_all_transactions(self, limit: int = 20, skip: int = 0) -> List[Dict[str, Any]]:
         """Get all transactions from the database"""
         with self.get_connection() as conn:
             conn.row_factory = sqlite3.Row  # Enable column access by name
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM transactions")
+            cursor.execute(f"SELECT * FROM transactions LIMIT {limit} OFFSET {skip}")
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
-    def get_transaction_by_id(self, transaction_id: str) -> Optional[Dict[str, Any]]:
+    async def get_transaction_by_id(self, transaction_id: str) -> Optional[Dict[str, Any]]:
         """Get a specific transaction by ID"""
         with self.get_connection() as conn:
             conn.row_factory = sqlite3.Row
@@ -33,7 +33,7 @@ class ProviderService:
             row = cursor.fetchone()
             return dict(row) if row else None
 
-    def get_transactions_by_customer(self, customer_id: str) -> List[Dict[str, Any]]:
+    async def get_transactions_by_customer(self, customer_id: str) -> List[Dict[str, Any]]:
         """Get all transactions for a specific customer"""
         with self.get_connection() as conn:
             conn.row_factory = sqlite3.Row
@@ -42,7 +42,7 @@ class ProviderService:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
-    def get_fraud_transactions(self) -> List[Dict[str, Any]]:
+    async def get_fraud_transactions(self) -> List[Dict[str, Any]]:
         """Get all fraudulent transactions"""
         with self.get_connection() as conn:
             conn.row_factory = sqlite3.Row
@@ -51,7 +51,7 @@ class ProviderService:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
-    def get_transaction_stats(self) -> Dict[str, Any]:
+    async def get_transaction_stats(self) -> Dict[str, Any]:
         """Get basic statistics about transactions"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
