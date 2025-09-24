@@ -43,7 +43,14 @@ export default function AgentPage(){
                 }
 
                 setIsTyping(false);
-                setMessages(prev => [...prev, message]);
+
+                // Process message content to handle escaped newlines
+                const processedMessage = {
+                    ...message,
+                    content: message.content.replace(/\\n/g, '\n')
+                };
+
+                setMessages(prev => [...prev, processedMessage]);
             };
 
             ws.onclose = () => {
@@ -126,18 +133,13 @@ export default function AgentPage(){
                                 </div>
                             </div>
                         ))}
+
                         {/* Typing indicator */}
-                        {isTyping && (
+                        {!isTyping && (
                             <div className="flex justify-start">
-                                <div className="bg-zinc-800 text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
-                                    <div className="text-xs text-gray-400 mb-1">🤖 AI Agent</div>
-                                    <div className="flex items-center space-x-1">
-                                        <div className="flex space-x-1">
-                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                                        </div>
-                                        <span className="text-sm text-gray-400 ml-2">Agent is thinking...</span>
+                                <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
+                                    <div className="flex items-center space-x-3">
+                                        <span className="text-sm text-gray-400">Agent is thinking...</span>
                                     </div>
                                 </div>
                             </div>
