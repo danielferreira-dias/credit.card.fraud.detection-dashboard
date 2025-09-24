@@ -1,10 +1,10 @@
 import sys
 from pathlib import Path
+from typing import Dict, List, Optional, TypedDict, Annotated
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.stores import InMemoryStore
-from langchain.agents import create_agent
 from langsmith import traceable
 
 # Add the agent-service root directory to Python path
@@ -15,7 +15,6 @@ from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
 from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
-from app.services.database_provider import ProviderService
 from app.schemas.agent_prompt import system_prompt
 from langgraph.prebuilt import create_react_agent
 
@@ -58,6 +57,7 @@ class TransactionAgent():
         # Store for chat conversations
         self.store = InMemoryStore()
 
+        # Initialize both ReAct agent and LangGraph workflow
         self.agent = create_react_agent(
             model=self.model,
             tools=self.tools,
@@ -337,8 +337,14 @@ class TransactionAgent():
                 # Store the final result
                 final_result = chunk
 
+                
+
             self.logger.info(f"Streaming completed successfully {final_result}")
-            return final_result
+            if final_result and "agent" in final_result:
+                messages = final_result["agent"]["messages"]
+                if messages:
+                    return messages[-1].content
+            return "No data is available at the moment for your query."
 
         except Exception as e:
             self.logger.error(f"Error during streaming: {str(e)}")
