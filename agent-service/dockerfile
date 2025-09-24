@@ -1,0 +1,29 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Instala o uv diretamente
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+
+# Add curl for health checks early in the build
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Define diretório de trabalho
+WORKDIR /app
+
+# Copia ficheiros de dependência para caching
+COPY pyproject.toml uv.lock ./
+
+# Instala dependências com ambiente virtual isolado
+RUN uv venv && uv sync --frozen --no-cache
+
+# Create app and infra directories (code will be mounted via volumes)
+RUN mkdir -p app infra
+
+# Expõe a porta
+EXPOSE 8001
+
+# Comando para correr a app with reload for development
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

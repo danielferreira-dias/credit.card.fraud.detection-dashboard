@@ -23,6 +23,30 @@ services:
     depends_on:
       - postgres
 
+  agent-service:
+    build:
+      context: ./agent-service
+      dockerfile: dockerfile
+    container_name: fraud-detection-agent-service
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./agent-service/src/app:/app/app
+      - ./agent-service/infra:/app/infra
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - postgres
+
   frontend:
     build:
       context: ./frontend
@@ -46,21 +70,6 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-
-  # mcp:
-  #   image: anthropic/mcp-server:latest
-  #   container_name: fraud-detection-mcp
-  #   ports:
-  #     - "3001:3000"
-  #   environment:
-  #     - MCP_PORT=3000
-  #     - BACKEND_URL=http://backend:80
-  #   volumes:
-  #     - ./mcp-config:/app/config
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - backend
-
   postgres:
     image: postgres:latest
     container_name: fraud-detection-postgres

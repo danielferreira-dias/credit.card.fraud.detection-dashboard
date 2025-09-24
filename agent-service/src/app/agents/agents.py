@@ -5,7 +5,6 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.stores import InMemoryStore
 from langchain.agents import create_agent
-from openai import AzureOpenAI
 
 # Add the agent-service root directory to Python path
 agent_service_root = Path(__file__).parent.parent.parent.parent
@@ -13,10 +12,10 @@ sys.path.append(str(agent_service_root))
 
 from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
-from src.app.services.database_provider import ProviderService
-from src.app.database.transactions_db import db
-from src.app.services.database_provider import ProviderService
-from src.app.schemas.agent_prompt import system_prompt
+from app.services.database_provider import ProviderService
+from app.database.transactions_db import db
+from app.services.database_provider import ProviderService
+from app.schemas.agent_prompt import system_prompt
 import asyncio
 
 import os
@@ -39,7 +38,7 @@ class TransactionAgent():
         self.logger.info(f"Initializing TransactionAgent with model: {model_name}")
 
         self.model = AzureChatOpenAI(
-            azure_deployment="gpt-4",
+            azure_deployment=model_name,
             api_version="2024-12-01-preview",
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
@@ -169,7 +168,7 @@ class TransactionAgent():
 
         return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool]
 
-    async def query(self, user_input: str, stream: bool = True):
+    async def query_agent(self, user_input: str, stream: bool = True):
         """
             Ensures the first message is the System Prompt initialized, then adds the user Input as HumanMessage
             It then invokes the agent by running once with the input and returning the final structured output;
@@ -274,10 +273,10 @@ if __name__ == "__main__":
                 if user_input.lower().startswith('no-stream '):
                     query = user_input[10:]  # Remove 'no-stream ' prefix
                     print("⏳ Processing without streaming...")
-                    response = await agent.query(query, stream=False)
+                    response = await agent.query_agent(query, stream=False)
                 else:
                     print("⏳ Processing with streaming...")
-                    response = await agent.query(user_input, stream=True)
+                    response = await agent.query_agent(user_input, stream=True)
 
                 print(f"\n✅ Result:\n{response}\n")
 

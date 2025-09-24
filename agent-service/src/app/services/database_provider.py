@@ -1,4 +1,4 @@
-from src.app.database.transactions_db import TransactionsDB
+from app.database.transactions_db import TransactionsDB
 from typing import List, Dict, Any, Optional
 import sqlite3
 
@@ -11,7 +11,7 @@ class ProviderService:
         """
         self.db = db
 
-    async def get_connection(self):
+    def get_connection(self):
         """Get database connection through the TransactionsDB instance"""
         return self.db.get_connection()
 
