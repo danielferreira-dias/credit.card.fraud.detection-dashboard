@@ -41,6 +41,48 @@ class ProviderService:
             cursor.execute("SELECT * FROM transactions WHERE customer_id = ? ORDER BY timestamp DESC", (customer_id,))
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
+    
+    async def get_transactions_by_param_limit(self, column: str, value: str, limit: int = 20, skip: int = 0) -> List[Dict[str, Any]]:
+        """Get transactions filtered by any column with limit and offset"""
+        # Whitelist of allowed columns for security
+        allowed_columns = {
+            'customer_id', 'card_number', 'merchant_category', 'merchant_type',
+            'merchant', 'currency', 'country', 'city', 'city_size', 'card_type',
+            'device', 'channel', 'device_fingerprint', 'ip_address', 'is_fraud',
+            'weekend_transaction', 'transaction_hour', 'distance_from_home', 'high_risk_merchant'
+        }
+
+        if column not in allowed_columns:
+            raise ValueError(f"Column '{column}' is not allowed. Allowed columns: {', '.join(allowed_columns)}")
+
+        with self.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            # Use string formatting for column name (safe since we whitelist) and ? for value (prevents SQL injection)
+            cursor.execute(f"SELECT * FROM transactions WHERE {column} = ? LIMIT ? OFFSET ?", (value, limit, skip))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+
+    async def get_transactions_by_param_all(self, column: str, value: str) -> List[Dict[str, Any]]:
+        """Get all transactions filtered by any column"""
+        # Whitelist of allowed columns for security
+        allowed_columns = {
+            'customer_id', 'card_number', 'merchant_category', 'merchant_type',
+            'merchant', 'currency', 'country', 'city', 'city_size', 'card_type',
+            'device', 'channel', 'device_fingerprint', 'ip_address', 'is_fraud',
+            'weekend_transaction', 'transaction_hour', 'distance_from_home', 'high_risk_merchant'
+        }
+
+        if column not in allowed_columns:
+            raise ValueError(f"Column '{column}' is not allowed. Allowed columns: {', '.join(allowed_columns)}")
+
+        with self.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            # Use string formatting for column name (safe since we whitelist) and ? for value (prevents SQL injection)
+            cursor.execute(f"SELECT * FROM transactions WHERE {column} = ? ORDER BY timestamp DESC", (value,))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
 
     async def get_fraud_transactions(self) -> List[Dict[str, Any]]:
         """Get all fraudulent transactions"""

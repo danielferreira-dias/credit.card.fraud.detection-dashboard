@@ -34,6 +34,9 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - BACKEND_API_URL=http://backend:80
+      - API_TIMEOUT=30.0
+      - API_MAX_RETRIES=3
     volumes:
       - ./agent-service/src/app:/app/app
       - ./agent-service/infra:/app/infra
@@ -46,6 +49,7 @@ services:
       start_period: 40s
     depends_on:
       - postgres
+      - backend
 
   frontend:
     build:

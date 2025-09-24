@@ -1,5 +1,6 @@
 from app.agents.agents import TransactionAgent
 from app.services.database_provider import ProviderService
+from app.services.backend_api_client import BackendAPIClient
 from app.database.transactions_db import TransactionsDB
 from app.schemas.query_schema import QuerySchema
 from fastapi import FastAPI, status, HTTPException, Depends
@@ -26,14 +27,17 @@ def get_transactions_db() -> TransactionsDB:
     """Dependency to provide TransactionsDB instance"""
     return TransactionsDB()
 
+def get_backend_client() -> BackendAPIClient:
+    return BackendAPIClient()
+
 def get_provider_service(db: TransactionsDB = Depends(get_transactions_db)) -> ProviderService:
     """Dependency to provide ProviderService instance"""
     return ProviderService(db)
 
-def get_transaction_agent(provider_service: ProviderService = Depends(get_provider_service)) -> TransactionAgent:
+def get_transaction_agent(provider_service: ProviderService = Depends(get_provider_service), backend_client: BackendAPIClient = Depends(get_backend_client)) -> TransactionAgent:
     """Dependency to provide TransactionAgent instance"""
     model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
-    return TransactionAgent(model_name, provider_service)
+    return TransactionAgent(model_name, provider_service, backend_client)
 
 #---------------------------------------
 

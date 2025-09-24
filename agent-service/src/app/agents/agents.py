@@ -13,6 +13,7 @@ sys.path.append(str(agent_service_root))
 from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
 from app.services.database_provider import ProviderService
+from app.services.backend_api_client import BackendAPIClient
 from app.database.transactions_db import db
 from app.services.database_provider import ProviderService
 from app.schemas.agent_prompt import system_prompt
@@ -27,7 +28,7 @@ class TransactionAgent():
         This is an Agent, whose job is to use as many tools as possible to answer the user's query about Transactions;
     """
 
-    def __init__(self, model_name : str, provider_service: ProviderService):
+    def __init__(self, model_name : str, provider_service: ProviderService, backend_client: BackendAPIClient):
         """
             model = Initializes the Agent Model also known as the LLM
             tools = Gathers all the tools that the Agent can use
@@ -49,6 +50,7 @@ class TransactionAgent():
         self.tools = self._create_tools()
         self.system_prompt = system_prompt
         self.provider_service = provider_service
+        self.backend_client = backend_client
         self.history_messages=[SystemMessage(content=self.system_prompt)]
 
         # Store for chat conversations
@@ -166,7 +168,101 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transaction_stats_tool: {str(e)}")
                 raise AgentException() from e
 
-        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool]
+        @tool("search_transactions_by_field_tool", return_direct=True, description="Search transactions by any field/column. Available fields: country, city, card_type, merchant, merchant_category, merchant_type, currency, device, channel, is_fraud. Use this when user wants to filter by specific attributes like 'transactions from USA' or 'Visa card transactions'")
+        async def search_transactions_by_field_tool(column: str, value: str, limit: int = 20):
+            self.logger.info(f"Tool called: search_transactions_by_field_tool with column={column}, value={value}, limit={limit}")
+            try:
+                transactions = await self.provider_service.get_transactions_by_param_limit(column, value, limit, 0)
+
+                if not transactions:
+                    self.logger.warning(f"No transactions found for {column} = {value}")
+                    return f"No transactions found where {column} equals '{value}'."
+
+                result = f"Found {len(transactions)} transactions where {column} = '{value}':\n\n"
+                for i, transaction in enumerate(transactions, 1):
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+
+                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in search_transactions_by_field_tool: {str(e)}")
+                return f"Error searching transactions: {str(e)}"
+
+        @tool("get_all_transactions_by_field_tool", return_direct=True, description="Get ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions'")
+        async def get_all_transactions_by_field_tool(column: str, value: str):
+            self.logger.info(f"Tool called: get_all_transactions_by_field_tool with column={column}, value={value}")
+            try:
+                transactions = await self.provider_service.get_transactions_by_param_all(column, value)
+
+                if not transactions:
+                    self.logger.warning(f"No transactions found for {column} = {value}")
+                    return f"No transactions found where {column} equals '{value}'."
+
+                result = f"Found {len(transactions)} total transactions where {column} = '{value}':\n\n"
+
+                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in get_all_transactions_by_field_tool: {str(e)}")
+                return f"Error searching transactions: {str(e)}"
+
+        @tool("predict_transaction_fraud_tool", return_direct=True, description="Predict if a transaction is fraudulent using the backend ML model. Use this when the user asks about fraud prediction for a specific transaction ID")
+        async def predict_transaction_fraud_tool(transaction_id: str):
+            self.logger.info(f"Tool called: predict_transaction_fraud_tool with transaction_id={transaction_id}")
+            try:
+                # Make API call to backend prediction service
+                prediction_result = await self.backend_client.predict_transaction(transaction_id)
+
+                # Format the response
+                prediction = prediction_result.get('is_fraud', False)
+                confidence = prediction_result.get('probability', 0.0)
+
+                # Convert boolean to readable string
+                prediction_text = "Fraud" if prediction else "Legitimate"
+
+                result = f"🔍 Fraud Prediction Results for Transaction {transaction_id}:\n\n"
+                result += f"📊 Prediction: {prediction_text}\n"
+                result += f"🎯 Confidence: {confidence:.2%}\n"
+              
+                # Add risk assessment
+                if confidence > 0.8:
+                    result += f"\n⚠️ High Confidence Prediction - Recommended Action Required"
+                elif confidence > 0.6:
+                    result += f"\n🔍 Medium Confidence - Review Recommended"
+                else:
+                    result += f"\n📝 Low Confidence - Further Analysis May Be Needed"
+
+                self.logger.info(f"Fraud prediction completed for transaction {transaction_id}: {prediction} ({confidence:.2%})")
+                return result
+
+            except ValueError as e:
+                # Handle transaction not found
+                self.logger.warning(f"Transaction not found: {transaction_id}")
+                return f"❌ Transaction '{transaction_id}' was not found in the system. Please verify the transaction ID and try again."
+
+            except Exception as e:
+                self.logger.error(f"Error in predict_transaction_fraud_tool: {str(e)}")
+                return f"❌ Unable to predict fraud for transaction {transaction_id}. Error: {str(e)}"
+
+        @tool("check_backend_connection_tool", return_direct=True, description="Check if the backend prediction service is available and healthy. Use this when there are connection issues or to verify backend status")
+        async def check_backend_connection_tool():
+            self.logger.info("Tool called: check_backend_connection_tool")
+            try:
+                is_healthy = await self.backend_client.health_check()
+
+                if is_healthy:
+                    result = "✅ Backend connection is healthy and ready for predictions"
+                else:
+                    result = "❌ Backend service is not responding. Predictions may not be available."
+
+                self.logger.info(f"Backend health check result: {'healthy' if is_healthy else 'unhealthy'}")
+                return result
+
+            except Exception as e:
+                self.logger.error(f"Error in check_backend_connection_tool: {str(e)}")
+                return f"❌ Error checking backend connection: {str(e)}"
+
+        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_field_tool, get_all_transactions_by_field_tool, predict_transaction_fraud_tool, check_backend_connection_tool]
 
     async def query_agent(self, user_input: str, stream: bool = True):
         """
@@ -233,59 +329,9 @@ class TransactionAgent():
                 # Store the final result
                 final_result = chunk
 
-            self.logger.info("Streaming completed successfully")
+            self.logger.info(f"Streaming completed successfully {final_result}")
             return final_result
 
         except Exception as e:
             self.logger.error(f"Error during streaming: {str(e)}")
             raise AgentException() from e
-
-
-if __name__ == "__main__":
-    async def main():
-        provider_service = ProviderService(db)
-        agent = TransactionAgent("gpt-4o", provider_service)
-        agent.logger.info("Agent started in standalone mode")
-
-        print("🚀 Transaction Agent is ready!")
-        print("💡 Ask about transactions, fraud detection, or customer analysis")
-        print("📋 Type 'help' for available commands, 'exit' or 'quit' to stop\n")
-
-        while True:
-            try:
-                user_input = input("💬 Enter your query: ")
-
-                if user_input.lower() in ['exit', 'quit']:
-                    agent.logger.info("Agent shutting down")
-                    print("👋 Goodbye!")
-                    break
-                elif user_input.lower() == 'help':
-                    print("\n📖 Available commands:")
-                    print("• Ask about all transactions: 'show me all transactions'")
-                    print("• Get transaction by ID: 'find transaction 12345'")
-                    print("• Customer history: 'show transactions for customer ABC123'")
-                    print("• Fraud analysis: 'show me fraudulent transactions'")
-                    print("• Statistics: 'give me transaction statistics'")
-                    print("• Non-streaming mode: 'no-stream [your query]'\n")
-                    continue
-
-                # Check if user wants non-streaming mode
-                if user_input.lower().startswith('no-stream '):
-                    query = user_input[10:]  # Remove 'no-stream ' prefix
-                    print("⏳ Processing without streaming...")
-                    response = await agent.query_agent(query, stream=False)
-                else:
-                    print("⏳ Processing with streaming...")
-                    response = await agent.query_agent(user_input, stream=True)
-
-                print(f"\n✅ Result:\n{response}\n")
-
-            except KeyboardInterrupt:
-                agent.logger.info("Agent interrupted by user")
-                print("\n👋 Goodbye!")
-                break
-            except Exception as e:
-                agent.logger.error(f"Error in main loop: {str(e)}")
-                print(f"❌ Error: {str(e)}\n")
-
-    asyncio.run(main())
