@@ -4,9 +4,12 @@ from app.services.backend_api_client import BackendAPIClient
 from app.database.transactions_db import TransactionsDB
 from app.schemas.query_schema import QuerySchema
 from fastapi import FastAPI, status, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from infra.logging.logger import get_agent_logger
 from pydantic import BaseModel
 import os
+import json
+import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,6 +56,37 @@ async def query_agent(user_query: QuerySchema, agent: TransactionAgent = Depends
         return await agent.query_agent(user_query.query, stream=True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
+
+@app.post("/user_message/stream")
+async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = Depends(get_transaction_agent)):
+    """Streaming route that yields agent progress updates"""
+
+    async def generate_stream():
+        try:
+            # Prepare input for agent
+            agent_input = {"messages": agent.history_messages + [{"role": "human", "content": user_query.query}]}
+
+            async for update in agent._stream_query(agent_input):
+                # Send each update as Server-Sent Event
+                yield f"data: {json.dumps(update)}\n\n"
+                await asyncio.sleep(0.1)  # Small delay to prevent overwhelming
+
+        except Exception as e:
+            error_update = {
+                "type": "error",
+                "content": f"Error: {str(e)}",
+                "message": "❌ An error occurred"
+            }
+            yield f"data: {json.dumps(error_update)}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
 
 @app.get( "/health", tags=["healthcheck"], summary="Perform a Health Check", response_description="Return HTTP Status Code 200 (OK)", status_code=status.HTTP_200_OK, response_model=HealthCheck)
 def get_health() -> HealthCheck:

@@ -325,27 +325,70 @@ class TransactionAgent():
             async for chunk in self.agent.astream(agent_input, stream_mode="updates"):
                 self.logger.debug(f"Streaming chunk received: {type(chunk)}")
 
-                # Log tool execution progress
+                # Process and yield different types of updates
                 if isinstance(chunk, dict):
-                    if "tool_calls" in str(chunk):
-                        self.logger.info("Tool execution in progress...")
-                        print("Executing tool...")
-                    elif "content" in str(chunk):
-                        self.logger.info("Agent generating response...")
-                        print("Agent thinking...")
+                    for node_name, node_data in chunk.items():
+                        if node_name == "agent" and isinstance(node_data, dict):
+                            messages = node_data.get("messages", [])
+                            if messages:
+                                last_message = messages[-1]
+                                if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                                    # Tool call detected
+                                    for tool_call in last_message.tool_calls:
+                                        tool_name = tool_call.get('name', 'unknown_tool')
+                                        tool_args = tool_call.get('args', {})
+                                        yield {
+                                            "type": "tool_call",
+                                            "tool_name": tool_name,
+                                            "tool_args": tool_args,
+                                            "message": f"🔧 Executing tool: {tool_name}"
+                                        }
+                                elif hasattr(last_message, 'content') and last_message.content:
+                                    # Agent response content
+                                    yield {
+                                        "type": "agent_thinking",
+                                        "message": "🤔 Agent is analyzing..."
+                                    }
+
+                        elif node_name == "tools" and isinstance(node_data, dict):
+                            # Tool execution results
+                            messages = node_data.get("messages", [])
+                            if messages:
+                                for message in messages:
+                                    if hasattr(message, 'name'):
+                                        yield {
+                                            "type": "tool_result",
+                                            "tool_name": message.name,
+                                            "message": f"✅ Tool {message.name} completed"
+                                        }
 
                 # Store the final result
                 final_result = chunk
 
-                
+            self.logger.info(f"Streaming completed successfully")
 
-            self.logger.info(f"Streaming completed successfully {final_result}")
+            # Return final result
             if final_result and "agent" in final_result:
                 messages = final_result["agent"]["messages"]
                 if messages:
-                    return messages[-1].content
-            return "No data is available at the moment for your query."
+                    yield {
+                        "type": "final_response",
+                        "content": messages[-1].content,
+                        "message": "✨ Response ready"
+                    }
+                    return
+
+            yield {
+                "type": "final_response",
+                "content": "No data is available at the moment for your query.",
+                "message": "⚠️ No response generated"
+            }
 
         except Exception as e:
             self.logger.error(f"Error during streaming: {str(e)}")
+            yield {
+                "type": "error",
+                "content": f"Error: {str(e)}",
+                "message": "❌ An error occurred"
+            }
             raise AgentException() from e

@@ -2,9 +2,10 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface Message {
-    type: 'system' | 'user' | 'agent' | 'typing';
+    type: 'system' | 'user' | 'agent' | 'typing' | 'progress';
     content: string;
     timestamp: string;
+    progress_type?: string;
 }
 
 export default function AgentPage(){
@@ -42,6 +43,23 @@ export default function AgentPage(){
                     return;
                 }
 
+                // Handle progress messages differently
+                if (message.type === 'progress') {
+                    setIsTyping(false);
+                    // Add progress message temporarily
+                    const processedMessage = {
+                        ...message,
+                        content: message.content.replace(/\\n/g, '\n')
+                    };
+
+                    setMessages(prev => {
+                        // Remove previous progress messages to keep only the latest
+                        const withoutProgress = prev.filter(m => m.type !== 'progress');
+                        return [...withoutProgress, processedMessage];
+                    });
+                    return;
+                }
+
                 setIsTyping(false);
 
                 // Process message content to handle escaped newlines
@@ -50,7 +68,11 @@ export default function AgentPage(){
                     content: message.content.replace(/\\n/g, '\n')
                 };
 
-                setMessages(prev => [...prev, processedMessage]);
+                setMessages(prev => {
+                    // Remove progress messages when final message arrives
+                    const withoutProgress = prev.filter(m => m.type !== 'progress');
+                    return [...withoutProgress, processedMessage];
+                });
             };
 
             ws.onclose = () => {
@@ -118,28 +140,37 @@ export default function AgentPage(){
                     <div className="space-y-4">
                         {messages.map((message, index) => (
                             <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] rounded-lg px-4 py-3  ${
+                                <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
                                     message.type === 'user'
-                                        ? 'bg-zinc-800 text-white'
+                                        ? 'bg-zinc-800 text-white text-xl'
                                         : message.type === 'agent'
-                                        ? 'bg-transparent text-white '
+                                        ? 'bg-transparent text-white'
                                         : message.type === 'system'
                                         ? 'bg-green-900/20 text-green-400 border border-green-800'
+                                        : message.type === 'progress'
+                                        ? 'bg-blue-900/20 text-blue-300 border border-blue-800 animate-pulse'
                                         : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800'
                                 }`}>
                                     <div className="text-sm">
-                                        <div className="whitespace-pre-wrap">{message.content}</div>
+                                        {message.type === 'progress' && (
+                                            <div className="flex items-center space-x-2 mb-1">
+                                                <span className="text-xs text-blue-400 uppercase tracking-wide">
+                                                    {message.progress_type || 'Processing'}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="whitespace-pre-wrap text-[1rem]">{message.content}</div>
                                     </div>
                                 </div>
                             </div>
                         ))}
 
                         {/* Typing indicator */}
-                        {!isTyping && (
+                        {isTyping && (
                             <div className="flex justify-start">
                                 <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
                                     <div className="flex items-center space-x-3">
-                                        <span className="text-sm text-gray-400">Agent is thinking...</span>
+                                        <span className="text-md text-gray-400">Agent is thinking...</span>
                                     </div>
                                 </div>
                             </div>
@@ -156,7 +187,7 @@ export default function AgentPage(){
                                 value={inputMessage}
                                 onChange={(e) => setInputMessage(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder={isConnected ? "Ask about transactions, fraud detection, or analytics..." : "Connecting..."}
+                                placeholder="Ask about transactions, fraud detection, or analytics..."
                                 disabled={!isConnected}
                                 className="w-full bg-transparent text-white placeholder-gray-400 resize-none outline-none border-none text-sm leading-relaxed min-h-[20px] max-h-32 disabled:opacity-50"
                                 rows={1}
