@@ -1,4 +1,4 @@
-from app.database.transactions_db import TransactionsDB
+from src.app.database.transactions_db import TransactionsDB
 from typing import List, Dict, Any, Optional
 import sqlite3
 

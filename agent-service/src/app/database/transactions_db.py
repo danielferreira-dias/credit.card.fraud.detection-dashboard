@@ -2,7 +2,7 @@ import sqlite3
 import os
 from typing import Optional
 
-class TransactionsDB:
+class TransactionsDB():
     def __init__(self, db_path: Optional[str] = None):
         if db_path is None:
             db_path = os.path.join(os.path.dirname(__file__), 'transactions.db')
