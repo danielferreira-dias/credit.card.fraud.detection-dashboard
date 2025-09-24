@@ -5,6 +5,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.stores import InMemoryStore
 from langchain.agents import create_agent
+from langsmith import traceable
 
 # Add the agent-service root directory to Python path
 agent_service_root = Path(__file__).parent.parent.parent.parent
@@ -14,10 +15,9 @@ from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
 from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
-from app.database.transactions_db import db
 from app.services.database_provider import ProviderService
 from app.schemas.agent_prompt import system_prompt
-import asyncio
+from langgraph.prebuilt import create_react_agent
 
 import os
 from dotenv import load_dotenv
@@ -47,6 +47,8 @@ class TransactionAgent():
             temperature=0.5,
         )
 
+        # Enable LangSmith tracing if configured
+
         self.tools = self._create_tools()
         self.system_prompt = system_prompt
         self.provider_service = provider_service
@@ -56,17 +58,22 @@ class TransactionAgent():
         # Store for chat conversations
         self.store = InMemoryStore()
 
-        self.agent = create_agent(
+        self.agent = create_react_agent(
             model=self.model,
             tools=self.tools,
             store=self.store,
         )
+        # self.agent = create_agent(
+        #     model=self.model,
+        #     tools=self.llm_with_tools,
+        #     store=self.store,
+        # )
 
         self.logger.info("TransactionAgent initialized successfully")
 
     def _create_tools(self):
 
-        @tool("get_all_transactions_tool", return_direct=True, description="List all Transactions available in the database, use this when the user asks to see all transactions or wants a complete list, limited by 20 results;")
+        @tool("get_all_transactions_tool", description="List all Transactions available in the database, use this when the user asks to see all transactions or wants a complete list, limited by 20 results;")
         async def get_all_transactions_tool(limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: get_all_transactions_tool with limit={limit}, skip={skip}")
             try:
@@ -86,7 +93,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_all_transactions_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_transaction_by_id_tool", return_direct=True, description="Get a specific transaction by its ID, use this when the user asks about a particular transaction")
+        @tool("get_transaction_by_id_tool", description="Get a specific transaction by its ID, use this when the user asks about a particular transaction")
         async def get_transaction_by_id_tool(transaction_id: str):
             self.logger.info(f"Tool called: get_transaction_by_id_tool with transaction_id={transaction_id}")
             try:
@@ -109,7 +116,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transaction_by_id_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_transactions_by_customer_tool", return_direct=True, description="Get all transactions for a specific customer ID, use this when the user asks about a customer's transaction history")
+        @tool("get_transactions_by_customer_tool", description="Get all transactions for a specific customer ID, use this when the user asks about a customer's transaction history")
         async def get_transactions_by_customer_tool(customer_id: str):
             self.logger.info(f"Tool called: get_transactions_by_customer_tool with customer_id={customer_id}")
             try:
@@ -129,7 +136,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transactions_by_customer_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_fraud_transactions_tool", return_direct=True, description="Get all fraudulent transactions, use this when the user asks about fraud cases or suspicious transactions")
+        @tool("get_fraud_transactions_tool", description="Get all fraudulent transactions, use this when the user asks about fraud cases or suspicious transactions")
         async def get_fraud_transactions_tool():
             self.logger.info("Tool called: get_fraud_transactions_tool")
             try:
@@ -149,7 +156,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_fraud_transactions_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_transaction_stats_tool", return_direct=True, description="Get basic statistics about transactions including total count, fraud rate, and amounts, use this when the user asks for transaction statistics or summary")
+        @tool("get_transaction_stats_tool", description="Get basic statistics about transactions including total count, fraud rate, and amounts, use this when the user asks for transaction statistics or summary")
         async def get_transaction_stats_tool():
             self.logger.info("Tool called: get_transaction_stats_tool")
             try:
@@ -168,7 +175,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transaction_stats_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("search_transactions_by_field_tool", return_direct=True, description="Search transactions by any field/column. Available fields: country, city, card_type, merchant, merchant_category, merchant_type, currency, device, channel, is_fraud. Use this when user wants to filter by specific attributes like 'transactions from USA' or 'Visa card transactions'")
+        @tool("search_transactions_by_field_tool", description="Search transactions by any field/column. Available fields: country, city, card_type, merchant, merchant_category, merchant_type, currency, device, channel, is_fraud. Use this when user wants to filter by specific attributes like 'transactions from USA' or 'Visa card transactions'")
         async def search_transactions_by_field_tool(column: str, value: str, limit: int = 20):
             self.logger.info(f"Tool called: search_transactions_by_field_tool with column={column}, value={value}, limit={limit}")
             try:
@@ -188,7 +195,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in search_transactions_by_field_tool: {str(e)}")
                 return f"Error searching transactions: {str(e)}"
 
-        @tool("get_all_transactions_by_field_tool", return_direct=True, description="Get ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions'")
+        @tool("get_all_transactions_by_field_tool", description="Get ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions'")
         async def get_all_transactions_by_field_tool(column: str, value: str):
             self.logger.info(f"Tool called: get_all_transactions_by_field_tool with column={column}, value={value}")
             try:
@@ -206,7 +213,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_all_transactions_by_field_tool: {str(e)}")
                 return f"Error searching transactions: {str(e)}"
 
-        @tool("predict_transaction_fraud_tool", return_direct=True, description="Predict if a transaction is fraudulent using the backend ML model. Use this when the user asks about fraud prediction for a specific transaction ID")
+        @tool("predict_transaction_fraud_tool", description="Predict if a transaction is fraudulent using the backend ML model. Use this when the user asks about fraud prediction for a specific transaction ID")
         async def predict_transaction_fraud_tool(transaction_id: str):
             self.logger.info(f"Tool called: predict_transaction_fraud_tool with transaction_id={transaction_id}")
             try:
@@ -244,7 +251,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in predict_transaction_fraud_tool: {str(e)}")
                 return f"❌ Unable to predict fraud for transaction {transaction_id}. Error: {str(e)}"
 
-        @tool("check_backend_connection_tool", return_direct=True, description="Check if the backend prediction service is available and healthy. Use this when there are connection issues or to verify backend status")
+        @tool("check_backend_connection_tool", description="Check if the backend prediction service is available and healthy. Use this when there are connection issues or to verify backend status")
         async def check_backend_connection_tool():
             self.logger.info("Tool called: check_backend_connection_tool")
             try:
@@ -264,6 +271,7 @@ class TransactionAgent():
 
         return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_field_tool, get_all_transactions_by_field_tool, predict_transaction_fraud_tool, check_backend_connection_tool]
 
+    @traceable(name="query_agent")
     async def query_agent(self, user_input: str, stream: bool = True):
         """
             Ensures the first message is the System Prompt initialized, then adds the user Input as HumanMessage
