@@ -10,6 +10,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - AGENT_SERVICE_URL=http://agent-service:8001
     volumes:
       # - ./backend/models:/app/models
       - ./backend/app:/app/app

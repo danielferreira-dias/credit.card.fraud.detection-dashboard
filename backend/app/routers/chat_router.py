@@ -43,19 +43,14 @@ def get_connection_manager():
     return ConnectionManager()
 
 # Agent service configuration
-AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://localhost:8001")
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
 
 async def query_agent_service(user_message: str) -> str:
     """Query the agent service and return the response"""
     try:
         async with aiohttp.ClientSession() as session:
             payload = {"query": user_message}
-            async with session.post(
-                f"{AGENT_SERVICE_URL}/user_message",
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=30)
-            ) as response:
+            async with session.post( f"{AGENT_SERVICE_URL}/user_message", json=payload, headers={"Content-Type": "application/json"}, timeout=aiohttp.ClientTimeout(total=30)) as response:
                 if response.status == 200:
                     result = await response.text()
                     # Remove quotes if the response is a JSON string
@@ -83,14 +78,6 @@ async def agent_websocket_endpoint(websocket: WebSocket, client_id: int, connect
     logger.info(f"Agent chat connected for client {client_id}")
 
     try:
-        # Send welcome message
-        welcome_message = {
-            "type": "system",
-            "content": "Connected to AI Agent. Ask me about transactions, fraud detection, or any analysis!",
-            "timestamp": datetime.now().isoformat()
-        }
-        await websocket.send_text(json.dumps(welcome_message))
-
         while True:
             # Receive user message
             user_input = await websocket.receive_text()
