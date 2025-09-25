@@ -22,7 +22,7 @@ def get_transaction_service(db: AsyncSession = Depends(get_db)) -> TransactionSe
 
 # --- router ------------------------
 
-@router.get("transactions/count", response_model=ResponseWithMessage)
+@router.get("/count", response_model=ResponseWithMessage)
 async def count_transactions(service: TransactionService = Depends(get_transaction_service)):
     """
     Count the total number of transactions in the database.
@@ -34,6 +34,35 @@ async def count_transactions(service: TransactionService = Depends(get_transacti
         message=f"There's currently {response} transactions in the database",
         data=None
     )
+
+@router.get("/filtered/count", response_model=ResponseWithMessage)
+async def count_filtered_transactions(filters: TransactionFilter = Depends(), service: TransactionService = Depends(get_transaction_service)):
+    """
+    Count the number of transactions in the database that match the given filters.
+    - **filters**: Optional filters to apply (e.g., date range, amount range, merchant).
+    Returns the count of transactions matching the criteria.
+    """
+    response = await service.get_filtered_transactions_qt(filters)
+    return ResponseWithMessage(
+        message=f"There's currently {response} transactions in the database matching the given filters",
+        data=response
+    )
+
+@router.get("/stats", response_model=ResponseWithMessage)
+async def transaction_stats(service: TransactionService = Depends(get_transaction_service)):
+    """
+    Get statistics about transactions, including total count, fraudulent count, and non-fraudulent count.
+
+    Returns a summary of transaction statistics.
+    """
+    response = await service.get_transaction_stats()
+    return {
+        "total_transactions": response.get("total_transactions", 0),
+        "fraudulent_transactions": response.get("fraudulent_transactions", 0),
+        "fraud_rate": response.get("max_amount", 0.0),
+        "average_amount": response.get("average_amount", 0.0),
+        "total_amount": response.get("total_amount", 0),
+    }
 
 @router.get("/{transaction_id}/predict", response_model=TransactionPredictionResponse)
 async def predict_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):

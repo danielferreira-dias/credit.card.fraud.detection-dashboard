@@ -30,6 +30,12 @@ class TransactionService:
     
     async def get_transactions_qt(self) -> dict[str, int]:
         return await self.repo.get_transaction_count()
+    
+    async def get_transaction_stats(self) -> dict[str, int]:
+        return await self.repo.get_transaction_stats()
+    
+    async def get_filtered_transactions_qt(self, filters: TransactionFilter) -> dict[str, int]:
+        return await self.repo.get_filtered_transaction_count(filters)
 
     async def get_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[TransactionResponse]:
         transaction_list = await self.repo.get_all_transactions(filters, limit, skip)

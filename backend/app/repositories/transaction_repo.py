@@ -31,6 +31,85 @@ class TransactionRepository:
             "fraud_transactions": frauds
         }
     
+    async def get_transaction_stats(self) -> dict[str, int]:
+        try:
+            total_stmt = select(func.count(Transaction.transaction_id))
+            fraud_stmt = select(func.count(Transaction.transaction_id)).where(Transaction.is_fraud == True)
+            max_amount_stmt = select(func.max(Transaction.amount))
+            min_amount_stmt = select(func.min(Transaction.amount))
+            avg_amount_stmt = select(func.avg(Transaction.amount))
+
+            total_result = await self.db.execute(total_stmt)
+            fraud_result = await self.db.execute(fraud_stmt)
+            max_amount_result = await self.db.execute(max_amount_stmt)
+            min_amount_result = await self.db.execute(min_amount_stmt)
+            avg_amount_result = await self.db.execute(avg_amount_stmt)
+
+            total = total_result.scalar() or 0
+            frauds = fraud_result.scalar() or 0
+            max_amount = max_amount_result.scalar() or 0.0
+            min_amount = min_amount_result.scalar() or 0.0
+            avg_amount = avg_amount_result.scalar() or 0.0
+            fraud_rate = (frauds / total * 100) if total > 0 else 0.0
+
+            return {
+                "total_transactions": total,
+                "fraudulent_transactions": frauds,
+                "max_amount": float(max_amount),
+                "min_amount": float(min_amount),
+                "avg_amount": float(avg_amount),
+                "fraud_rate": round(fraud_rate, 2)
+            }
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao obter estatísticas de transações: {e}")
+            raise DatabaseException("Error accessing the database") from e
+    
+    async def get_filtered_transaction_count(self, filters: TransactionFilter) -> dict[str, int]:
+        try:
+            stmt = select(func.count(Transaction.transaction_id))
+
+            if filters.customer_id:
+                stmt = stmt.where(Transaction.customer_id == filters.customer_id)
+            if filters.country:
+                stmt = stmt.where(Transaction.country.ilike(f"%{filters.country}%"))
+            if filters.city:
+                stmt = stmt.where(Transaction.city.ilike(f"%{filters.city}%"))
+            if filters.merchant_category:
+                stmt = stmt.where(Transaction.merchant_category.ilike(f"%{filters.merchant_category}%"))
+            if filters.merchant:
+                stmt = stmt.where(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+            if filters.card_type:
+                stmt = stmt.where(Transaction.card_type.ilike(f"%{filters.card_type}%"))
+            if filters.card_present is not None:
+                stmt = stmt.where(Transaction.card_present == filters.card_present)
+            if filters.channel:
+                stmt = stmt.where(Transaction.channel.ilike(f"%{filters.channel}%"))
+            if filters.device:
+                stmt = stmt.where(Transaction.device.ilike(f"%{filters.device}%"))
+            if filters.distance_from_home:
+                stmt = stmt.where(Transaction.distance_from_home == filters.distance_from_home)
+            if filters.high_risk_merchant is not None:
+                stmt = stmt.where(Transaction.high_risk_merchant == filters.high_risk_merchant)
+            if filters.start_date:
+                stmt = stmt.where(Transaction.date >= filters.start_date)
+            if filters.end_date:
+                stmt = stmt.where(Transaction.date <= filters.end_date)
+            if filters.min_amount:
+                stmt = stmt.where(Transaction.amount >= filters.min_amount)
+            if filters.max_amount:
+                stmt = stmt.where(Transaction.amount <= filters.max_amount)
+            if filters.is_fraud is not None:
+                stmt = stmt.where(Transaction.is_fraud == filters.is_fraud)
+
+            result = await self.db.execute(stmt)
+            count = result.scalar()
+            return {
+                "filtered_transactions": count
+            }
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao contar transações filtradas: {e}")
+            raise DatabaseException("Error accessing the database") from e
+    
     async def get_all_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[Transaction]:
         try:
             stmt = select(Transaction)
@@ -74,7 +153,7 @@ class TransactionRepository:
             return transactions
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transações: {e}")
-            raise DatabaseException("Erro ao aceder às transações na base de dados") from e
+            raise DatabaseException("Error accessing the database") from e
     
     async def get_transaction_id(self, transaction_id: str) -> Transaction:
         try:
@@ -85,7 +164,7 @@ class TransactionRepository:
             return transaction
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transação por ID {transaction_id}: {e}")
-            raise DatabaseException("Erro ao aceder à transação na base de dados") from e
+            raise DatabaseException("Error accessing the database") from e
     
     async def create_transaction(self, transaction: TransactionCreate) -> Transaction:
         try:
@@ -99,7 +178,7 @@ class TransactionRepository:
             if "duplicate key" in str(e).lower():
                 raise TransactionDuplucateError(name="Transição duplicada", message="Transição já existe na base de dados;")
             logger.error(f"Erro ao criar transação: {e}")
-            raise DatabaseException("Erro ao criar a transação na base de dados") from e
+            raise DatabaseException("Error creating transaction is database") from e
         
     async def delete_transaction(self, transaction_id: str):
         try:

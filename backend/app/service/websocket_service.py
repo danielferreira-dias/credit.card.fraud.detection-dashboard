@@ -45,7 +45,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
     try:
         async with aiohttp.ClientSession() as session:
             payload = {"query": user_message}
-            async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}, timeout=aiohttp.ClientTimeout(total=60)) as response:
+            async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}) as response:
                 if response.status == 200:
                     logger.info(f'The response content is -> {response.content}')
                     # Process streaming response

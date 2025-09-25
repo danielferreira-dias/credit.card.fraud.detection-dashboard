@@ -74,11 +74,53 @@ class TransactionAgent():
 
     def _create_tools(self):
 
-        @tool("get_all_transactions_tool", description="List all Transactions available in the database, use this when the user asks to see all transactions or wants a complete list, limited by 20 results;")
+        @tool("get_all_transactions_by_no_params_tool", description="Get COUNT OF ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions existant in the database")
+        async def get_all_transactions_by_params_tool(column: str, value: str):
+            self.logger.info(f"Tool called: get_all_transactions_by_params_tool with column={column}, value={value}")
+            try:
+                transactions = await self.backend_client.get_transaction_count()
+
+                if not transactions:
+                    self.logger.warning(f"No transactions found for {column} = {value}")
+                    return f"No transactions found where {column} equals '{value}'."
+
+                result = f"Found {transactions.get('data')} total transactions where {column} = '{value}':\n\n"
+
+                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} total transactions where {column} = '{value}'")
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in get_all_transactions_by_params_tool: {str(e)}")
+                return f"Error searching transactions: {str(e)}"
+
+        @tool("get_all_transactions_by_params_tool", description="Get COUNT OF ALL transactions MATCHING a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions' and want the total count of them.")
+        async def get_all_transactions_by_params_tool(column: str, value: str):
+            self.logger.info(f"Tool called: get_all_transactions_by_params_tool with column={column}, value={value}")
+            try:
+                transactions = await self.backend_client.get_transaction_count_filtered(column, value)
+
+                if not transactions:
+                    self.logger.warning(f"No transactions found for {column} = {value}")
+                    return f"No transactions found where {column} equals '{value}'."
+
+                result = f"Found {transactions.get('data')} total transactions where {column} = '{value}':\n\n"
+
+                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} total transactions where {column} = '{value}'")
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in get_all_transactions_by_params_tool: {str(e)}")
+                return f"Error searching transactions: {str(e)}"
+        
+        @tool("get_all_transactions_tool", description="LIST all Transactions available in the database, use this when the user asks to see all transactions or wants a complete list, limited by 20 results;")
         async def get_all_transactions_tool(limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: get_all_transactions_tool with limit={limit}, skip={skip}")
             try:
-                transactions = await self.provider_service.get_all_transactions(limit=limit, skip=skip)
+                transactions = await self.backend_client.get_transactions(limit=limit, skip=skip)
 
                 if not transactions:
                     self.logger.info("No transactions found in database")
@@ -97,37 +139,11 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_all_transactions_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_transaction_by_id_tool", description="Get a specific transaction by its ID, use this when the user asks about a particular transaction")
-        async def get_transaction_by_id_tool(transaction_id: str):
-            self.logger.info(f"Tool called: get_transaction_by_id_tool with transaction_id={transaction_id}")
-            try:
-                transaction = await self.provider_service.get_transaction_by_id(transaction_id)
-
-                if not transaction:
-                    self.logger.warning(f"Transaction not found for ID: {transaction_id}")
-                    return f"Transaction with ID '{transaction_id}' was not found."
-
-                result = f"Transaction Details:\n"
-                result += f"ID: {transaction.get('transaction_id')}\n"
-                result += f"Customer ID: {transaction.get('customer_id')}\n"
-                result += f"Amount: ${transaction.get('amount')}\n"
-                result += f"Timestamp: {transaction.get('timestamp')}\n"
-                result += f"Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
-
-                self.logger.info(f"Successfully retrieved transaction details for ID: {transaction_id}")
-                writer = get_stream_writer()
-                if writer:
-                    writer(f"Found transaction details for ID: {transaction_id}")
-                return result
-            except Exception as e:
-                self.logger.error(f"Error in get_transaction_by_id_tool: {str(e)}")
-                raise AgentException() from e
-
-        @tool("get_transactions_by_customer_tool", description="Get all transactions for a specific customer ID, use this when the user asks about a customer's transaction history")
-        async def get_transactions_by_customer_tool(customer_id: str):
+        @tool("get_transactions_by_customer_tool", description="LIST all transactions for a specific customer ID, use this when the user asks about a customer's transaction history, limited by 20 results;")
+        async def get_transactions_by_customer_tool(customer_id: str, limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: get_transactions_by_customer_tool with customer_id={customer_id}")
             try:
-                transactions = await self.provider_service.get_transactions_by_customer(customer_id)
+                transactions = await self.backend_client.get_transactions_filtered(customer_id, limit, skip)
 
                 if not transactions:
                     self.logger.warning(f"No transactions found for customer ID: {customer_id}")
@@ -146,11 +162,11 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transactions_by_customer_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_fraud_transactions_tool", description="Get all fraudulent transactions, use this when the user asks about fraud cases or suspicious transactions")
-        async def get_fraud_transactions_tool():
+        @tool("get_fraud_transactions_tool", description="LIST all fraudulent transactions, use this when the user asks about fraud cases or suspicious transactions, limited by 20 results;")
+        async def get_fraud_transactions_tool(is_fraud: bool = True, limit: int = 20, skip: int = 0):
             self.logger.info("Tool called: get_fraud_transactions_tool")
             try:
-                transactions = await self.provider_service.get_fraud_transactions()
+                transactions = await self.backend_client.get_transactions_filtered(is_fraud, limit, skip )
 
                 if not transactions:
                     self.logger.info("No fraudulent transactions found in database")
@@ -169,11 +185,11 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_fraud_transactions_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_transaction_stats_tool", description="Get basic statistics about transactions including total count, fraud rate, and amounts, use this when the user asks for transaction statistics or summary")
+        @tool("get_transaction_stats_tool", description="Get basic STATISTICS about transactions including total count, fraud rate, and amounts, use this when the user asks for transaction statistics or summary")
         async def get_transaction_stats_tool():
             self.logger.info("Tool called: get_transaction_stats_tool")
             try:
-                stats = await self.provider_service.get_transaction_stats()
+                stats = await self.backend_client.get_transactions_stats()
 
                 result = f"Transaction Statistics:\n\n"
                 result += f"Total Transactions: {stats.get('total_transactions', 0):,}\n"
@@ -191,51 +207,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transaction_stats_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("search_transactions_by_field_tool", description="Search transactions by any field/column. Available fields: country, city, card_type, merchant, merchant_category, merchant_type, currency, device, channel, is_fraud. Use this when user wants to filter by specific attributes like 'transactions from USA' or 'Visa card transactions'")
-        async def search_transactions_by_field_tool(column: str, value: str, limit: int = 20):
-            self.logger.info(f"Tool called: search_transactions_by_field_tool with column={column}, value={value}, limit={limit}")
-            try:
-                transactions = await self.provider_service.get_transactions_by_param_limit(column, value, limit, 0)
-
-                if not transactions:
-                    self.logger.warning(f"No transactions found for {column} = {value}")
-                    return f"No transactions found where {column} equals '{value}'."
-
-                result = f"Found {len(transactions)} transactions where {column} = '{value}':\n\n"
-                for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
-
-                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
-                writer = get_stream_writer()
-                if writer:
-                    writer(f"Found {len(transactions)} transactions where {column} = '{value}'")
-                return result
-            except Exception as e:
-                self.logger.error(f"Error in search_transactions_by_field_tool: {str(e)}")
-                return f"Error searching transactions: {str(e)}"
-
-        @tool("get_all_transactions_by_field_tool", description="Get ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions'")
-        async def get_all_transactions_by_field_tool(column: str, value: str):
-            self.logger.info(f"Tool called: get_all_transactions_by_field_tool with column={column}, value={value}")
-            try:
-                transactions = await self.provider_service.get_transactions_by_param_all(column, value)
-
-                if not transactions:
-                    self.logger.warning(f"No transactions found for {column} = {value}")
-                    return f"No transactions found where {column} equals '{value}'."
-
-                result = f"Found {len(transactions)} total transactions where {column} = '{value}':\n\n"
-
-                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
-                writer = get_stream_writer()
-                if writer:
-                    writer(f"Found {len(transactions)} total transactions where {column} = '{value}'")
-                return result
-            except Exception as e:
-                self.logger.error(f"Error in get_all_transactions_by_field_tool: {str(e)}")
-                return f"Error searching transactions: {str(e)}"
-
-        @tool("predict_transaction_fraud_tool", description="Predict if a transaction is fraudulent using the backend ML model. Use this when the user asks about fraud prediction for a specific transaction ID")
+        @tool("predict_transaction_fraud_tool", description="PREDICT if a transaction is fraudulent using the backend ML model. Use this when the user asks about fraud prediction for a specific transaction ID")
         async def predict_transaction_fraud_tool(transaction_id: str):
             self.logger.info(f"Tool called: predict_transaction_fraud_tool with transaction_id={transaction_id}")
             try:
@@ -276,6 +248,55 @@ class TransactionAgent():
                 self.logger.error(f"Error in predict_transaction_fraud_tool: {str(e)}")
                 return f"❌ Unable to predict fraud for transaction {transaction_id}. Error: {str(e)}"
 
+        @tool("search_transactions_by_pararms_tool", description="Search transactions by any field/column. Available fields: country, city, card_type, merchant, merchant_category, merchant_type, currency, device, channel, is_fraud. Use this when user wants to filter by specific attributes like 'transactions from USA' or 'Visa card transactions', limited by 20 results;")
+        async def search_transactions_by_pararms_tool(column: str, value: str, limit: int = 20, skip: int = 0):
+            self.logger.info(f"Tool called: search_transactions_by_pararms_tool with column={column}, value={value}, limit={limit}")
+            try:
+                transactions = await self.backend_client.get_transactions_filtered(column, value, limit, skip)
+
+                if not transactions:
+                    self.logger.warning(f"No transactions found for {column} = {value}")
+                    return f"No transactions found where {column} equals '{value}'."
+
+                result = f"Found {len(transactions)} transactions where {column} = '{value}':\n\n"
+                for i, transaction in enumerate(transactions, 1):
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+
+                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} transactions where {column} = '{value}'")
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in search_transactions_by_pararms_tool: {str(e)}")
+                return f"Error searching transactions: {str(e)}"
+
+        @tool("get_transaction_by_id_tool", description="Get a specific transaction by its ID, use this when the user asks about a particular transaction")
+        async def get_transaction_by_id_tool(transaction_id: str):
+            self.logger.info(f"Tool called: get_transaction_by_id_tool with transaction_id={transaction_id}")
+            try:
+                transaction = await self.backend_client.get_transaction_by_id(transaction_id)
+
+                if not transaction:
+                    self.logger.warning(f"Transaction not found for ID: {transaction_id}")
+                    return f"Transaction with ID '{transaction_id}' was not found."
+
+                result = f"Transaction Details:\n"
+                result += f"ID: {transaction.get('transaction_id')}\n"
+                result += f"Customer ID: {transaction.get('customer_id')}\n"
+                result += f"Amount: ${transaction.get('amount')}\n"
+                result += f"Timestamp: {transaction.get('timestamp')}\n"
+                result += f"Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+
+                self.logger.info(f"Successfully retrieved transaction details for ID: {transaction_id}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found transaction details for ID: {transaction_id}")
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in get_transaction_by_id_tool: {str(e)}")
+                raise AgentException() from e
+    
         @tool("check_backend_connection_tool", description="Check if the backend prediction service is available and healthy. Use this when there are connection issues or to verify backend status")
         async def check_backend_connection_tool():
             self.logger.info("Tool called: check_backend_connection_tool")
@@ -297,7 +318,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in check_backend_connection_tool: {str(e)}")
                 return f"❌ Error checking backend connection: {str(e)}"
 
-        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_field_tool, get_all_transactions_by_field_tool, predict_transaction_fraud_tool, check_backend_connection_tool]
+        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_pararms_tool, get_all_transactions_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool]
 
     @traceable(name="query_agent")
     async def query_agent(self, user_input: str, stream: bool = True):
@@ -350,9 +371,8 @@ class TransactionAgent():
 
         try:
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
-            async for stream_mode, chunk in self.agent.astream(agent_input, stream_mode=["updates", "custom", "messages"]):
+            async for stream_mode, chunk in self.agent.astream(agent_input, stream_mode=["updates", "custom"]):
                 self.logger.debug(f"Streaming chunk received: mode={stream_mode}, chunk={type(chunk)}")
-                self.logger.info(f'Message -> {messages}')
 
                 # Handle custom stream messages from writer() calls
                 if stream_mode == "custom":
