@@ -5,3 +5,5 @@ class QueryResponse(BaseModel):
     query: str
     agent_type: str
 
+
+

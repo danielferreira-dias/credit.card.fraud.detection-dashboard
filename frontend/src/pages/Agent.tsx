@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface Message {
-    type: 'system' | 'user' | 'agent' | 'typing' | 'progress';
+    type: 'system' | 'User' | 'Agent' | 'typing' | 'progress';
     content: string;
     timestamp: string;
     progress_type?: string;
@@ -139,11 +139,11 @@ export default function AgentPage(){
                     {/* Messages */}
                     <div className="space-y-4">
                         {messages.map((message, index) => (
-                            <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div key={index} className={`flex ${message.type === 'User' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                                    message.type === 'user'
+                                    message.type === 'User'
                                         ? 'bg-zinc-800 text-white text-xl'
-                                        : message.type === 'agent'
+                                        : message.type === 'Agent'
                                         ? 'bg-transparent text-white'
                                         : message.type === 'system'
                                         ? 'bg-green-900/20 text-green-400 border border-green-800'

@@ -18,7 +18,6 @@ class MessageResponse(BaseModel):
     email: EmailStr
     name: str 
 
-
 class ConversationResponse(BaseModel):
     role: str
     content: str

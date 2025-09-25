@@ -65,10 +65,15 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
         try:
             # Prepare input for agent
             agent_input = {"messages": agent.history_messages + [{"role": "human", "content": user_query.query}]}
+            logger.info(f'Agent Input -> {agent_input}')
 
             async for update in agent._stream_query(agent_input):
+                logger.info(f'Agent update -> {update}')
                 # Send each update as Server-Sent Event
-                yield f"data: {json.dumps(update)}\n\n"
+                yield (
+                    "event: token\n"
+                    f"data: {json.dumps(update)}\n\n"
+                )
                 await asyncio.sleep(0.1)  # Small delay to prevent overwhelming
 
         except Exception as e:
@@ -77,11 +82,14 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
                 "content": f"Error: {str(e)}",
                 "message": "❌ An error occurred"
             }
-            yield f"data: {json.dumps(error_update)}\n\n"
+            yield (
+                "event: error\n"
+                f"data: {json.dumps(error_update)}\n\n"
+            )
 
     return StreamingResponse(
         generate_stream(),
-        media_type="text/plain",
+        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",

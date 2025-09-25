@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List
 import json
@@ -6,12 +7,12 @@ import os
 from app.infra.logger import setup_logger
 from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
-from app.exception.user_exceptions import UserCredentialsException
 from app.schemas.message_schema import ConversationCreate, ConversationResponse, MessageResponse
 from app.settings.database import get_db
 from app.service.message_service import ConversationService, MessageService
 from app.repositories.message_repo import ConversationRepository, MessageRepository
 from app.ws.connection_manager import ConnectionManager
+from app.schemas.websocket_schema import ProgressMessage, WebSocketMessage
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,13 +51,9 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
     try:
         async with aiohttp.ClientSession() as session:
             payload = {"query": user_message}
-            async with session.post(
-                f"{AGENT_SERVICE_URL}/user_message/stream",
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=aiohttp.ClientTimeout(total=60)
-            ) as response:
+            async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}, timeout=aiohttp.ClientTimeout(total=60)) as response:
                 if response.status == 200:
+                    logger.info(f'The response content is -> {response}')
                     # Process streaming response
                     async for line in response.content:
                         line_str = line.decode('utf-8').strip()
@@ -65,22 +62,13 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
                                 data = json.loads(line_str[6:])  # Remove 'data: ' prefix
 
                                 # Send progress update to WebSocket
-                                progress_message = {
-                                    "type": "progress",
-                                    "content": data.get("message", "Processing..."),
-                                    "progress_type": data.get("type", "unknown"),
-                                    "timestamp": datetime.now().isoformat()
-                                }
-                                await websocket.send_text(json.dumps(progress_message))
+                                progress_message = ProgressMessage(type="progress", content=data.get("message", "Processing..."), progress_type=data.get("type", "unknown"))
+                                await websocket.send_text(json.dumps(progress_message.to_dict()))
 
                                 # If it's the final response, send it as agent message
                                 if data.get("type") == "final_response":
-                                    final_message = {
-                                        "type": "agent",
-                                        "content": data.get("content", "No response available"),
-                                        "timestamp": datetime.now().isoformat()
-                                    }
-                                    await websocket.send_text(json.dumps(final_message))
+                                    final_message = WebSocketMessage( type="Agent", content=data.get("content", "No response available"))
+                                    await websocket.send_text(json.dumps(final_message.to_dict()))
                                     return
 
                             except json.JSONDecodeError as e:
@@ -89,45 +77,28 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
                 else:
                     error_text = await response.text()
                     logger.error(f"Agent service error {response.status}: {error_text}")
-                    error_message = {
-                        "type": "agent",
-                        "content": f"Agent service error: {response.status}",
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    await websocket.send_text(json.dumps(error_message))
+                    error_message = WebSocketMessage(type="Agent", content=f"Agent service error: {response.status}")
+                    await websocket.send_text(json.dumps(error_message.to_dict()))
 
     except aiohttp.ClientError as e:
         logger.error(f"Failed to connect to agent service: {str(e)}")
-        error_message = {
-            "type": "agent",
-            "content": "Failed to connect to agent service. Please check if the service is running.",
-            "timestamp": datetime.now().isoformat()
-        }
-        await websocket.send_text(json.dumps(error_message))
+        error_message = WebSocketMessage(type="Agent", content=f"Failed to connect to agent service. Please check if the service is running.")
+        await websocket.send_text(json.dumps(error_message.to_dict()))
     except Exception as e:
         logger.error(f"Unexpected error querying agent service: {str(e)}")
-        error_message = {
-            "type": "agent",
-            "content": f"Unexpected error: {str(e)}",
-            "timestamp": datetime.now().isoformat()
-        }
-        await websocket.send_text(json.dumps(error_message))
+        error_message = WebSocketMessage(type="Agent", content=f"Unexpected error:")
+        await websocket.send_text(json.dumps(error_message.to_dict()))
 
 # --- Router ---------------------------
-
 
 @router.websocket("/ws/agent/{client_id}")
 async def agent_websocket_endpoint(websocket: WebSocket, client_id: int, connection_manager: ConnectionManager = Depends(get_connection_manager)):
     """WebSocket endpoint for chat with AI agent"""
     await connection_manager.connect(websocket)
-    logger.info(f"Agent chat connected for client {client_id}")
-
     try:
         while True:
             # Receive user message
             user_input = await websocket.receive_text()
-            logger.info(f"Received message from client {client_id}: {user_input}")
-
             try:
                 # Parse JSON if it's structured data
                 message_data = json.loads(user_input)
@@ -137,21 +108,12 @@ async def agent_websocket_endpoint(websocket: WebSocket, client_id: int, connect
                 user_message = user_input
 
             # Echo user message back
-            user_echo = {
-                "type": "user",
-                "content": user_message,
-                "timestamp": datetime.now().isoformat()
-            }
-            await websocket.send_text(json.dumps(user_echo))
+            user_echo = WebSocketMessage(type="User", content=user_message, timestamp=datetime.now().isoformat())
+            await websocket.send_text(json.dumps(user_echo.to_dict()))
 
             # Send initial thinking indicator
-            thinking_indicator = {
-                "type": "progress",
-                "content": "🤔 Agent is starting to analyze your request...",
-                "progress_type": "initializing",
-                "timestamp": datetime.now().isoformat()
-            }
-            await websocket.send_text(json.dumps(thinking_indicator))
+            thinking_indicator = ProgressMessage(type="progress", content="🤔 Agent is starting to analyze your request...", progress_type="initializing")
+            await websocket.send_text(json.dumps(thinking_indicator.to_dict()))
 
             # Stream agent response with real-time progress
             await query_agent_service_streaming(websocket, user_message)
