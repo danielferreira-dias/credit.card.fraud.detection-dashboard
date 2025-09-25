@@ -99,18 +99,19 @@ class TransactionAgent():
         async def get_all_transactions_by_params_tool(column: str, value: str):
             self.logger.info(f"Tool called: get_all_transactions_by_params_tool with column={column}, value={value}")
             try:
-                transactions = await self.backend_client.get_transaction_count_filtered(column, value)
+                transactions = await self.backend_client.get_transaction_count_by_field(column, value)
 
                 if not transactions:
                     self.logger.warning(f"No transactions found for {column} = {value}")
                     return f"No transactions found where {column} equals '{value}'."
 
-                result = f"Found {transactions.get('data')} total transactions where {column} = '{value}':\n\n"
+                count = transactions.get('data', 0)
+                result = f"Found {count} total transactions where {column} = '{value}'"
 
-                self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                self.logger.info(f"Successfully retrieved count of {count} transactions for {column} = {value}")
                 writer = get_stream_writer()
                 if writer:
-                    writer(f"Found {len(transactions)} total transactions where {column} = '{value}'")
+                    writer(f"Found {count} total transactions where {column} = '{value}'")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_all_transactions_by_params_tool: {str(e)}")
@@ -143,7 +144,7 @@ class TransactionAgent():
         async def get_transactions_by_customer_tool(customer_id: str, limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: get_transactions_by_customer_tool with customer_id={customer_id}")
             try:
-                transactions = await self.backend_client.get_transactions_filtered(customer_id, limit, skip)
+                transactions = await self.backend_client.get_transactions_by_customer(customer_id, limit, skip)
 
                 if not transactions:
                     self.logger.warning(f"No transactions found for customer ID: {customer_id}")
@@ -166,20 +167,22 @@ class TransactionAgent():
         async def get_fraud_transactions_tool(is_fraud: bool = True, limit: int = 20, skip: int = 0):
             self.logger.info("Tool called: get_fraud_transactions_tool")
             try:
-                transactions = await self.backend_client.get_transactions_filtered(is_fraud, limit, skip )
+                transactions = await self.backend_client.get_fraud_transactions(is_fraud, limit, skip)
 
                 if not transactions:
-                    self.logger.info("No fraudulent transactions found in database")
-                    return "No fraudulent transactions found."
+                    fraud_type = "fraudulent" if is_fraud else "legitimate"
+                    self.logger.info(f"No {fraud_type} transactions found in database")
+                    return f"No {fraud_type} transactions found."
 
-                result = f"Fraudulent transactions found ({len(transactions)} total):\n\n"
+                fraud_type = "Fraudulent" if is_fraud else "Legitimate"
+                result = f"{fraud_type} transactions found ({len(transactions)} total):\n\n"
                 for i, transaction in enumerate(transactions, 1):
                     result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Date: {transaction.get('timestamp')}\n"
 
-                self.logger.info(f"Successfully retrieved {len(transactions)} fraudulent transactions")
+                self.logger.info(f"Successfully retrieved {len(transactions)} {fraud_type.lower()} transactions")
                 writer = get_stream_writer()
                 if writer:
-                    writer(f"Found {len(transactions)} fraudulent transactions")
+                    writer(f"Found {len(transactions)} {fraud_type.lower()} transactions")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_fraud_transactions_tool: {str(e)}")
@@ -252,7 +255,7 @@ class TransactionAgent():
         async def search_transactions_by_pararms_tool(column: str, value: str, limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: search_transactions_by_pararms_tool with column={column}, value={value}, limit={limit}")
             try:
-                transactions = await self.backend_client.get_transactions_filtered(column, value, limit, skip)
+                transactions = await self.backend_client.get_transactions_by_field(column, value, limit, skip)
 
                 if not transactions:
                     self.logger.warning(f"No transactions found for {column} = {value}")

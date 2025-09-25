@@ -45,7 +45,7 @@ class BackendAPIClient:
             self.logger.error(f"Failed to get transaction count: {str(e)}")
             raise BackendClientException(f"Failed to get transaction count: {str(e)}")
         
-    async def get_transaction_count_filtered(self, filters: TransactionFilter) -> Dict[str, Any]:
+    async def get_transaction_count_filtered(self, filters: TransactionFilter = None) -> Dict[str, Any]:
         """
         Get the count of transactions matching the given filters from the backend.
 
@@ -59,7 +59,13 @@ class BackendAPIClient:
 
         params = {}
         if filters:
-            params.update(filters)
+            if hasattr(filters, '__dict__'):
+                # If it's a TransactionFilter object, convert to dict
+                filter_dict = {k: v for k, v in filters.__dict__.items() if v is not None}
+                params.update(filter_dict)
+            elif isinstance(filters, dict):
+                # If it's already a dict, use directly
+                params.update(filters)
 
         self.logger.info(f"Requesting filtered transaction count with filters: {filters}")
 
@@ -75,6 +81,19 @@ class BackendAPIClient:
         except httpx.HTTPError as e:
             self.logger.error(f"Failed to get filtered transaction count: {str(e)}")
             raise BackendClientException(f"Failed to get filtered transaction count: {str(e)}")
+
+    async def get_transaction_count_by_field(self, field: str, value: str) -> Dict[str, Any]:
+        """
+        Get the count of transactions matching a specific field and value.
+
+        Args:
+            field: The field name to filter by
+            value: The value to filter for
+        Returns:
+            Dict containing filtered transaction count information
+        """
+        filters = {field: value}
+        return await self.get_transaction_count_filtered(filters)
 
     async def get_transactions(self, limit: int = 20, skip: int = 0) -> Dict[str, Any]:
         """
@@ -107,7 +126,7 @@ class BackendAPIClient:
             self.logger.error(f"Failed to get transactions list: {str(e)}")
             raise BackendClientException(f"Failed to get transactions list: {str(e)}")
         
-    async def get_transactions_filtered(self, filters: TransactionFilter = Depends(), limit: int = 20, skip: int = 0) -> Dict[str, Any]:
+    async def get_transactions_filtered(self, filters: TransactionFilter = None, limit: int = 20, skip: int = 0) -> Dict[str, Any]:
         """
         Get a list of transactions with optional filtering and pagination.
 
@@ -124,7 +143,13 @@ class BackendAPIClient:
 
         params = {"limit": limit, "skip": skip}
         if filters:
-            params.update(filters)
+            if hasattr(filters, '__dict__'):
+                # If it's a TransactionFilter object, convert to dict
+                filter_dict = {k: v for k, v in filters.__dict__.items() if v is not None}
+                params.update(filter_dict)
+            elif isinstance(filters, dict):
+                # If it's already a dict, use directly
+                params.update(filters)
 
         self.logger.info(f"Requesting transactions list with filters: {filters}, limit: {limit}, skip: {skip}")
 
@@ -140,6 +165,52 @@ class BackendAPIClient:
         except httpx.HTTPError as e:
             self.logger.error(f"Failed to get transactions list: {str(e)}")
             raise BackendClientException(f"Failed to get transactions list: {str(e)}")
+
+    async def get_transactions_by_field(self, field: str, value: str, limit: int = 20, skip: int = 0) -> Dict[str, Any]:
+        """
+        Get transactions filtered by a specific field and value.
+
+        Args:
+            field: The field name to filter by
+            value: The value to filter for
+            limit: Maximum number of transactions to return (default 20)
+            skip: Number of transactions to skip (default 0)
+
+        Returns:
+            List of transactions matching the criteria
+        """
+        filters = {field: value}
+        return await self.get_transactions_filtered(filters, limit, skip)
+
+    async def get_transactions_by_customer(self, customer_id: str, limit: int = 20, skip: int = 0) -> Dict[str, Any]:
+        """
+        Get transactions for a specific customer.
+
+        Args:
+            customer_id: The customer ID to filter by
+            limit: Maximum number of transactions to return (default 20)
+            skip: Number of transactions to skip (default 0)
+
+        Returns:
+            List of transactions for the customer
+        """
+        filters = {"customer_id": customer_id}
+        return await self.get_transactions_filtered(filters, limit, skip)
+
+    async def get_fraud_transactions(self, is_fraud: bool = True, limit: int = 20, skip: int = 0) -> Dict[str, Any]:
+        """
+        Get fraudulent or non-fraudulent transactions.
+
+        Args:
+            is_fraud: Whether to get fraudulent (True) or legitimate (False) transactions
+            limit: Maximum number of transactions to return (default 20)
+            skip: Number of transactions to skip (default 0)
+
+        Returns:
+            List of transactions matching fraud status
+        """
+        filters = {"is_fraud": is_fraud}
+        return await self.get_transactions_filtered(filters, limit, skip)
 
     async def get_transactions_stats(self) -> Dict[str, Any]:
         """
