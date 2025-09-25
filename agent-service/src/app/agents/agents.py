@@ -39,7 +39,7 @@ class TransactionAgent():
 
         self.model = AzureChatOpenAI(
             azure_deployment=model_name,
-            api_version="2024-12-01-preview",
+            api_version=os.getenv("OPENAI_API_VERSION"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             max_tokens=1000,

@@ -39,7 +39,7 @@ def get_provider_service(db: TransactionsDB = Depends(get_transactions_db)) -> P
 
 def get_transaction_agent(provider_service: ProviderService = Depends(get_provider_service), backend_client: BackendAPIClient = Depends(get_backend_client)) -> TransactionAgent:
     """Dependency to provide TransactionAgent instance"""
-    model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+    model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "Llama-4-Maverick-17B-128E-Instruct-FP8")
     return TransactionAgent(model_name, provider_service, backend_client)
 
 #---------------------------------------
@@ -48,14 +48,6 @@ def get_transaction_agent(provider_service: ProviderService = Depends(get_provid
 def read_root():
     logger.info("Root endpoint called")
     return {"message": "Hello from credit-card-fraud-detection-dashboard!"}
-
-@app.post("/user_message")
-async def query_agent(user_query: QuerySchema, agent: TransactionAgent = Depends(get_transaction_agent)):
-    """Normal query route that returns agent response"""
-    try:
-        return await agent.query_agent(user_query.query, stream=True)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
 @app.post("/user_message/stream")
 async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = Depends(get_transaction_agent)):

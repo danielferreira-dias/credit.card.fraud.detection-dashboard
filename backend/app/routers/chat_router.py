@@ -1,9 +1,6 @@
-from dataclasses import dataclass
 from datetime import datetime
 from typing import List
 import json
-import aiohttp
-import os
 from app.infra.logger import setup_logger
 from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
@@ -13,6 +10,7 @@ from app.service.message_service import ConversationService, MessageService
 from app.repositories.message_repo import ConversationRepository, MessageRepository
 from app.ws.connection_manager import ConnectionManager
 from app.schemas.websocket_schema import ProgressMessage, WebSocketMessage
+from app.service.websocket_service import query_agent_service_streaming
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,52 +40,6 @@ def get_conversation_repository(db: AsyncSession = Depends(get_db)):
 
 def get_connection_manager():
     return ConnectionManager()
-
-# Agent service configuration
-AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
-
-async def query_agent_service_streaming(websocket: WebSocket, user_message: str):
-    """Query the agent service with streaming responses"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            payload = {"query": user_message}
-            async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}, timeout=aiohttp.ClientTimeout(total=60)) as response:
-                if response.status == 200:
-                    logger.info(f'The response content is -> {response}')
-                    # Process streaming response
-                    async for line in response.content:
-                        line_str = line.decode('utf-8').strip()
-                        if line_str.startswith('data: '):
-                            try:
-                                data = json.loads(line_str[6:])  # Remove 'data: ' prefix
-
-                                # Send progress update to WebSocket
-                                progress_message = ProgressMessage(type="progress", content=data.get("message", "Processing..."), progress_type=data.get("type", "unknown"))
-                                await websocket.send_text(json.dumps(progress_message.to_dict()))
-
-                                # If it's the final response, send it as agent message
-                                if data.get("type") == "final_response":
-                                    final_message = WebSocketMessage( type="Agent", content=data.get("content", "No response available"))
-                                    await websocket.send_text(json.dumps(final_message.to_dict()))
-                                    return
-
-                            except json.JSONDecodeError as e:
-                                logger.error(f"Failed to parse streaming data: {line_str}")
-                                continue
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Agent service error {response.status}: {error_text}")
-                    error_message = WebSocketMessage(type="Agent", content=f"Agent service error: {response.status}")
-                    await websocket.send_text(json.dumps(error_message.to_dict()))
-
-    except aiohttp.ClientError as e:
-        logger.error(f"Failed to connect to agent service: {str(e)}")
-        error_message = WebSocketMessage(type="Agent", content=f"Failed to connect to agent service. Please check if the service is running.")
-        await websocket.send_text(json.dumps(error_message.to_dict()))
-    except Exception as e:
-        logger.error(f"Unexpected error querying agent service: {str(e)}")
-        error_message = WebSocketMessage(type="Agent", content=f"Unexpected error:")
-        await websocket.send_text(json.dumps(error_message.to_dict()))
 
 # --- Router ---------------------------
 
