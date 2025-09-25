@@ -296,7 +296,7 @@ export default function AgentPage(){
                         {messages.map((message, index) => (
                             <div key={index} className={`flex ${message.type === 'User' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl':  message.type === 'error' ? 'bg-transparent text-white' : message.type === 'Agent' ? 'bg-transparent text-white' : message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800' : message.type === 'progress' ? 'bg-blue-900/20 text-blue-300 border border-blue-800 animate-pulse' : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800' } `}>
+                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl':  message.type === 'error' ? 'border-zinc-900 border-2 text-white' : message.type === 'Agent' ? 'bg-transparent text-white' : message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800' : message.type === 'progress' ? ' text-blue-300 border border-zinc-700 animate-pulse' : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800' } `}>
                                     {message.type === 'Agent' && message.reasoning_steps && (
                                         <ReasoningFlowComponent
                                             steps={message.reasoning_steps}

@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ReasoningStep {
-    type: 'thinking' | 'tool_call' | 'tool_result' | 'final_response';
+    type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response';
     content: string;
     toolName?: string;
     timestamp: string;
@@ -49,15 +49,16 @@ export const ReasoningFlowComponent: React.FC<ReasoningFlowComponentProps> = ({
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-2 mb-1">
                                     <span className={`text-xs px-2 py-1 rounded font-medium ${
-                                        step.type === 'thinking'
-                                            ? 'bg-blue-900/30 text-blue-300'
-                                            : step.type === 'tool_call'
-                                            ? 'bg-green-900/30 text-green-300'
-                                            : 'bg-yellow-900/30 text-yellow-300'
+                                        step.type === 'thinking' ? 'bg-blue-900/30 text-blue-300' :
+                                        step.type === 'tool_call' ? 'bg-green-900/30 text-green-300' :
+                                        step.type === 'tool_progress' ? 'bg-purple-900/30 text-purple-300' :
+                                        'bg-yellow-900/30 text-yellow-300'
                                     }`}>
                                         {step.type === 'thinking' ? 'THINKING' :
                                          step.type === 'tool_call' ? `TOOL: ${step.toolName || 'Unknown'}` :
-                                         'RESULT'}
+                                         step.type === 'tool_progress' ? 'PROGRESS' :
+                                         step.type === 'tool_result' ? 'RESULT' :
+                                         'RESPONSE'}
                                     </span>
                                     <span className="text-xs text-zinc-500">
                                         {new Date(step.timestamp).toLocaleTimeString()}

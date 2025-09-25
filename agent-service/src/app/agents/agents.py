@@ -1,9 +1,9 @@
+from dataclasses import dataclass
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, TypedDict, Annotated
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.stores import InMemoryStore
 from langsmith import traceable
 
@@ -17,16 +17,22 @@ from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
 from app.schemas.agent_prompt import system_prompt
 from langgraph.prebuilt import create_react_agent
+from langgraph.config import get_stream_writer
 
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-class TransactionAgent():
-    """
-        This is an Agent, whose job is to use as many tools as possible to answer the user's query about Transactions;
-    """
 
+@dataclass
+class TransactionData():
+    type: str
+    message: str
+    content: str = ""
+    tool_name: str = ""
+    tool_args: str = ""
+
+class TransactionAgent():
     def __init__(self, model_name : str, provider_service: ProviderService, backend_client: BackendAPIClient):
         """
             model = Initializes the Agent Model also known as the LLM
@@ -43,7 +49,7 @@ class TransactionAgent():
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             max_tokens=1000,
-            temperature=0.5,
+            temperature=1,
         )
 
         # Enable LangSmith tracing if configured
@@ -63,11 +69,6 @@ class TransactionAgent():
             tools=self.tools,
             store=self.store,
         )
-        # self.agent = create_agent(
-        #     model=self.model,
-        #     tools=self.llm_with_tools,
-        #     store=self.store,
-        # )
 
         self.logger.info("TransactionAgent initialized successfully")
 
@@ -88,6 +89,9 @@ class TransactionAgent():
                     result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} transactions")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_all_transactions_tool: {str(e)}")
@@ -111,6 +115,9 @@ class TransactionAgent():
                 result += f"Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved transaction details for ID: {transaction_id}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found transaction details for ID: {transaction_id}")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_transaction_by_id_tool: {str(e)}")
@@ -131,6 +138,9 @@ class TransactionAgent():
                     result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Amount: ${transaction.get('amount')} | Date: {transaction.get('timestamp')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for customer: {customer_id}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} transactions for customer: {customer_id}")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_transactions_by_customer_tool: {str(e)}")
@@ -151,6 +161,9 @@ class TransactionAgent():
                     result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Date: {transaction.get('timestamp')}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} fraudulent transactions")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} fraudulent transactions")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_fraud_transactions_tool: {str(e)}")
@@ -170,6 +183,9 @@ class TransactionAgent():
                 result += f"Total Transaction Amount: ${stats.get('total_amount', 0):,.2f}\n"
 
                 self.logger.info(f"Successfully retrieved transaction statistics: total={stats.get('total_transactions', 0)}, fraud_rate={stats.get('fraud_rate', 0):.2f}%")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Generated transaction statistics report")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_transaction_stats_tool: {str(e)}")
@@ -190,6 +206,9 @@ class TransactionAgent():
                     result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} transactions where {column} = '{value}'")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in search_transactions_by_field_tool: {str(e)}")
@@ -208,6 +227,9 @@ class TransactionAgent():
                 result = f"Found {len(transactions)} total transactions where {column} = '{value}':\n\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Found {len(transactions)} total transactions where {column} = '{value}'")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_all_transactions_by_field_tool: {str(e)}")
@@ -240,6 +262,9 @@ class TransactionAgent():
                     result += f"\n📝 Low Confidence - Further Analysis May Be Needed"
 
                 self.logger.info(f"Fraud prediction completed for transaction {transaction_id}: {prediction} ({confidence:.2%})")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Completed fraud prediction for transaction {transaction_id}")
                 return result
 
             except ValueError as e:
@@ -263,6 +288,9 @@ class TransactionAgent():
                     result = "❌ Backend service is not responding. Predictions may not be available."
 
                 self.logger.info(f"Backend health check result: {'healthy' if is_healthy else 'unhealthy'}")
+                writer = get_stream_writer()
+                if writer:
+                    writer(f"Backend connection check completed")
                 return result
 
             except Exception as e:
@@ -321,12 +349,22 @@ class TransactionAgent():
         final_result = None
 
         try:
-            # Stream with "updates" mode to get agent progress
-            async for chunk in self.agent.astream(agent_input, stream_mode="updates"):
-                self.logger.debug(f"Streaming chunk received: {type(chunk)}")
+            # Stream with "updates" and "custom" modes to get agent progress and custom messages
+            async for stream_mode, chunk in self.agent.astream(agent_input, stream_mode=["updates", "custom", "messages"]):
+                self.logger.debug(f"Streaming chunk received: mode={stream_mode}, chunk={type(chunk)}")
+                self.logger.info(f'Message -> {messages}')
+
+                # Handle custom stream messages from writer() calls
+                if stream_mode == "custom":
+                    yield {
+                        "type": "tool_progress",
+                        "content": str(chunk),
+                        "message": f"📄 Tool Update: {chunk}"
+                    }
+                    continue
 
                 # Process and yield different types of updates
-                if isinstance(chunk, dict):
+                if stream_mode == "updates" and isinstance(chunk, dict):
                     for node_name, node_data in chunk.items():
                         if node_name == "agent" and isinstance(node_data, dict):
                             messages = node_data.get("messages", [])
@@ -341,7 +379,7 @@ class TransactionAgent():
                                             "type": "tool_call",
                                             "tool_name": tool_name,
                                             "tool_args": tool_args,
-                                            "message": f"🔧 Executing tool: {tool_name}"
+                                            "message": f"🔧 Executing tool: {tool_name} with the following {tool_args}"
                                         }
                                 elif hasattr(last_message, 'content') and last_message.content:
                                     # Agent response content
@@ -362,8 +400,9 @@ class TransactionAgent():
                                             "message": f"✅ Tool {message.name} completed"
                                         }
 
-                # Store the final result
-                final_result = chunk
+                    # Store the final result only from updates mode
+                    if stream_mode == "updates":
+                        final_result = chunk
 
             self.logger.info(f"Streaming completed successfully")
 

@@ -3,7 +3,7 @@ from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
 from app.database.transactions_db import TransactionsDB
 from app.schemas.query_schema import QuerySchema
-from fastapi import FastAPI, status, HTTPException, Depends
+from fastapi import FastAPI, status, Depends
 from fastapi.responses import StreamingResponse
 from infra.logging.logger import get_agent_logger
 from pydantic import BaseModel
@@ -11,6 +11,7 @@ import os
 import json
 import asyncio
 from dotenv import load_dotenv
+
 
 load_dotenv()
 logger = get_agent_logger("Router Log", "INFO")
@@ -69,14 +70,14 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
                 await asyncio.sleep(0.1)  # Small delay to prevent overwhelming
 
         except Exception as e:
-            error_update = {
-                "type": "error",
-                "content": f"Error: {str(e)}",
-                "message": "❌ An error occurred"
+            error_data = {
+                'type': 'error',
+                'content': f'Error: {str(e)}',
+                'message': 'An error occurred'
             }
             yield (
                 "event: error\n"
-                f"data: {json.dumps(error_update)}\n\n"
+                f"data: {json.dumps(error_data)}\n\n"
             )
 
     return StreamingResponse(
