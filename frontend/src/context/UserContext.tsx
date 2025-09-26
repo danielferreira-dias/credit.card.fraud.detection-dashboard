@@ -65,7 +65,8 @@ export function UserProvider({ children }: UserProviderProps) {
   const logout = () => {
     localStorage.removeItem('access_token');
     setUser(null);
-    window.location.href = "/auth";
+    // window.location.href = "/auth";
+    window.location.href = "/";
   };
 
   useEffect(() => {

@@ -172,6 +172,7 @@ class TransactionService:
             raise ValueError("Transaction instance cannot be None")
 
         return TransactionResponse(
+            transaction_id=ts.transaction_id,
             customer_id=ts.customer_id,
             card_number=cls.mask_card(ts.card_number),
             timestamp=ts.timestamp,

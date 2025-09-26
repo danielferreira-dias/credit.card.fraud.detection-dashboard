@@ -24,16 +24,8 @@ export const ReasoningFlowComponent: React.FC<ReasoningFlowComponentProps> = ({
 
     return (
         <div className="my-3 border-y border-zinc-700 py-3">
-            <button
-                onClick={() => toggleReasoningExpansion(messageIndex)}
-                className="flex items-center space-x-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
-            >
-                <svg
-                    className={`w-4 h-4 transform transition-transform ${isExpanded ? 'rotate-89' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
+            <button onClick={() => toggleReasoningExpansion(messageIndex)} className="flex items-center space-x-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
+                <svg className={`w-4 h-4 transform transition-transform ${isExpanded ? 'rotate-89' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
                 <span>View Agent Reasoning ({steps.length} steps)</span>

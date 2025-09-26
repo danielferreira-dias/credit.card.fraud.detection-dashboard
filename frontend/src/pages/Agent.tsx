@@ -4,7 +4,7 @@ import { ReasoningFlowComponent } from '../components/ReasoningFlowComponent';
 import { mockStepsTest } from '../mock/mockSteps';
 
 interface ReasoningStep {
-    type: 'thinking' | 'tool_call' | 'tool_result' | 'final_response';
+    type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response';
     content: string;
     toolName?: string;
     timestamp: string;
@@ -46,6 +46,24 @@ export default function AgentPage(){
         return toolMatch ? toolMatch[1] : 'Unknown';
     };
 
+    const formatMessageContent = (content: string): React.ReactElement => {
+        // Split content by **text** patterns to handle bold formatting
+        const parts = content.split(/(\*\*.*?\*\*)/g);
+        return (
+            <>
+                {parts.map((part, index) => {
+                    // Check if this part is bold (wrapped in **)
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                        const boldText = part.slice(2, -2); // Remove the ** from both ends
+                        return <span key={index} className="font-bold">{boldText}</span>;
+                    }
+                    // Regular text - preserve line breaks
+                    return <span key={index}>{part}</span>;
+                })}
+            </>
+        );
+    };
+
     const simulateMockAgentResponse = async () => {
         setIsTyping(true);
         const mockSteps = mockStepsTest
@@ -57,10 +75,13 @@ export default function AgentPage(){
             const mockMessage = mockSteps[i];
             // Create reasoning step
             const newStep: ReasoningStep = {
-                type: mockMessage.progress_type === 'tool_invocation' ? 'tool_call' :
-                      mockMessage.progress_type === 'tool_result' ? 'tool_result' : 'thinking',
+                type: mockMessage.progress_type === 'tool_call' ? 'tool_call' :
+                      mockMessage.progress_type === 'tool_result' ? 'tool_result' :
+                      mockMessage.progress_type === 'tool_progress' ? 'tool_progress' :
+                      mockMessage.progress_type === 'final_response' ? 'final_response' :
+                      'thinking',
                 content: mockMessage.content,
-                toolName: mockMessage.progress_type === 'tool_invocation' || mockMessage.progress_type === 'tool_result'
+                toolName: mockMessage.progress_type === 'tool_call' || mockMessage.progress_type === 'tool_result'
                     ? extractToolNameFromContent(mockMessage.content) : undefined,
                 timestamp: mockMessage.timestamp
             };
@@ -83,24 +104,7 @@ export default function AgentPage(){
         setIsTyping(false);
         const finalResponse = {
             type: 'Agent' as const,
-            content: `Based on the analysis of your transaction data:
-
-            📊 **Transaction Summary:**
-            - Total transactions analyzed: 50
-            - Fraudulent transactions found: 8
-            - Fraud rate: 16%
-
-            🚨 **Key Findings:**
-            - High-value transactions (>$3000) show 60% fraud rate
-            - Customer ID patterns suggest potential account compromise
-            - Peak fraud activity occurs in transactions between $2000-$4000
-
-            💡 **Recommendations:**
-            1. Implement additional verification for transactions over $2000
-            2. Monitor flagged customer accounts more closely
-            3. Consider real-time fraud scoring for high-value transactions
-
-            The get_all_transactions_tool and get_fraud_transactions_tool provided comprehensive data for this analysis.`,
+            content: "Here are the first 20 transactions from the database:\n\n1. **Customer:** CUST_72886 | **Amount:** $377.43 | **Fraud:** No  \n2. **Customer:** CUST_70474 | **Amount:** $572.72 | **Fraud:** Yes  \n3. **Customer:** CUST_10715 | **Amount:** $666.79 | **Fraud:** No  \n4. **Customer:** CUST_16193 | **Amount:** $409.89 | **Fraud:** No  \n5. **Customer:** CUST_87572 | **Amount:** $434.97 | **Fraud:** Yes  \n6. **Customer:** CUST_55630 | **Amount:** $2.00 | **Fraud:** Yes  \n7. **Customer:** CUST_89147 | **Amount:** $443.05 | **Fraud:** No  \n8. **Customer:** CUST_10150 | **Amount:** $878.03 | **Fraud:** No  \n9. **Customer:** CUST_83143 | **Amount:** $62.95 | **Fraud:** No  \n10. **Customer:** CUST_35022 | **Amount:** $2524.57 | **Fraud:** Yes  \n11. **Customer:** CUST_64274 | **Amount:** $346.45 | **Fraud:** No  \n12. **Customer:** CUST_65989 | **Amount:** $561.34 | **Fraud:** No  \n13. **Customer:** CUST_82514 | **Amount:** $282.95 | **Fraud:** No  \n14. **Customer:** CUST_42282 | **Amount:** $0.37 | **Fraud:** Yes  \n15. **Customer:** CUST_79886 | **Amount:** $699.49 | **Fraud:** No  \n16. **Customer:** CUST_80907 | **Amount:** $349.98 | **Fraud:** No  \n17. **Customer:** CUST_81861 | **Amount:** $1186.18 | **Fraud:** No  \n18. **Customer:** CUST_75970 | **Amount:** $1333.25 | **Fraud:** No  \n19. **Customer:** CUST_75986 | **Amount:** $448.72 | **Fraud:** No  \n20. **Customer:** CUST_75433 | **Amount:** $393.74 | **Fraud:** No  \n\n⚠️ Note: The **transaction IDs** are currently missing in this dataset, so identifying specific transactions will need additional queries.\n\nDo you want me to show **the next 20 transactions** or perhaps filter only **fraudulent ones**?",
             timestamp: new Date().toISOString(),
             reasoning_steps: accumulatedSteps // Use local accumulator instead of state
         };
@@ -141,11 +145,12 @@ export default function AgentPage(){
 
                     // Collect reasoning steps based on progress type
                     const newStep: ReasoningStep = {
-                        type: message.progress_type === 'tool_invocation' ? 'tool_call' :
+                        type: message.progress_type === 'tool_call' ? 'tool_call' :
+                              message.progress_type === 'tool_progress' ? 'tool_progress' :
                               message.progress_type === 'tool_result' ? 'tool_result' :
                               message.progress_type === 'final_response' ? 'final_response' : 'thinking',
                         content: message.content.replace(/\\n/g, '\n'),
-                        toolName: message.progress_type === 'tool_invocation' || message.progress_type === 'tool_result'
+                        toolName: message.progress_type === 'tool_call' || message.progress_type === 'tool_result'
                             ? extractToolNameFromContent(message.content) : undefined,
                         timestamp: message.timestamp || new Date().toISOString()
                     };
@@ -178,9 +183,6 @@ export default function AgentPage(){
                     content: message.content.replace(/\\n/g, '\n'),
                     reasoning_steps: reasoningStepsRef.current
                 };
-
-                console.log("processedMessage -> ", processedMessage)
-
                 setMessages(prev => {
                     console.log('Previous messages before adding final:', prev.length);
                     // Remove progress messages when final message arrives
@@ -189,7 +191,6 @@ export default function AgentPage(){
                     console.log('Messages after adding final:', updated.length);
                     return updated;
                 });
-
                 // Clear reasoning steps after final message
                 if (message.type === 'Agent') {
                     reasoningStepsRef.current = [];
@@ -308,12 +309,14 @@ export default function AgentPage(){
                                     <div className="text-sm">
                                         {message.type === 'progress' && (
                                             <div className="flex items-center space-x-2 mb-1">
-                                                <span className="text-xs text-blue-400 uppercase tracking-wide">
+                                                <span className="text-xs text-zinc-400 uppercase tracking-wide">
                                                     {message.progress_type || 'Processing'}
                                                 </span>
                                             </div>
                                         )}
-                                        <div className="whitespace-pre-wrap text-[1rem]">{message.content}</div>
+                                        <div className="whitespace-pre-wrap text-[1rem] ">
+                                            {message.type === 'Agent' ? formatMessageContent(message.content) : message.content}
+                                        </div>
                                     </div>
                                     
                                 </div>
@@ -325,7 +328,7 @@ export default function AgentPage(){
                             <div className="flex justify-start">
                                 <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
                                     <div className="flex items-center space-x-3">
-                                        <span className="text-xs text-gray-400">Agent is thinking...</span>
+                                        <span className="text-[0.65rem] text-gray-400">Agent is thinking...</span>
                                     </div>
                                 </div>
                             </div>

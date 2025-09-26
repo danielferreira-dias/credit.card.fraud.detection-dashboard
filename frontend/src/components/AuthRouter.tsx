@@ -8,23 +8,24 @@ interface AuthRouterProps {
 }
 
 export default function AuthRouter({ children }: AuthRouterProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, loading } = useUser();
+  // const navigate = useNavigate();
+  // const location = useLocation();
+  // const { user, loading } = useUser();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth", { replace: true, state: { from: location } });
-    }
-  }, [user, loading, navigate, location]);
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     navigate("/auth", { replace: true, state: { from: location } });
+  //   }
+  // }, [user, loading, navigate, location]);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  // if (loading) {
+  //   return <div>Loading...</div>;
+  // }
 
-  if (!user) {
-    return null;
-  }
+  // if (!user) {
+  //   return null;
+  // }
 
+  // Bypass authentication - allow access to all routes
   return <>{children}</>;
 }

@@ -82,7 +82,7 @@ class BackendAPIClient:
             self.logger.error(f"Failed to get filtered transaction count: {str(e)}")
             raise BackendClientException(f"Failed to get filtered transaction count: {str(e)}")
 
-    async def get_transaction_count_by_field(self, field: str, value: str) -> Dict[str, Any]:
+    async def get_transaction_count_by_params(self, field: str, value: str) -> Dict[str, Any]:
         """
         Get the count of transactions matching a specific field and value.
 

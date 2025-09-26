@@ -74,9 +74,9 @@ class TransactionAgent():
 
     def _create_tools(self):
 
-        @tool("get_all_transactions_by_no_params_tool", description="Get COUNT OF ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions existant in the database")
-        async def get_all_transactions_by_params_tool(column: str, value: str):
-            self.logger.info(f"Tool called: get_all_transactions_by_params_tool with column={column}, value={value}")
+        @tool("get_all_transactions_count_tool", description="Get COUNT OF ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions existant in the database")
+        async def get_all_transactions_count_tool(column: str, value: str):
+            self.logger.info(f"Tool called: get_all_transactions_count_tool with column={column}, value={value}")
             try:
                 transactions = await self.backend_client.get_transaction_count()
 
@@ -92,14 +92,14 @@ class TransactionAgent():
                     writer(f"Found {len(transactions)} total transactions where {column} = '{value}'")
                 return result
             except Exception as e:
-                self.logger.error(f"Error in get_all_transactions_by_params_tool: {str(e)}")
+                self.logger.error(f"Error in get_all_transactions_count_tool: {str(e)}")
                 return f"Error searching transactions: {str(e)}"
 
-        @tool("get_all_transactions_by_params_tool", description="Get COUNT OF ALL transactions MATCHING a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions' and want the total count of them.")
-        async def get_all_transactions_by_params_tool(column: str, value: str):
-            self.logger.info(f"Tool called: get_all_transactions_by_params_tool with column={column}, value={value}")
+        @tool("get_all_transactions_count_by_params_tool", description="Get COUNT OF ALL transactions MATCHING a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions' and want the total count of them.")
+        async def get_all_transactions_count_by_params_tool(column: str, value: str):
+            self.logger.info(f"Tool called: get_all_transactions_count_by_params_tool with column={column}, value={value}")
             try:
-                transactions = await self.backend_client.get_transaction_count_by_field(column, value)
+                transactions = await self.backend_client.get_transaction_count_by_params(column, value)
 
                 if not transactions:
                     self.logger.warning(f"No transactions found for {column} = {value}")
@@ -114,10 +114,10 @@ class TransactionAgent():
                     writer(f"Found {count} total transactions where {column} = '{value}'")
                 return result
             except Exception as e:
-                self.logger.error(f"Error in get_all_transactions_by_params_tool: {str(e)}")
+                self.logger.error(f"Error in get_all_transactions_count_by_params_tool: {str(e)}")
                 return f"Error searching transactions: {str(e)}"
         
-        @tool("get_all_transactions_tool", description="LIST all Transactions available in the database, use this when the user asks to see all transactions or wants a complete list, limited by 20 results;")
+        @tool("get_all_transactions_tool", description="LIST all Transactions available in the database, use this when the user asks to see all transactions or wants a complete list, LIMITED to 20 results;")
         async def get_all_transactions_tool(limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: get_all_transactions_tool with limit={limit}, skip={skip}")
             try:
@@ -129,18 +129,18 @@ class TransactionAgent():
 
                 result = f"Here are {len(transactions)} transactions (showing {skip+1}-{skip+len(transactions)}):\n\n"
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions")
                 writer = get_stream_writer()
                 if writer:
-                    writer(f"Found {len(transactions)} transactions")
+                    writer(f"Successfully retrieved {len(transactions)} transactions")
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_all_transactions_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_transactions_by_customer_tool", description="LIST all transactions for a specific customer ID, use this when the user asks about a customer's transaction history, limited by 20 results;")
+        @tool("get_transactions_by_customer_tool", description="LIST all transactions for a specific customer ID, use this when the user asks about a customer's transaction history, limited to 20 results;")
         async def get_transactions_by_customer_tool(customer_id: str, limit: int = 20, skip: int = 0):
             self.logger.info(f"Tool called: get_transactions_by_customer_tool with customer_id={customer_id}")
             try:
@@ -152,7 +152,7 @@ class TransactionAgent():
 
                 result = f"Transaction history for customer {customer_id} ({len(transactions)} transactions):\n\n"
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Amount: ${transaction.get('amount')} | Date: {transaction.get('timestamp')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Amount: ${transaction.get('amount')} — Date: {transaction.get('timestamp')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for customer: {customer_id}")
                 writer = get_stream_writer()
@@ -163,7 +163,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_transactions_by_customer_tool: {str(e)}")
                 raise AgentException() from e
 
-        @tool("get_fraud_transactions_tool", description="LIST all fraudulent transactions, use this when the user asks about fraud cases or suspicious transactions, limited by 20 results;")
+        @tool("get_fraud_transactions_tool", description="LIST all fraudulent transactions, use this when the user asks about fraud cases or suspicious transactions, limited to 20 results;")
         async def get_fraud_transactions_tool(is_fraud: bool = True, limit: int = 20, skip: int = 0):
             self.logger.info("Tool called: get_fraud_transactions_tool")
             try:
@@ -177,7 +177,7 @@ class TransactionAgent():
                 fraud_type = "Fraudulent" if is_fraud else "Legitimate"
                 result = f"{fraud_type} transactions found ({len(transactions)} total):\n\n"
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Date: {transaction.get('timestamp')}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Date: {transaction.get('timestamp')}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} {fraud_type.lower()} transactions")
                 writer = get_stream_writer()
@@ -263,7 +263,7 @@ class TransactionAgent():
 
                 result = f"Found {len(transactions)} transactions where {column} = '{value}':\n\n"
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} | Customer: {transaction.get('customer_id')} | Amount: ${transaction.get('amount')} | Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
 
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
                 writer = get_stream_writer()
@@ -321,7 +321,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in check_backend_connection_tool: {str(e)}")
                 return f"❌ Error checking backend connection: {str(e)}"
 
-        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_pararms_tool, get_all_transactions_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool]
+        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_pararms_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
     @traceable(name="query_agent")
     async def query_agent(self, user_input: str, stream: bool = True):

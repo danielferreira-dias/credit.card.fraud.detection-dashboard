@@ -8,7 +8,7 @@ export const mockStepsTest = [
     {
         type: "progress",
         content: "🔧 Invoking get_all_transactions_tool to retrieve transaction data...",
-        progress_type: "tool_invocation",
+        progress_type: "tool_call",
         timestamp: new Date().toISOString()
     },
     {
@@ -26,7 +26,7 @@ export const mockStepsTest = [
     {
         type: "progress",
         content: "🔧 Invoking get_fraud_transactions_tool to analyze fraudulent patterns...",
-        progress_type: "tool_invocation",
+        progress_type: "tool_call",
         timestamp: new Date().toISOString()
     },
     {
