@@ -32,15 +32,12 @@ export default function AgentPage(){
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const reasoningStepsRef = useRef<ReasoningStep[]>([]);
     const typingTimeoutRef = useRef<number | null>(null);
-
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
-
     useEffect(() => {
         scrollToBottom();
     }, [messages, displayedContent]);
-
     const startTypingAnimation = (messageIndex: number, fullContent: string) => {
         setTypingMessageIndex(messageIndex);
         setDisplayedContent(prev => ({ ...prev, [messageIndex]: '' }));
@@ -60,7 +57,6 @@ export default function AgentPage(){
         };
         typeCharacter();
     };
-
     useEffect(() => {
         return () => {
             if (typingTimeoutRef.current) {
@@ -68,7 +64,6 @@ export default function AgentPage(){
             }
         };
     }, []);
-
     const extractToolNameFromContent = (content: string): string => {
         // Try to extract tool name from content patterns
         const toolMatch = content.match(/(?:using|calling|invoking|executing)\s+(\w+)/i) ||
@@ -76,7 +71,6 @@ export default function AgentPage(){
                          content.match(/(\w+)_tool/i);
         return toolMatch ? toolMatch[1] : 'Unknown';
     };
-
     const formatMessageContent = (content: string): React.ReactElement => {
         // Check if content contains table patterns (lines with | characters)
         const lines = content.split('\n');
@@ -147,7 +141,6 @@ export default function AgentPage(){
         // No tables, use regular formatting
         return <>{formatTextContent(content)}</>;
     };
-
     const formatTextContent = (content: string): React.ReactElement => {
         // Split content by **text** patterns to handle bold formatting
         const parts = content.split(/(\*\*.*?\*\*)/g);
@@ -165,7 +158,6 @@ export default function AgentPage(){
             </>
         );
     };
-
     const simulateMockAgentResponse = async () => {
         setIsTyping(true);
         const mockSteps = mockStepsTest
@@ -220,7 +212,6 @@ export default function AgentPage(){
         });
         setCurrentReasoningSteps([]);
     };
-
     // Websocket Managment
     useEffect(() => {
         const connectWebSocket = () => {
@@ -330,7 +321,6 @@ export default function AgentPage(){
             }
         };
     }, []);
-
     // SendMessage Management
     const sendMessage = () => {
         if (!inputMessage.trim()) return;
@@ -359,22 +349,18 @@ export default function AgentPage(){
             wsRef.current.send(JSON.stringify(messageData));
         }
     };
-
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
         }
     };
-
     const toggleReasoningExpansion = (messageIndex: number) => {
         setExpandedReasoning(prev => ({
             ...prev,
             [messageIndex]: !prev[messageIndex]
         }));
     };
-
-    
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
             <div className="flex flex-col h-full w-[80%] text-white border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 min-h-screen max-h-[fit]">
