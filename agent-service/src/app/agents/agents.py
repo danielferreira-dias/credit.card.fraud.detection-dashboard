@@ -96,7 +96,7 @@ class TransactionAgent():
                 self.logger.error(f"Error in get_all_transactions_count_tool: {str(e)}")
                 return f"Error searching transactions: {str(e)}"
 
-        @tool("get_all_transactions_count_by_params_tool", description="Get COUNT OF ALL transactions MATCHING a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions' and want the total count of them.")
+        @tool("get_all_transactions_count_by_params_tool", description="Get COUNT OF ALL transactions MATCHING a specific field value (no limit). Use this when user wants a number of transactions for a field like 'all transactions from Japan' or 'all Mastercard transactions' or 'all transactions from Japan that are fraudulent' and want the total count of them.")
         async def get_all_transactions_count_by_params_tool(column: str, value: str):
             self.logger.info(f"Tool called: get_all_transactions_count_by_params_tool with column={column}, value={value}")
             try:
@@ -207,10 +207,11 @@ class TransactionAgent():
 
                 result = f"Transaction Statistics:\n\n"
                 result += f"Total Transactions: {stats.get('total_transactions', 0):,}\n"
-                result += f"Fraudulent Transactions: {stats.get('fraud_transactions', 0):,}\n"
+                result += f"Fraudulent Transactions: {stats.get('fraudulent_transactions', 0):,}\n"
                 result += f"Fraud Rate: {stats.get('fraud_rate', 0):.2f}%\n"
-                result += f"Average Transaction Amount: ${stats.get('average_amount', 0):.2f}\n"
-                result += f"Total Transaction Amount: ${stats.get('total_amount', 0):,.2f}\n"
+                result += f"Average Transaction Amount: ${stats.get('avg_amount', 0):.2f}\n"
+                result += f"Total Max Transaction Amount: ${stats.get('max_amount', 0):,.2f}\n"
+                result += f"Total Min Transaction Amount: ${stats.get('min_amount', 0):,.2f}\n"
 
                 self.logger.info(f"Successfully retrieved transaction statistics: total={stats.get('total_transactions', 0)}, fraud_rate={stats.get('fraud_rate', 0):.2f}%")
                 writer = get_stream_writer()

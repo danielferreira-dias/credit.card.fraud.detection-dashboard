@@ -56,12 +56,14 @@ async def transaction_stats(service: TransactionService = Depends(get_transactio
     Returns a summary of transaction statistics.
     """
     response = await service.get_transaction_stats()
+    logger.info(f"Response of router transaction_stats: {response}")
     return {
         "total_transactions": response.get("total_transactions", 0),
         "fraudulent_transactions": response.get("fraudulent_transactions", 0),
-        "fraud_rate": response.get("max_amount", 0.0),
-        "average_amount": response.get("average_amount", 0.0),
-        "total_amount": response.get("total_amount", 0),
+        "fraud_rate": response.get("fraud_rate", 0.0),
+        "average_amount": response.get("avg_amount", 0.0),
+        "max_amount": response.get("max_amount", 0),
+        "min_amount": response.get("min_amount", 0)
     }
 
 @router.get("/{transaction_id}/predict", response_model=TransactionPredictionResponse)

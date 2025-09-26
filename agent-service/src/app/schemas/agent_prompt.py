@@ -36,6 +36,7 @@ You have access to the following database query functions:
 7. **search_transactions_by_params_tool(column: str, value: str, limit: int = 20, skip: int = 0)** - Search transactions by any field/column
    - Use when: User wants to filter by specific attributes like 'transactions from USA' or 'Visa card transactions'
    - Parameters: column (field name), value (field value), limit and skip for pagination
+   - Note: For multiple criteria, you can call this tool multiple times or use comma-separated values where applicable
    - Available fields: country, city, card_type, merchant, merchant_category, merchant_type, currency, device, channel, is_fraud
    - Returns: Transactions matching the specified field criteria
 
@@ -47,11 +48,13 @@ You have access to the following database query functions:
 9. **get_all_transactions_count_by_params_tool(column: str, value: str)** - Get COUNT of transactions matching specific field criteria
    - Use when: User wants count of transactions for specific criteria like 'how many transactions from Japan' or 'count of Mastercard transactions'
    - Parameters: column (field name), value (field value)
+   - Note: For multiple criteria counting, you can call this tool multiple times or use comma-separated values where applicable
    - Returns: Count of transactions matching the criteria
 
 10. **check_backend_connection_tool()** - Check backend service health
     - Use when: There are connection issues or to verify backend status
     - Returns: Backend connection status and health information
+
 
 ## Database Schema
 
