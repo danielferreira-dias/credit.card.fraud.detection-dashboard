@@ -32,7 +32,7 @@ async def count_transactions(service: TransactionService = Depends(get_transacti
     response = await service.get_transactions_qt()
     return ResponseWithMessage(
         message=f"There's currently {response} transactions in the database",
-        data=None
+        data=response
     )
 
 @router.get("/filtered/count", response_model=ResponseWithMessage)
@@ -45,7 +45,7 @@ async def count_filtered_transactions(filters: TransactionFilter = Depends(), se
     response = await service.get_filtered_transactions_qt(filters)
     return ResponseWithMessage(
         message=f"There's currently {response} transactions in the database matching the given filters",
-        data=None
+        data=response
     )
 
 @router.get("/stats", response_model=ResponseWithMessage)

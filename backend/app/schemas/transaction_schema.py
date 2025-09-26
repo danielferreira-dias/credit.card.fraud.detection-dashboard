@@ -50,7 +50,7 @@ class TransactionResponse(BaseModel):
 
 class ResponseWithMessage(BaseModel):
     message: str
-    data: TransactionResponse | str | None
+    data: TransactionResponse | str | None | dict
 
 class TransactionCreate(BaseModel):
     transaction_id : str 

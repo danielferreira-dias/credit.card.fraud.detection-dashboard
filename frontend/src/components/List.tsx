@@ -21,7 +21,7 @@ export default function List( { transactionsList, isLoadingPage } : { transactio
     }, [pageCount, page]);
 
     return (
-        <div className="w-full h-fit text-white rounded-xl flex flex-col opacity-50 gap-y-1">
+        <div className="w-full h-fit text-white rounded-xl flex flex-col opacity-80 gap-y-1">
             {
             dataLoading
                 ? Array.from({ length: limit }).map((_, i) => <CardLoader key={i} />)

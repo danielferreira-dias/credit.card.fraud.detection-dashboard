@@ -6,6 +6,16 @@ interface TransactionCardProps {
 
 type statusType = "Processed" | "Under Review" | "Blocked"
 
+function getTransactionStatus(probability: number): statusType {
+    if (probability < 0.4) {
+        return "Processed";
+    } else if (probability < 0.7) {
+        return "Under Review";
+    } else {
+        return "Blocked";
+    }
+}
+
 export default function TransactionInfo({ transaction }: TransactionCardProps) {
 
     const formatAmount = (amount: number, currency: string) => {
@@ -21,6 +31,8 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
             minute: '2-digit'
         });
     };
+
+    const transactionStatus = getTransactionStatus(transaction.fraud_probability);
 
     const getStatusColor = (status: statusType) => {
         switch (status) {
@@ -79,14 +91,14 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
                         </div>
                         <div>
                             <p className="text-white">Status</p>
-                            <p className={`font-medium ${getStatusColor('Under Review')}`}>
-                                Under Review
+                            <p className={`font-bold text-sm ${getStatusColor(transactionStatus)}`}>
+                                {transactionStatus}
                             </p>
                         </div>
                     </div>
                     <div className="flex flex-col justify-end">
                         <p className="text-white text-xs">Probability</p>
-                        <p className="text-red-400 font-bold text-sm">{(transaction.fraud_probability * 100).toFixed(3)}%</p>
+                        <p className="text-red-400 font-bold text-lg">{(transaction.fraud_probability * 100).toFixed(3)}%</p>
                     </div>
                 </div>
             </div>

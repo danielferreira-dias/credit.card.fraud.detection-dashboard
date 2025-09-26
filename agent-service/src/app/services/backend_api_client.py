@@ -95,7 +95,7 @@ class BackendAPIClient:
         filters = {field: value}
         return await self.get_transaction_count_filtered(filters)
 
-    async def get_transactions(self, limit: int = 20, skip: int = 0) -> Dict[str, Any]:
+    async def get_transactions(self, limit: int = 20, skip: int = 0, include_predictions : bool = False) -> Dict[str, Any]:
         """
         Get a list of transactions with pagination.
 
@@ -109,9 +109,9 @@ class BackendAPIClient:
         endpoint = "/transactions/"
         url = f"{self.base_url}{endpoint}"
 
-        params = {"limit": limit, "skip": skip}
+        params = {"limit": limit, "skip": skip, "include_predictions": include_predictions}
 
-        self.logger.info(f"Requesting transactions list with limit={limit}, skip={skip}")
+        self.logger.info(f"Requesting transactions list with limit={limit}, skip={skip}, include_predictions={include_predictions}")
 
         try:
             async with httpx.AsyncClient() as client:
@@ -266,7 +266,7 @@ class BackendAPIClient:
             self.logger.error(f"Unexpected error during prediction request: {str(e)}")
             raise BackendClientException(f"Unexpected error during prediction request: {str(e)}")
 
-    async def get_transaction_by_id(self, transaction_id: str) -> Dict[str, Any]:
+    async def get_transaction_by_id(self, transaction_id: str, include_predictions: bool = False) -> Dict[str, Any]:
         """
         Get a specific transaction by its ID.
 
@@ -281,9 +281,10 @@ class BackendAPIClient:
 
         self.logger.info(f"Requesting transaction details for ID: {transaction_id}")
 
+        params = {"include_predictions": include_predictions}
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(url)
+                response = await client.get(url, params=params)
                 response.raise_for_status()
 
                 data = response.json()
