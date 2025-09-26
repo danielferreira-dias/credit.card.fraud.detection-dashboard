@@ -476,7 +476,7 @@ export default function AgentPage(){
                     </div>
                 </div>
             </div>
-            <div className="flex h-full flex-1 text-white justify-center items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 min-h-screen max-h-[fit]">
+            <div className="flex flex-1 sticky top-0 text-white justify-center items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 h-svh">
                 Chat History
             </div>
         </div>

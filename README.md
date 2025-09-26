@@ -1,161 +1,231 @@
 # Credit Card Fraud Detection Dashboard
 
-An API backend for a fraud detection dashboard. It lists credit card transactions and provides a prediction endpoint backed by a model to classify whether a transaction is fraudulent.
+A full-stack fraud detection platform featuring real-time transaction monitoring, ML-powered fraud prediction, and an intelligent AI agent for interactive data analysis. The system combines a FastAPI backend with machine learning capabilities and a modern React frontend with real-time chat functionality.
 
-This repository currently ships the FastAPI backend, ready to run via Docker or locally with `uv` (Astral’s Python package manager). Tests use `pytest`.
+This repository ships both the FastAPI backend and React frontend, with WebSocket-based real-time communication and an integrated AI agent service for natural language queries about fraud data.
 
 ## Tech Stack
 
-- FastAPI (Python 3.12)
-- Package manager: `uv` with `pyproject.toml` + `uv.lock`
-- Containerization: Docker + Docker Compose
-- Testing: `pytest`
+### Backend
+- **FastAPI** (Python 3.11) with async support
+- **SQLAlchemy 2.0** for ORM with PostgreSQL
+- **XGBoost & scikit-learn** for ML fraud detection
+- **WebSocket** support for real-time agent communication
+- **Azure OpenAI** for LLM-powered agent capabilities
+- **LangChain & LangGraph** for agent workflow orchestration
+- **uv** package manager with `pyproject.toml` + `uv.lock`
+- **pytest** with asyncio support for testing
 
-## Repository Layout
+### Frontend
+- **React 19** with TypeScript
+- **Vite** for build tooling and development
+- **TailwindCSS v4** for modern styling
+- **WebSocket** integration for real-time chat
+- **React Router** for navigation
 
-- `backend/app/main.py`: FastAPI app entrypoint (`app`) and root route.
-- `backend/app/routers/transaction.py`: Transactions router (list/get/create/delete + predict endpoint).
-- `backend/app/schemas/transaction_schema.py`: Pydantic models for requests/responses.
-- `backend/models/`: Place serialized model artifacts if/when used by the prediction service.
-- `backend/dockerfile`: Backend container image (installs deps via `uv sync`; serves with `uv run uvicorn`).
-- `docker-compose.yml`: Orchestrates the backend service on `http://localhost:80` and mounts `backend/models`.
-- `backend/pyproject.toml`: Project metadata and runtime/dev dependencies for `uv`.
-- `backend/requirements.txt`: Plain requirements list (kept alongside `pyproject.toml`).
-- `backend/tests/`: Pytest test suite (routes, services, repos).
+### Infrastructure
+- **Docker Compose** orchestration
+- **PostgreSQL** with pgAdmin for database management
+- **Azure AI Services** for enterprise-grade AI capabilities
+- **Agent Service** powered by LangChain/LangGraph workflows
 
-## Running the Backend
+## Project Architecture
 
-You can run with Docker (recommended) or locally using `uv`.
+This is a full-stack credit card fraud detection dashboard with:
 
-### Option A — Docker Compose
+- **Backend**: FastAPI (Python 3.11) with machine learning fraud prediction
+- **Frontend**: React + TypeScript with Vite and TailwindCSS
+- **Database**: PostgreSQL with pgAdmin for management
+- **Infrastructure**: Docker Compose orchestration
 
-Prerequisites: Docker Desktop or a compatible Docker/Compose setup.
+### Backend Structure
 
-```
+The FastAPI backend follows a layered architecture:
+
+- `backend/app/main.py`: FastAPI app entrypoint and root route
+- `backend/app/routers/`: API route handlers
+  - `transaction_router.py`: Transaction CRUD and fraud prediction
+  - `chat_router.py`: WebSocket endpoints for AI agent chat
+  - `auth_router.py`: Authentication and user management
+- `backend/app/schemas/`: Pydantic models for request/response validation
+- `backend/app/models/`: SQLAlchemy database models
+- `backend/app/service/`: Business logic layer
+- `backend/app/repositories/`: Data access layer
+- `backend/app/settings/`: Configuration management (database, base settings)
+- `backend/app/infra/`: Infrastructure concerns (logging, model loading)
+- `backend/app/ws/`: WebSocket connection management
+- `backend/app/security/`: Authentication and security utilities
+
+### Frontend Structure
+
+React SPA using modern TypeScript patterns:
+
+- `frontend/src/App.tsx`: Main application component with routing
+- `frontend/src/pages/`: Page components
+  - `Dashboard.tsx`: Main dashboard with transaction overview
+  - `Transactions.tsx`: Transaction listing and management
+  - `Agent.tsx`: AI agent chat interface with real-time communication
+- `frontend/src/components/`: Reusable UI components
+  - `Layout.tsx`, `Navbar.tsx`: Application shell
+  - `ReasoningFlowComponent.tsx`: Agent reasoning visualization
+  - Various transaction and dashboard components
+- `frontend/src/style.css`: Global TailwindCSS styles with custom animations
+
+### Agent Service
+
+AI-powered analysis service built with Azure AI and LangChain:
+
+- `agent-service/src/app/agents/`: AI agent implementations using Azure OpenAI
+- `agent-service/src/app/schemas/`: Agent request/response models
+- **LangChain framework** for agent orchestration and tool integration
+- **LangGraph workflows** for complex reasoning and decision-making flows
+- **Azure AI integration** for enterprise-grade LLM capabilities
+- Integration with transaction data for natural language queries
+
+## Development Environment Setup
+
+### Prerequisites
+- Python 3.11.13 (exact version specified in pyproject.toml)
+- Node.js and npm for frontend development
+- Docker Desktop for containerized development
+- `uv` package manager for Python dependencies
+
+### Quick Start with Docker
+
+The entire stack can be run with Docker Compose:
+
+```bash
 docker compose up --build
 ```
 
-- Builds from `backend/dockerfile` and exposes the API at `http://localhost:80`.
-- Healthcheck hits `GET /` and expects a 200.
-- Model artifacts, if present, are mounted from `./backend/models` to `/app/models` in the container.
+This starts:
+- **Backend API**: `http://localhost:80` (or port 8000 for local dev)
+- **Frontend**: `http://localhost:5173` (Vite dev server)
+- **PostgreSQL**: Port 5432
+- **pgAdmin**: `http://localhost:5050`
 
-Quick smoke test:
+### Environment Configuration
+- Copy `.env.example` to `.env` and configure database credentials
+- Model artifacts are mounted from `./backend/models` to `/app/models`
 
-```
-curl http://localhost:80/
-```
+## Common Development Commands
 
-### Option B — Local Dev with uv
+### Backend (from `backend/` directory)
 
-Prerequisites: Python 3.12+, `uv` installed. Install `uv` (one-time):
+- **Install dependencies**: `uv sync` (or `uv sync --group dev` for dev deps)
+- **Run development server**: `uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+- **Run tests**: `uv run pytest -q`
+- **Run tests with verbose output**: `uv run pytest -v`
 
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+### Frontend (from `frontend/` directory)
 
-Set up and run:
+- **Install dependencies**: `npm install`
+- **Run development server**: `npm run dev`
+- **Build for production**: `npm run build`
+- **Lint code**: `npm run lint`
+- **Preview production build**: `npm run preview`
 
-```
-cd backend
-uv sync                # install main dependencies
-uv sync --group dev    # (optional) include dev deps like pytest
+### Docker Development
 
-# Run the API in dev mode (reload on changes)
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+- **Start all services**: `docker compose up --build`
+- **Backend only**: `docker compose up backend postgres --build`
+- **View logs**: `docker compose logs -f [service_name]`
 
-# Open http://localhost:8000/
-```
+## Key Features
 
-For a non-reload run:
+### 🎯 Fraud Detection
+- **Real-time ML predictions** using XGBoost and scikit-learn models
+- **Transaction monitoring** with comprehensive fraud scoring
+- **Historical analysis** of transaction patterns
 
-```
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+### 🤖 AI Agent Chat
+- **Azure OpenAI-powered** natural language queries about transaction data and fraud patterns
+- **LangChain framework** for intelligent tool selection and workflow orchestration
+- **LangGraph workflows** for complex multi-step reasoning and decision trees
+- **Real-time WebSocket communication** with typing animations
+- **Reasoning transparency** showing agent's analytical steps and tool usage
+- **Interactive data exploration** through conversational interface
 
-## API Overview
+### 📊 Dashboard & Analytics
+- **Transaction overview** with fraud statistics
+- **Real-time updates** via WebSocket connections
+- **Responsive design** optimized for all devices
+- **Data visualization** of fraud trends and patterns
 
-Base URL depends on how you run the app:
+### 🔐 Security & Authentication
+- **JWT-based authentication** for secure access
+- **User session management** with role-based permissions
+- **Secure WebSocket connections** for real-time features
 
-- Docker: `http://localhost:80`
-- Local dev (uv): `http://localhost:8000`
+## API Endpoints
 
-Endpoints (from `app/routers/transaction.py`):
+### Core Transaction API
+- `GET /`: Application healthcheck
+- `GET /transactions/`: List all transactions with pagination
+- `GET /transactions/{transaction_id}`: Get specific transaction details
+- `POST /transactions/`: Create new transaction
+- `GET /transactions/{transaction_id}/predict`: Get fraud prediction for transaction
+- `DELETE /transactions/{transaction_id}`: Remove transaction
 
-- `GET /`: Healthcheck — returns `{"message": "Hello from credit-card-fraud-detection-dashboard!"}`.
-- `GET /transactions/`: List transactions.
-- `GET /transactions/{transaction_id}`: Get a transaction by id.
-- `GET /transactions/{transaction_id}/predict`: Predict fraud for a transaction id.
-- `POST /transactions/`: Create a transaction (expects `TransactionRequest` fields).
-- `DELETE /transactions/{transaction_id}`: Delete a transaction by id.
+### Real-time Chat API
+- `WebSocket /chat/ws/agent/{client_id}`: Real-time agent communication
+- `POST /chat/{conversation_id}/message`: Send message to conversation
+- `GET /chat/{user_id}`: Get user's conversation history
+- `DELETE /chat/{user_id}/{conversation_id}`: Delete conversation
 
-Example (truncated payload; include all required fields):
+### Authentication API
+- `POST /auth/login`: User authentication
+- `POST /auth/register`: User registration
+- `GET /auth/me`: Get current user profile
 
-```
-curl -X POST http://localhost:80/transactions/ \
-  -H 'Content-Type: application/json' \
-  -d '{
-        "channel_large": 0,
-        "channel_medium": 1,
-        "device_Android_App": 0,
-        "device_Safari": 0,
-        "device_Firefox": 0,
-        "USD_converted_total_amount": 123.45,
-        "device_Chrome": 1,
-        "device_iOS_App": 0,
-        "city_Unknown_City": 0,
-        "country_USA": 1,
-        "country_Australia": 0,
-        "country_Germany": 0,
-        "country_UK": 0,
-        "country_Canada": 0,
-        "country_Japan": 0,
-        "country_France": 0,
-        "device_Edge": 0,
-        "country_Singapore": 0,
-        "channel_mobile": 0,
-        "country_Nigeria": 0,
-        "country_Brazil": 0,
-        "country_Russia": 0,
-        "country_Mexico": 0,
-        "is_off_hours": 0,
-        "max_single_amount": 200.0,
-        "USD_converted_amount": 50.0,
-        "channel_web": 1,
-        "is_high_amount": 0,
-        "is_low_amount": 1,
-        "transaction_hour": 14,
-        "hour": 14,
-        "device_NFC_Payment": 0,
-        "device_Magnetic_Stripe": 0,
-        "device_Chip_Reader": 1,
-        "high_risk_transaction": 0,
-        "channel_pos": 0,
-        "card_present": 1,
-        "distance_from_home": 5.0
-      }'
-```
+## Usage
 
-Note: The current example router returns static data and a fixed prediction response. You can swap in a real trained model and scaler later, reading artifacts from `backend/models/`.
+1. **Start the application**: `docker compose up --build`
+2. **Access the frontend**: Open `http://localhost:5173`
+3. **Navigate to different sections**:
+   - **Dashboard**: Overview of transactions and fraud statistics
+   - **Transactions**: Detailed transaction management and analysis
+   - **Agent**: AI-powered chat for interactive data exploration
+4. **Interact with the AI agent**: Ask natural language questions about:
+   - Fraud patterns and trends
+   - Transaction analysis and filtering
+   - Data insights and recommendations
+   - Statistical queries about your dataset
 
 ## Testing
 
-Run the test suite from the `backend` directory:
+Backend tests are located in `backend/tests/` and cover:
+- API route handlers with FastAPI TestClient
+- Service layer business logic
+- Repository data access patterns
+- WebSocket connection handling
+- Authentication and security flows
 
-```
+Run tests from the backend directory:
+
+```bash
 cd backend
 uv sync --group dev  # ensure dev deps are installed
-uv run pytest -q
+uv run pytest -q    # quick test run
+uv run pytest -v    # verbose output with details
 ```
 
-Tests cover:
+Frontend testing can be added with React Testing Library and Jest for component and integration testing.
 
-- Route handlers with FastAPI `TestClient`.
-- Service delegation to the repository.
-- Repository query plumbing via a fake session.
+## Data & Models
 
-## Notes on Configuration
+- **Synthetic fraud data** included in `data/` directory for development and testing
+- **ML model artifacts** stored in `backend/models/` directory
+- **Database migrations** handled automatically via SQLAlchemy
+- **Real-time data processing** through WebSocket connections
+- **Model training pipeline** can be extended for custom fraud detection models
 
-- Python version: `>=3.12` (see `backend/pyproject.toml`).
-- Container build installs using `uv sync --frozen` from `uv.lock` for reproducible builds.
-- Compose mounts `./backend/models` to `/app/models` inside the container for model artifacts.
-- The root route `GET /` is kept lightweight for healthchecks.
+## Technology Highlights
+
+- **Modern Python stack** with FastAPI, SQLAlchemy 2.0, and async support
+- **Type-safe frontend** using React 19 and TypeScript
+- **Enterprise AI integration** with Azure OpenAI and LangChain/LangGraph workflows
+- **Real-time features** via WebSocket communication with intelligent agent responses
+- **Advanced agent reasoning** with transparent decision-making and tool usage
+- **Containerized deployment** with Docker Compose for scalable infrastructure
+- **Production-ready architecture** with proper security, authentication, and testing
