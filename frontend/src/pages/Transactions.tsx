@@ -19,6 +19,8 @@ export default function TransactionPage(){
     ]);
 
     const [loading, setLoading] = useState(true);
+    const [totalTransactions, setTotalTransactions] = useState(0);
+    const itemsPerPage = 20;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -38,6 +40,7 @@ export default function TransactionPage(){
                         { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((parsedData.data.fraud_transactions/parsedData.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
                     ];
                     setStats(cachedStats);
+                    setTotalTransactions(parsedData.data.total_transactions);
                     setLoading(false);
                     return;
                 }
@@ -58,7 +61,7 @@ export default function TransactionPage(){
                     { id: 3, typeStat: "Fraudulent Transactions", statValue: data.data.fraud_transactions, cardColour: "card-3" },
                     { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((data.data.fraud_transactions/data.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
                 ];
-
+                setTotalTransactions(data.data.total_transactions);
                 setStats(updatedStats);
                 setLoading(false);
             } catch (err) {
@@ -91,7 +94,7 @@ export default function TransactionPage(){
                 )}
                
             </div>
-            <TransactionList />
+            <TransactionList totalTransactions={totalTransactions} itemsPerPage={itemsPerPage} />
         </div>
     )
 }

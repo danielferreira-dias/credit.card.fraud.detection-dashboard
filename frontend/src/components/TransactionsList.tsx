@@ -13,15 +13,24 @@ function formatValue(value: number): string {
     return `${value}`;
   }
 
-export default function TransactionList(){
+interface TransactionListProps {
+    totalTransactions: number;
+    itemsPerPage: number;
+}
+
+export default function TransactionList({ totalTransactions, itemsPerPage }: TransactionListProps){
     const [filterElements, setFilterElements] = useState<FilterElement[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [dataTransactions, setDataTransactions] = useState<Transaction[]>([]);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [totalPages, setTotalPages] = useState<number>(100);
-    const [totalTransactions, setTotalTransactions] = useState<number>(0);
+    const [totalPages, setTotalPages] = useState<number>(Math.ceil(totalTransactions / itemsPerPage));
     const [loadingPage, setLoadingPage] = useState(true);
-    const limit : number = 20;
+    const limit = itemsPerPage;
+
+    // Update totalPages when props change
+    useEffect(() => {
+        setTotalPages(Math.ceil(totalTransactions / itemsPerPage));
+    }, [totalTransactions, itemsPerPage]);
 
     useEffect(() => {
         const fetchFilters = async () => {
@@ -32,7 +41,23 @@ export default function TransactionList(){
             if (cachedData && cacheTime) {
                 const age = Date.now() - parseInt(cacheTime);
                 if (age < 2 * 60 * 1000) { // 2 minutes cache
-                setDataTransactions(JSON.parse(cachedData));
+                const parsedCachedData = JSON.parse(cachedData);
+                setDataTransactions(parsedCachedData);
+                console.log("cachedData -> ", parsedCachedData)
+
+                // Process the cached data to create filter elements with counts
+                const allTransactions = parsedCachedData.length;
+                const nonFraudTransactions : number = parsedCachedData.filter((t: any) => t.is_fraud === false).length;
+                const fraudTransactions : number = parsedCachedData.filter((t: any) => t.is_fraud === true).length;
+
+                const filterData = [
+                    { filterName: "All", filterValue: allTransactions },
+                    { filterName: "Normal", filterValue: nonFraudTransactions },
+                    { filterName: "Suspicious", filterValue: fraudTransactions },
+                    { filterName: "Fraudulent", filterValue: fraudTransactions },
+                ];
+                setFilterElements(filterData);
+
                 setLoadingPage(false);
                 return;
                 }
@@ -54,10 +79,10 @@ export default function TransactionList(){
                 const fraudTransactions : number = data.filter((t: any) => t.is_fraud === true).length;
 
                 const filterData = [
-                { filterName: "All", filterValue: allTransactions },
-                { filterName: "Normal", filterValue: nonFraudTransactions },
-                { filterName: "Suspicious", filterValue: fraudTransactions },
-                { filterName: "Fraudulent", filterValue: fraudTransactions },
+                    { filterName: "All", filterValue: allTransactions },
+                    { filterName: "Normal", filterValue: nonFraudTransactions },
+                    { filterName: "Suspicious", filterValue: fraudTransactions },
+                    { filterName: "Fraudulent", filterValue: fraudTransactions },
                 ];
                 setFilterElements(filterData);
             } catch (error) {
@@ -82,7 +107,7 @@ export default function TransactionList(){
                         </button>
                     ))}
                 </div>
-
+                
                 <div className="relative border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 h-fit xl:h-full rounded-xl border-[1px] items-center">
                     <div className="absolute inset-y-0 left-0 pl-3 flex h-full items-center pointer-events-none">
                         <svg className="h-4 w-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,8 +123,43 @@ export default function TransactionList(){
                     />
                 </div>
             </div>
+             {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-start items-center gap-x-4 mt-4 w-full">
+                    <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {"<<"}
+                    </button>
+                    <button
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {"<"}
+                    </button>
+                    <div className="flex items-center justify-center px-4 py-2 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 bg-zinc-900 text-sm font-medium min-w-[60px]">
+                        {currentPage}
+                    </div>
+                    <button
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {">"}
+                    </button>
+                    <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    >
+                        {">>"}
+                    </button>
+                </div>
+            )}
             <List transactionsList={dataTransactions} isLoadingPage={loadingPage}/>
-            
             {/* Pagination Controls */}
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-x-4 mt-4 w-full">
