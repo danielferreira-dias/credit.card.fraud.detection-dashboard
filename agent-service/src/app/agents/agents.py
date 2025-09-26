@@ -131,8 +131,15 @@ class TransactionAgent():
                 result = f"Here are {len(transactions)} transactions (showing {skip+1}-{skip+len(transactions)}):\n\n"
                 writer = get_stream_writer()
 
-                for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'} with a probability of {transaction.get('fraud_probability', 0.0)}\n"
+                if include_predictions:
+                    for i, transaction in enumerate(transactions, 1):
+                        fraud_prob = transaction.get('fraud_probability', 0.0)
+                        risk_level = 'Low Probability' if fraud_prob < 0.3 else 'Medium Probability' if fraud_prob < 0.7 else 'High Probability'
+                        result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}, with a probability of {fraud_prob} ({risk_level})\n"
+                else:
+                    for i, transaction in enumerate(transactions, 1):
+                        result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+
 
                 writer(result)
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions")
@@ -277,11 +284,11 @@ class TransactionAgent():
                 self.logger.error(f"Error in search_transactions_by_params_tool: {str(e)}")
                 return f"Error searching transactions: {str(e)}"
 
-        @tool("get_transaction_by_id_tool", description="Get a specific transaction by its ID, use this when the user asks about a particular transaction")
+        @tool("get_transaction_by_id_tool", description="Get a specific transaction by its ID, use this when the user asks about a particular transaction, User has the option to INCLUDE or NOT the predictions with the result")
         async def get_transaction_by_id_tool(transaction_id: str , include_predictions : bool = False):
             self.logger.info(f"Tool called: get_transaction_by_id_tool with transaction_id={transaction_id} with include_predictions as {include_predictions}")
             try:
-                transaction = await self.backend_client.get_transaction_by_id(transaction_id, include_predictions )
+                transaction = await self.backend_client.get_transaction_by_id(transaction_id, include_predictions)
 
                 if not transaction:
                     self.logger.warning(f"Transaction not found for ID: {transaction_id}")
@@ -295,6 +302,10 @@ class TransactionAgent():
                 result += f"Amount: ${transaction.get('amount')}\n"
                 result += f"Timestamp: {transaction.get('timestamp')}\n"
                 result += f"Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                if include_predictions:
+                    fraud_prob = transaction.get('fraud_probability', 0.0)
+                    risk_level = 'Low Probability' if fraud_prob < 0.3 else 'Medium Probability' if fraud_prob < 0.7 else 'High Probability'
+                    result += f"Is Fraud: {'Yes' if transaction.get('fraud_probability') else '0.0'}, with a probability of {fraud_prob} ({risk_level}\n"
                 writer(f"{result}")
 
                 self.logger.info(f"Successfully retrieved transaction details for ID: {transaction_id}")

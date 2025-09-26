@@ -89,7 +89,6 @@ async def list_transactions(filters: TransactionFilter = Depends(), include_pred
     
     Returns a list of transactions matching the criteria."""
     response_list = await service.get_transactions(filters, limit, skip, include_predictions)
-    logger.info(f"Response of router list_transactions: {response_list}")
     return response_list
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
