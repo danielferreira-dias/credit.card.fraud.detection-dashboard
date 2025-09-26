@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useUser } from "../context/UserContext"
+import { googleLogout } from "@react-oauth/google";
 
 function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boolean, setIsMobileOpen : (setIsMobileOpen:boolean) => void  }){
     return(
@@ -17,7 +18,7 @@ function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boole
 }
 
 export default function Navbar(){
-    const { user, logout } = useUser();
+    const { user } = useUser();
 
     const TransactionIcon = () => <img src="/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
     const DashboardIcon = () => <img src="/dashboard-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
@@ -35,7 +36,7 @@ export default function Navbar(){
     const navBarSettings : { element : string , symbol: ReactNode, onClick?: () => void}[] = [
         { element: "Settings", symbol: <SettingsIcon /> },
         { element: "About", symbol: <AboutIcon /> },
-        { element: "Logout", symbol: <LogoutIcon />, onClick: logout },
+        { element: "Logout", symbol: <LogoutIcon />, onClick: () => { googleLogout(); window.location.href = "/auth";} },
     ]
 
     const [isCollapsed, setIsCollapsed] = useState(false)
@@ -101,7 +102,6 @@ export default function Navbar(){
                     ))}
                 </div>
             </div>
-
         </div>
         </>
     )

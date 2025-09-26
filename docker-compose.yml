@@ -59,6 +59,8 @@ services:
     container_name: fraud-detection-frontend
     ports:
       - "5173:5173"
+    env_file:
+      - .env
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
