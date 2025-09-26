@@ -23,7 +23,7 @@ export const ReasoningFlowComponent: React.FC<ReasoningFlowComponentProps> = ({
     const isExpanded = expandedReasoning[messageIndex];
 
     return (
-        <div className="my-3 border-y border-zinc-700 py-3 w-full">
+        <div className="my-3 border-y border-zinc-700 py-3 w-full min-w-full">
             <button onClick={() => toggleReasoningExpansion(messageIndex)} className="flex items-center space-x-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
                 <svg className={`w-4 h-4 transform transition-transform ${isExpanded ? 'rotate-89' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -32,7 +32,7 @@ export const ReasoningFlowComponent: React.FC<ReasoningFlowComponentProps> = ({
             </button>
 
             {isExpanded && (
-                <div className="mt-3 space-y-2 bg-zinc-900/50 rounded-lg p-3 border border-zinc-700">
+                <div className="mt-3 space-y-2 bg-zinc-900/50 rounded-lg p-3 border border-zinc-700 w-full">
                     {steps.map((step, index) => (
                         <div key={index} className="flex items-start space-x-3 py-4 px-2 border-y-[1px] border-zinc-800">
                             <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-zinc-800 text-zinc-300">
