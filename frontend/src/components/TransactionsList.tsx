@@ -27,10 +27,11 @@ export default function TransactionList(){
         const fetchFilters = async () => {
           try {
             const skip = (currentPage - 1) * limit;
-            const res = await fetch(`http://localhost:80/transactions?limit=${limit}&skip=${skip}`);
+            const res = await fetch(`http://localhost:80/transactions/?include_predictions=true&limit=${limit}&skip=${skip}`);
             if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
             const data = await res.json();
             setDataTransactions(data);
+            console.log(data)
 
             // Process the data to create filter elements with counts
             const allTransactions = data.length;
@@ -40,6 +41,7 @@ export default function TransactionList(){
             const filterData = [
               { filterName: "All", filterValue: allTransactions },
               { filterName: "Normal", filterValue: nonFraudTransactions },
+              { filterName: "Suspicious", filterValue: fraudTransactions },
               { filterName: "Fraudulent", filterValue: fraudTransactions },
             ];
             setFilterElements(filterData);

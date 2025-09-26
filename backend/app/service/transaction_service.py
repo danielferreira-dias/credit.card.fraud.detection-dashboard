@@ -12,6 +12,7 @@ from app.infra.model_loader import ModelLoader
 from app.exception.transaction_exceptions import TransactionInvalidDataError, TransactionNotFoundError, ModelNotLoadedError
 from app.schemas.features_schema import TransactionFeatures, conversion_rates
 from app.schemas.filter_schema import TransactionFilter
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +38,26 @@ class TransactionService:
     async def get_filtered_transactions_qt(self, filters: TransactionFilter) -> dict[str, int]:
         return await self.repo.get_filtered_transaction_count(filters)
 
-    async def get_transactions(self, filters: TransactionFilter, limit: int, skip: int) -> List[TransactionResponse]:
-        transaction_list = await self.repo.get_all_transactions(filters, limit, skip)
+    async def get_transactions(self, filters: TransactionFilter, limit: int, skip: int, include_predictions: bool = False) -> List[TransactionResponse]:
+        transaction_list: List[Transaction] = await self.repo.get_all_transactions(filters, limit, skip)
+
         if transaction_list is None or len(transaction_list) == 0:
             logger.error("No transactions found in the database.")
             raise TransactionNotFoundError(name="Transactions Not Found", message="Transactions do not exist.") 
-        return [self._to_response(ts) for ts in transaction_list]
+        
+        if not include_predictions:
+            return [self._to_response(ts) for ts in transaction_list]
+        else:
+            predictions = await asyncio.gather(*[
+                self.predict_transaction(ts.transaction_id) for ts in transaction_list
+            ])
+            transactions_with_probability = [
+                self._to_response(transaction, prediction.probability)
+                for transaction, prediction in zip(transaction_list, predictions)
+            ]
+            return transactions_with_probability
     
-    async def get_transaction_id(self, transaction_id: str) -> TransactionResponse:
+    async def get_transaction_id(self, transaction_id: str, include_predictions: bool = False) -> TransactionResponse:
         if transaction_id is None:
             logger.error(f"{transaction_id} cannot be None for prediction.")
             raise TransactionInvalidDataError("transaction_id cannot be None")
@@ -54,7 +67,12 @@ class TransactionService:
             logger.error(f"Transaction with ID {transaction_id} not found.")
             raise TransactionNotFoundError(name="Transaction Not Found", message=f"Transaction with ID {transaction_id} does not exist.")    
         
-        return self._to_response(transaction)
+        if not include_predictions:
+            return self._to_response(transaction)
+        else:
+            probability = self.predict_transaction(transaction.transaction_id)
+            return self._to_response(transaction, probability)
+            
 
     async def predict_transaction(self, transaction_id: str) -> dict:
 
@@ -160,7 +178,7 @@ class TransactionService:
         return f"{'*'*(len(card)-4)}{card[-4:]}"
 
     @classmethod
-    def _to_response(cls, ts: Transaction) -> TransactionResponse:
+    def _to_response(cls, ts: Transaction, fraud_probability: float = 0.0) -> TransactionResponse:
         """
         Converts a Transaction model instance to a TransactionResponse schema.
         Args:
@@ -196,7 +214,7 @@ class TransactionService:
             weekend_transaction=ts.weekend_transaction,
             velocity_last_hour=ts.velocity_last_hour,
             is_fraud=ts.is_fraud,
-            fraud_probability=100.0
+            fraud_probability=fraud_probability
         )
     
     @staticmethod

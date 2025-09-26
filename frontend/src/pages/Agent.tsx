@@ -271,8 +271,8 @@ export default function AgentPage(){
                     <div className="flex items-center justify-between mb-4">
                         <div className={`text-sm px-3 py-2 rounded-lg w-fit ${
                             isConnected
-                                ? 'bg-green-900/15 text-green-700 border border-green-900'
-                                : 'bg-red-900/20 text-red-400 border border-red-800'
+                                ? 'bg-black text-green-700 border border-green-900'
+                                : 'bg-black text-red-400 border border-red-800'
                         }`}>
                             {isConnected ? 'Connected to AI Agent' : 'Disconnected - Attempting to reconnect...'}
                         </div>
@@ -283,7 +283,7 @@ export default function AgentPage(){
                                 onClick={() => setUseMockResponse(!useMockResponse)}
                                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                                     useMockResponse
-                                        ? 'bg-blue-900/0 text-blue-300 border border-blue-800'
+                                        ? 'bg-zinc-800 text-blue-300 border border-blue-700'
                                         : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                                 }`}
                             >
@@ -294,10 +294,21 @@ export default function AgentPage(){
 
                     {/* Messages */}
                     <div className="space-y-4">
+                        {/* Typing indicator */}
+                        {isTyping && (
+                            <div className="flex justify-start">
+                                <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
+                                    <div className="flex items-center space-x-3">
+                                        <span className="text-[0.65rem] text-gray-400">Agent is thinking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {messages.map((message, index) => (
                             <div key={index} className={`flex ${message.type === 'User' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl':  message.type === 'error' ? 'border-zinc-900 border-2 text-white' : message.type === 'Agent' ? 'bg-transparent text-white' : message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800' : message.type === 'progress' ? ' text-blue-300 border border-zinc-700 animate-pulse' : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800' } `}>
+                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl':  message.type === 'error' ? 'border-zinc-900 border-2 text-white' : message.type === 'Agent' ? 'bg-transparent text-white' : message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800' : message.type === 'progress' ? ' text-zinc-300 border border-zinc-700 animate-pulse' : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800' } `}>
                                     {message.type === 'Agent' && message.reasoning_steps && (
                                         <ReasoningFlowComponent
                                             steps={message.reasoning_steps}
@@ -323,16 +334,7 @@ export default function AgentPage(){
                             </div>
                         ))}
 
-                        {/* Typing indicator */}
-                        {isTyping && (
-                            <div className="flex justify-start">
-                                <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
-                                    <div className="flex items-center space-x-3">
-                                        <span className="text-[0.65rem] text-gray-400">Agent is thinking...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        
                         <div ref={messagesEndRef} />
                     </div>
                 </div>

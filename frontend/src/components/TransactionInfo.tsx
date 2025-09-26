@@ -6,11 +6,6 @@ interface TransactionCardProps {
 
 type statusType = "Processed" | "Under Review" | "Blocked"
 
-interface TransactionStatus {
-    fraud_probability: string,
-    status: statusType,
-}
-
 export default function TransactionInfo({ transaction }: TransactionCardProps) {
 
     const formatAmount = (amount: number, currency: string) => {
@@ -37,7 +32,7 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
     };
 
     return (
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 shadow-[0_0_8px_rgba(0,0,0,0.5)]">
+        <div className="bg-black border border-zinc-700 rounded-lg px-6 py-4 shadow-[0_0_8px_rgba(0,0,0,0.5)]">
             <div className="flex flex-col space-y-2">
                 {/* Header with merchant and amount */}
                 <div className="flex justify-between items-start">
@@ -91,7 +86,7 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
                     </div>
                     <div className="flex flex-col justify-end">
                         <p className="text-white text-xs">Probability</p>
-                        <p className="text-red-400 font-bold text-sm">0.80</p>
+                        <p className="text-red-400 font-bold text-sm">{(transaction.fraud_probability * 100).toFixed(3)}%</p>
                     </div>
                 </div>
             </div>

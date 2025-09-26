@@ -45,7 +45,7 @@ async def count_filtered_transactions(filters: TransactionFilter = Depends(), se
     response = await service.get_filtered_transactions_qt(filters)
     return ResponseWithMessage(
         message=f"There's currently {response} transactions in the database matching the given filters",
-        data=response
+        data=None
     )
 
 @router.get("/stats", response_model=ResponseWithMessage)
@@ -78,7 +78,7 @@ async def predict_transaction(transaction_id: str, service: TransactionService =
     return response
     
 @router.get("/", response_model=List[TransactionResponse])
-async def list_transactions(filters: TransactionFilter = Depends(), limit: int = Query(20, ge=1, le=100),
+async def list_transactions(filters: TransactionFilter = Depends(), include_predictions : bool = False, limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0) ,service: TransactionService = Depends(get_transaction_service),):
     """
     List transactions with optional filtering and pagination.
@@ -88,12 +88,12 @@ async def list_transactions(filters: TransactionFilter = Depends(), limit: int =
     - **skip**: Number of transactions to skip for pagination (default is 0).
     
     Returns a list of transactions matching the criteria."""
-    response_list = await service.get_transactions(filters, limit, skip)
+    response_list = await service.get_transactions(filters, limit, skip, include_predictions)
     logger.info(f"Response of router list_transactions: {response_list}")
     return response_list
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
-async def get_transaction(transaction_id: str, service: TransactionService = Depends(get_transaction_service)):
+async def get_transaction(transaction_id: str, include_predictions : bool = False, service: TransactionService = Depends(get_transaction_service)):
     """
     Get a transaction by its ID.
     

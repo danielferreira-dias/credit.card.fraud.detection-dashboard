@@ -27,4 +27,6 @@ export interface Transaction {
     max_single_amount: number;
   };
   weekend_transaction: boolean;
+  is_fraud: string;
+  fraud_probability: number;
 }
