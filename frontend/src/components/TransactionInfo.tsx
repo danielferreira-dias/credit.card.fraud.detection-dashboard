@@ -7,7 +7,7 @@ interface TransactionCardProps {
 type statusType = "Processed" | "Under Review" | "Blocked"
 
 function getTransactionStatus(probability: number): statusType {
-    if (probability < 0.4) {
+    if (probability < 0.3) {
         return "Processed";
     } else if (probability < 0.7) {
         return "Under Review";
@@ -98,7 +98,7 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
                     </div>
                     <div className="flex flex-col justify-end">
                         <p className="text-white text-xs">Probability</p>
-                        <p className="text-red-400 font-bold text-lg">{(transaction.fraud_probability * 100).toFixed(3)}%</p>
+                        <p className="text-red-400 font-extrabold text-lg">{(transaction.fraud_probability * 100).toFixed(3)}%</p>
                     </div>
                 </div>
             </div>

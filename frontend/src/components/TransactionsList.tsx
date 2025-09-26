@@ -25,35 +25,50 @@ export default function TransactionList(){
 
     useEffect(() => {
         const fetchFilters = async () => {
-          try {
-            const skip = (currentPage - 1) * limit;
-            const res = await fetch(`http://localhost:80/transactions/?include_predictions=true&limit=${limit}&skip=${skip}`);
-            if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
-            const data = await res.json();
-            setDataTransactions(data);
-            console.log(data)
+            // Check cache first
+            const cachedData = sessionStorage.getItem(`transactions_page_${currentPage}`);    
+            const cacheTime = sessionStorage.getItem(`transactions_timestamp_${currentPage}`);
 
-            // Process the data to create filter elements with counts
-            const allTransactions = data.length;
-            const nonFraudTransactions : number = data.filter((t: any) => t.is_fraud === false).length;
-            const fraudTransactions : number = data.filter((t: any) => t.is_fraud === true).length;
+            if (cachedData && cacheTime) {
+                const age = Date.now() - parseInt(cacheTime);
+                if (age < 2 * 60 * 1000) { // 2 minutes cache
+                setDataTransactions(JSON.parse(cachedData));
+                setLoadingPage(false);
+                return;
+                }
+            }
+            try {
+                const skip = (currentPage - 1) * limit;
+                const res = await fetch(`http://localhost:80/transactions/?include_predictions=true&limit=${limit}&skip=${skip}`);
+                if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
+                const data = await res.json();
+                setDataTransactions(data);
+                
+                // Cache the data
+                sessionStorage.setItem(`transactions_page_${currentPage}`,JSON.stringify(data));
+                sessionStorage.setItem(`transactions_timestamp_${currentPage}`,Date.now().toString());
 
-            const filterData = [
-              { filterName: "All", filterValue: allTransactions },
-              { filterName: "Normal", filterValue: nonFraudTransactions },
-              { filterName: "Suspicious", filterValue: fraudTransactions },
-              { filterName: "Fraudulent", filterValue: fraudTransactions },
-            ];
-            setFilterElements(filterData);
-          } catch (error) {
-            console.error('Failed to fetch transactions:', error);
-            setFilterElements([]);
-          } finally {
-            setLoadingPage(false);
-          }
-        };
-        fetchFilters();
-      }, [currentPage]);
+                // Process the data to create filter elements with counts
+                const allTransactions = data.length;
+                const nonFraudTransactions : number = data.filter((t: any) => t.is_fraud === false).length;
+                const fraudTransactions : number = data.filter((t: any) => t.is_fraud === true).length;
+
+                const filterData = [
+                { filterName: "All", filterValue: allTransactions },
+                { filterName: "Normal", filterValue: nonFraudTransactions },
+                { filterName: "Suspicious", filterValue: fraudTransactions },
+                { filterName: "Fraudulent", filterValue: fraudTransactions },
+                ];
+                setFilterElements(filterData);
+            } catch (error) {
+                console.error('Failed to fetch transactions:', error);
+                setFilterElements([]);
+            } finally {
+                setLoadingPage(false);
+            }
+            };
+            fetchFilters();
+        }, [currentPage]);
 
     return (
         <div className="flex flex-col w-full h-full mt-6 gap-y-4 items-center sm:items-start">

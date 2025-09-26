@@ -22,29 +22,52 @@ export default function TransactionPage(){
 
     useEffect(() => {
         const fetchData = async () => {
-        try {
-            const res = await fetch("http://localhost:80/transactions/count");
-            if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
-            const data = await res.json();
+            
+            // Check cache first
+            const cachedData = sessionStorage.getItem(`transactions_count`);    
+            const cacheTime = sessionStorage.getItem(`transactions_count_timestamp`);
 
-            console.log('current Data ->', data)
+            if (cachedData && cacheTime) {
+                const age = Date.now() - parseInt(cacheTime);
+                if (age < 2 * 60 * 1000) { // 2 minutes cache
+                    const parsedData = JSON.parse(cachedData);
+                    const cachedStats = [
+                        { id: 1, typeStat: "Number of Transactions", statValue: parsedData.data.total_transactions, cardColour: "card-1" },
+                        { id: 2, typeStat: "Valid Transactions", statValue: (parsedData.data.total_transactions - parsedData.data.fraud_transactions), cardColour: "card-2" },
+                        { id: 3, typeStat: "Fraudulent Transactions", statValue: parsedData.data.fraud_transactions, cardColour: "card-3" },
+                        { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((parsedData.data.fraud_transactions/parsedData.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
+                    ];
+                    setStats(cachedStats);
+                    setLoading(false);
+                    return;
+                }
+            }
 
-            const updatedStats = [
-                { id: 1, typeStat: "Number of Transactions", statValue: data.data.total_transactions, cardColour: "card-1" },
-                { id: 2, typeStat: "Valid Transactions", statValue: (data.data.total_transactions - data.data.fraud_transactions), cardColour: "card-2" },
-                { id: 3, typeStat: "Fraudulent Transactions", statValue: data.data.fraud_transactions, cardColour: "card-3" },
-                { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((data.data.fraud_transactions/data.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
-            ];
+            try {
+                const res = await fetch("http://localhost:80/transactions/count");
+                if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
+                const data = await res.json();
 
-            setStats(updatedStats);
-            setLoading(false);
-        } catch (err) {
-            console.error("Failed to fetch transaction stats", err);
-            setLoading(false);
-        }
-    };
-        fetchData();
-    }, []);
+                // Cache the data
+                sessionStorage.setItem(`transactions_count`,JSON.stringify(data));
+                sessionStorage.setItem(`transactions_count_timestamp`,Date.now().toString());
+
+                const updatedStats = [
+                    { id: 1, typeStat: "Number of Transactions", statValue: data.data.total_transactions, cardColour: "card-1" },
+                    { id: 2, typeStat: "Valid Transactions", statValue: (data.data.total_transactions - data.data.fraud_transactions), cardColour: "card-2" },
+                    { id: 3, typeStat: "Fraudulent Transactions", statValue: data.data.fraud_transactions, cardColour: "card-3" },
+                    { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((data.data.fraud_transactions/data.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
+                ];
+
+                setStats(updatedStats);
+                setLoading(false);
+            } catch (err) {
+                console.error("Failed to fetch transaction stats", err);
+                setLoading(false);
+            }
+        };
+            fetchData();
+        }, []);
     
 
     return (
