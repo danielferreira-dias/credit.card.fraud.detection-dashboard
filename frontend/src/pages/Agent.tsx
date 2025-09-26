@@ -25,10 +25,13 @@ export default function AgentPage(){
     const [currentReasoningSteps, setCurrentReasoningSteps] = useState<ReasoningStep[]>([]);
     const [expandedReasoning, setExpandedReasoning] = useState<{[key: number]: boolean}>({});
     const [useMockResponse, setUseMockResponse] = useState(false); // Toggle for testing
+    const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null);
+    const [displayedContent, setDisplayedContent] = useState<{[key: number]: string}>({});
     const wsRef = useRef<WebSocket | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const reasoningStepsRef = useRef<ReasoningStep[]>([]);
+    const typingTimeoutRef = useRef<number | null>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,7 +39,35 @@ export default function AgentPage(){
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, displayedContent]);
+
+    const startTypingAnimation = (messageIndex: number, fullContent: string) => {
+        setTypingMessageIndex(messageIndex);
+        setDisplayedContent(prev => ({ ...prev, [messageIndex]: '' }));
+
+        let currentIndex = 0;
+        const typeCharacter = () => {
+            if (currentIndex < fullContent.length) {
+                setDisplayedContent(prev => ({
+                    ...prev,
+                    [messageIndex]: fullContent.slice(0, currentIndex + 1)
+                }));
+                currentIndex++;
+                typingTimeoutRef.current = setTimeout(typeCharacter, 1); // Adjust speed here (lower = faster)
+            } else {
+                setTypingMessageIndex(null);
+            }
+        };
+        typeCharacter();
+    };
+
+    useEffect(() => {
+        return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const extractToolNameFromContent = (content: string): string => {
         // Try to extract tool name from content patterns
@@ -47,6 +78,77 @@ export default function AgentPage(){
     };
 
     const formatMessageContent = (content: string): React.ReactElement => {
+        // Check if content contains table patterns (lines with | characters)
+        const lines = content.split('\n');
+        const hasTable = lines.some(line =>
+            line.includes('|') && line.split('|').length > 2
+        );
+
+        if (hasTable) {
+            // Find table sections and format them separately
+            const sections: React.ReactElement[] = [];
+            let currentSection = '';
+            let inTable = false;
+            let sectionIndex = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const isTableLine = line.includes('|') && line.split('|').length > 2;
+
+                if (isTableLine && !inTable) {
+                    // Starting a table - save previous section
+                    if (currentSection.trim()) {
+                        sections.push(
+                            <span key={`text-${sectionIndex++}`}>
+                                {formatTextContent(currentSection)}
+                            </span>
+                        );
+                    }
+                    currentSection = line + '\n';
+                    inTable = true;
+                } else if (isTableLine && inTable) {
+                    // Continue table
+                    currentSection += line + '\n';
+                } else if (!isTableLine && inTable) {
+                    // End of table
+                    sections.push(
+                        <div key={`table-${sectionIndex++}`} className="table-content">
+                            {currentSection.trim()}
+                        </div>
+                    );
+                    currentSection = line + '\n';
+                    inTable = false;
+                } else {
+                    // Regular content
+                    currentSection += line + '\n';
+                }
+            }
+
+            // Handle remaining content
+            if (currentSection.trim()) {
+                if (inTable) {
+                    sections.push(
+                        <div key={`table-${sectionIndex}`} className="table-content">
+                            {currentSection.trim()}
+                        </div>
+                    );
+                } else {
+                    sections.push(
+                        <span key={`text-${sectionIndex}`}>
+                            {formatTextContent(currentSection)}
+                        </span>
+                    );
+                }
+            }
+
+            return <>{sections}</>;
+        }
+
+        // No tables, use regular formatting
+        return <>{formatTextContent(content)}</>;
+    };
+
+    const formatTextContent = (content: string): React.ReactElement => {
         // Split content by **text** patterns to handle bold formatting
         const parts = content.split(/(\*\*.*?\*\*)/g);
         return (
@@ -110,7 +212,11 @@ export default function AgentPage(){
         };
         setMessages(prev => {
             const withoutProgress = prev.filter(m => m.type !== 'progress');
-            return [...withoutProgress, finalResponse];
+            const newMessages = [...withoutProgress, finalResponse];
+            // Start typing animation for the new message
+            const messageIndex = newMessages.length - 1;
+            setTimeout(() => startTypingAnimation(messageIndex, finalResponse.content), 100);
+            return newMessages;
         });
         setCurrentReasoningSteps([]);
     };
@@ -189,6 +295,13 @@ export default function AgentPage(){
                     const withoutProgress = prev.filter(m => m.type !== 'progress');
                     const updated = [...withoutProgress, processedMessage];
                     console.log('Messages after adding final:', updated.length);
+
+                    // Start typing animation for Agent messages
+                    if (message.type === 'Agent') {
+                        const messageIndex = updated.length - 1;
+                        setTimeout(() => startTypingAnimation(messageIndex, processedMessage.content), 100);
+                    }
+
                     return updated;
                 });
                 // Clear reasoning steps after final message
@@ -294,17 +407,6 @@ export default function AgentPage(){
 
                     {/* Messages */}
                     <div className="space-y-4">
-                        {/* Typing indicator */}
-                        {isTyping && (
-                            <div className="flex justify-start">
-                                <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
-                                    <div className="flex items-center space-x-3">
-                                        <span className="text-[0.65rem] text-gray-400">Agent is thinking...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {messages.map((message, index) => (
                             <div key={index} className={`flex ${message.type === 'User' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
@@ -326,14 +428,33 @@ export default function AgentPage(){
                                             </div>
                                         )}
                                         <div className="whitespace-pre-wrap text-[1rem] ">
-                                            {message.type === 'Agent' ? formatMessageContent(message.content) : message.content}
+                                            {message.type === 'Agent' ?
+                                                formatMessageContent(
+                                                    typingMessageIndex === index
+                                                        ? displayedContent[index] || ''
+                                                        : displayedContent[index] || message.content
+                                                ) :
+                                                message.content
+                                            }
+                                            {typingMessageIndex === index && (
+                                                <span className="animate-pulse text-zinc-400">|</span>
+                                            )}
                                         </div>
                                     </div>
                                     
                                 </div>
                             </div>
                         ))}
-
+                        {/* Typing indicator */}
+                        {isTyping && (
+                            <div className="flex justify-start">
+                                <div className=" text-white border border-zinc-700 rounded-lg p-3 max-w-[80%]">
+                                    <div className="flex items-center space-x-3">
+                                        <span className="special-affect">Agent is thinking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         
                         <div ref={messagesEndRef} />
                     </div>
@@ -348,7 +469,7 @@ export default function AgentPage(){
                                 onChange={(e) => setInputMessage(e.target.value)}
                                 onKeyPress={handleKeyPress}
                                 placeholder="Ask about transactions, fraud detection, or analytics..."
-                                disabled={!isConnected}
+                                disabled={!isConnected || isTyping || typingMessageIndex !== null}
                                 className="w-full bg-transparent text-white placeholder-gray-400 resize-none outline-none border-none text-sm leading-relaxed min-h-[20px] max-h-32 disabled:opacity-50"
                                 rows={1}
                                 onInput={(e) => {
@@ -360,7 +481,7 @@ export default function AgentPage(){
                         </div>
                         <button
                             onClick={sendMessage}
-                            disabled={!isConnected || !inputMessage.trim()}
+                            disabled={!isConnected || isTyping || typingMessageIndex !== null || !inputMessage.trim()}
                             className="flex-shrink-0 w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

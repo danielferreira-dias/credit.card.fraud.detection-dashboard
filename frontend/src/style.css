@@ -29,3 +29,32 @@ html, body, #root {
     border-color: #7c7c7c80;
     border-width: 2px;
 }
+
+.special-affect {
+  background: linear-gradient(to right, hsl(0, 0%, 30%) 0, hsl(0, 0%, 100%) 10%, hsl(0, 0%, 30%) 20%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 5s infinite linear;
+}
+
+@keyframes shine {
+  0% {
+    background-position: -200px;
+  }
+  100% {
+    background-position: 200px;
+  }
+}
+
+.table-content {
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  white-space: pre;
+  overflow-x: auto;
+  background-color: #000000;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
