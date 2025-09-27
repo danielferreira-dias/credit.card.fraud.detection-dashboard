@@ -49,11 +49,12 @@ export default function TransactionList({ totalTransactions, itemsPerPage }: Tra
                 const allTransactions = parsedCachedData.length;
                 const nonFraudTransactions : number = parsedCachedData.filter((t: any) => t.is_fraud === false).length;
                 const fraudTransactions : number = parsedCachedData.filter((t: any) => t.is_fraud === true).length;
+                const suspiciousTransactions : number = parsedCachedData.filter((t: any) => t.fraud_probability > 0.3 && t.fraud_probability < 0.8).length;
 
                 const filterData = [
                     { filterName: "All", filterValue: allTransactions },
                     { filterName: "Normal", filterValue: nonFraudTransactions },
-                    { filterName: "Suspicious", filterValue: fraudTransactions },
+                    { filterName: "Suspicious", filterValue: suspiciousTransactions },
                     { filterName: "Fraudulent", filterValue: fraudTransactions },
                 ];
                 setFilterElements(filterData);
@@ -76,12 +77,13 @@ export default function TransactionList({ totalTransactions, itemsPerPage }: Tra
                 // Process the data to create filter elements with counts
                 const allTransactions = data.length;
                 const nonFraudTransactions : number = data.filter((t: any) => t.is_fraud === false).length;
+                const suspiciousTransactions : number = data.filter((t: any) => t.fraud_probability > 0.3 && t.fraud_probability < 0.8).length;
                 const fraudTransactions : number = data.filter((t: any) => t.is_fraud === true).length;
 
                 const filterData = [
                     { filterName: "All", filterValue: allTransactions },
                     { filterName: "Normal", filterValue: nonFraudTransactions },
-                    { filterName: "Suspicious", filterValue: fraudTransactions },
+                    { filterName: "Suspicious", filterValue: suspiciousTransactions },
                     { filterName: "Fraudulent", filterValue: fraudTransactions },
                 ];
                 setFilterElements(filterData);
