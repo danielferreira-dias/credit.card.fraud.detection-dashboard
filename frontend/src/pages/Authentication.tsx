@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import Login from "../components/Login";
 import Register from "../components/Register";
 import { useUser } from "../context/UserContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import Loading from "../components/Loading";
 
 export default function AuthenticationPage() {
-  const [loginPage, setLoginPage] = useState(true);
   const { user, loading } = useUser();
   const navigate = useNavigate();
   const location = useLocation();

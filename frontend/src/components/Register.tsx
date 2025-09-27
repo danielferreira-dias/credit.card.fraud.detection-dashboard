@@ -63,15 +63,47 @@ export default function Register() {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Logging in with ${provider}`);
-  };
-
-  const handleGoogleSuccess = (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: any) => {
     console.log('Google login success:', credentialResponse);
-    // Handle the Google login success here
-    // You can decode the JWT token and process the user data
-    window.location.href = "/";
+
+    if (!credentialResponse.credential) {
+      setError('No credential received from Google');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Send Google token to your backend for verification and user registration/login
+      const response = await fetch('http://localhost:80/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: credentialResponse.credential
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Google authentication failed');
+      }
+
+      const data = await response.json();
+
+      // Store the backend-issued access token
+      if (data.token && data.token.access_token) {
+        localStorage.setItem('access_token', data.token.access_token);
+        window.location.href = "/";
+      } else {
+        throw new Error('No access token received from server');
+      }
+    } catch (error) {
+      console.error('Google authentication error:', error);
+      setError(error instanceof Error ? error.message : 'Google authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleFailure = () => {

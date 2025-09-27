@@ -10,3 +10,6 @@ class TokenResponse(BaseModel):
     user_email: EmailStr
     name: str
     token: Token
+
+class GoogleAuthRequest(BaseModel):
+    token: str

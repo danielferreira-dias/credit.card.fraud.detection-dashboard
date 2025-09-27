@@ -8,7 +8,7 @@ from app.security.security import SecurityManager
 from fastapi import APIRouter, Depends
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.auth_schema import TokenResponse
+from app.schemas.auth_schema import TokenResponse, GoogleAuthRequest
 
 router = APIRouter(
     prefix="/auth",
@@ -58,4 +58,12 @@ async def register ( user_data: UserRegisterSchema, user_service: UserService = 
     user : UserResponse= await user_service.create_user_service(user_data)
     token = await auth_service.login_service(user_data.email, user_data.password)
     return RegisterResponse(user=user, token=token)
+
+@router.post("/google")
+async def google_auth(google_request: GoogleAuthRequest, auth_service: AuthService = Depends(get_security_service)) -> TokenResponse:
+    """
+    Authenticate user with Google OAuth token
+    """
+    token_response = await auth_service.google_auth_service(google_request.token)
+    return token_response
     
