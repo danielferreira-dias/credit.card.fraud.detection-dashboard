@@ -68,7 +68,7 @@ export default function Navbar(){
                     </div>
                     <div className={`hidden max-[500px]:flex ${isCollapsed ? "lg:hidden" : "lg:flex"} flex-col gap-y-0.5 text-sm`}>
                         <span className="font-semibold">{user?.name || "User"}</span>
-                        <span className="text-xs">{user?.email || "User's email"}</span>
+                        <span className="text-xs">Analyst</span>
                     </div>
                 </div>
                 <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>

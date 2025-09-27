@@ -22,7 +22,12 @@ export function UserProvider({ children }: UserProviderProps) {
 
   const fetchUserFromAPI = async (): Promise<TokenPayload | null> => {
     const token = localStorage.getItem('access_token');
-    if (!token) return null;
+    if (!token) {
+      console.log('No access token found in localStorage');
+      return null;
+    }
+
+    console.log('Found access token (first 50 chars):', token.substring(0, 50) + '...');
 
     try {
       const response = await fetch('http://localhost:80/auth/verify-token', {
@@ -32,14 +37,19 @@ export function UserProvider({ children }: UserProviderProps) {
         }
       });
 
+      console.log('Token verification response status:', response.status);
+
       if (!response.ok) {
+        console.log('Token verification failed, removing token');
         localStorage.removeItem('access_token');
         return null;
       }
 
       const data = await response.json();
+      console.log('Token verification successful, user data:', data.user);
       return data.user;
-    } catch {
+    } catch (error) {
+      console.error('Token verification error:', error);
       localStorage.removeItem('access_token');
       return null;
     }

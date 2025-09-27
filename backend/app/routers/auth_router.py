@@ -64,6 +64,11 @@ async def google_auth(google_request: GoogleAuthRequest, auth_service: AuthServi
     """
     Authenticate user with Google OAuth token
     """
+    logger.info(f"Received Google token (first 50 chars): {google_request.token[:50]}...")
+    logger.info(f"Token length: {len(google_request.token)}")
+
     token_response = await auth_service.google_auth_service(google_request.token)
+    logger.info(f"Generated access token (first 50 chars): {token_response.token.access_token[:50]}...")
+
     return token_response
     

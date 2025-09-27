@@ -67,10 +67,14 @@ class AuthService:
                 # User already exists, proceed to login
                 pass
 
+            # Create access token for our app
+            user_data = UserAuthenticationReponse(email=email, name=name)
+            access_token = self.security.create_access_token(user_data.model_dump())
+
             return TokenResponse(
                 user_email=email,
                 name=name,
-                token=Token(access_token=google_token, token_type="bearer")
+                token=Token(access_token=access_token, token_type="bearer")
             )
 
         except ValueError as e:
