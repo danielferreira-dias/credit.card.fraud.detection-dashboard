@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 import sys
 from pathlib import Path
+from typing import List
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.stores import InMemoryStore
 from langsmith import traceable
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.prebuilt import create_react_agent
+from langgraph.config import get_stream_writer
 
 # Add the agent-service root directory to Python path
 agent_service_root = Path(__file__).parent.parent.parent.parent
@@ -15,8 +19,7 @@ from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
 from app.services.backend_api_client import BackendAPIClient
 from app.schemas.agent_prompt import system_prompt
-from langgraph.prebuilt import create_react_agent
-from langgraph.config import get_stream_writer
+
 
 import os
 from dotenv import load_dotenv
@@ -33,6 +36,7 @@ class TransactionData:
 
 class ConversationState:
     def __init__(self, system_prompt : str):
+        self.messages: List[HumanMessage | AIMessage | SystemMessage]
         self.messages = [SystemMessage(content=system_prompt)]
     
     def get_recent_messages(self, limit: int = 10):
@@ -67,13 +71,17 @@ class TransactionAgent:
         self.logger.info(f"Agent State initiated -> {self.agent_state.messages}")
 
         # Store for chat conversations
-        self.store = InMemoryStore()
+        # self.store = InMemoryStore()
+
+        # Store checkpoints conversation
+        self.checkpointer = InMemorySaver()
 
         # Initialize both ReAct agent and LangGraph workflow
         self.agent = create_react_agent(
             model=self.model,
             tools=self.tools,
-            store=self.store,
+            checkpointer=self.checkpointer
+            # store=self.store,
         )
 
 
@@ -360,9 +368,9 @@ class TransactionAgent:
 
         try:
             if stream:
-                return await self._stream_query()
+                return await self._stream_query({"messages": [HumanMessage(content=user_input)]})
             else:
-                result = await self.agent.ainvoke()
+                result = await self.agent.ainvoke({"messages": [HumanMessage(content=user_input)]}, {'configurable': {'thread_id': "1"}})
                 return result
         except Exception as e:
             self.logger.error(f"Error during agent invocation: {str(e)}")
@@ -382,63 +390,23 @@ class TransactionAgent:
 
         try:
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
-            async for stream_mode, chunk in self.agent.astream(agent_input, stream_mode=["updates", "custom"]):
+            async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': "1"}} ,stream_mode=["updates", "custom"]):
+                # Process chunk using the extracted function
+                async for update in self._process_stream_chunk(stream_mode, chunk):
+                    yield update
 
-                # Handle custom stream messages from writer() calls
-                if stream_mode == "custom":
-                    yield {
-                        "type": "tool_progress",
-                        "content": str(chunk),
-                        "message": f"📄 Tool Update: {chunk}"
-                    }
-                    continue
+                # Store the final result only from updates mode
+                if stream_mode == "updates":
+                    final_result = chunk
 
-                # Process and yield different types of updates
-                if stream_mode == "updates" and isinstance(chunk, dict):
-                    for node_name, node_data in chunk.items():
-                        if node_name == "agent" and isinstance(node_data, dict):
-                            messages = node_data.get("messages", [])
-                            if messages:
-                                last_message = messages[-1]
-                                if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-                                    # Tool call detected
-                                    for tool_call in last_message.tool_calls:
-                                        tool_name = tool_call.get('name', 'unknown_tool')
-                                        tool_args = tool_call.get('args', {})
-                                        yield {
-                                            "type": "tool_call",
-                                            "tool_name": tool_name,
-                                            "tool_args": tool_args,
-                                            "message": f"🔧 Executing tool: {tool_name} with the following {tool_args}"
-                                        }
-                                elif hasattr(last_message, 'content') and last_message.content:
-                                    # Agent response content
-                                    yield {
-                                        "type": "agent_thinking",
-                                        "message": "🤔 Agent is analyzing..."
-                                    }
-
-                        elif node_name == "tools" and isinstance(node_data, dict):
-                            # Tool execution results
-                            messages = node_data.get("messages", [])
-                            if messages:
-                                for message in messages:
-                                    if hasattr(message, 'name'):
-                                        yield {
-                                            "type": "tool_result",
-                                            "tool_name": message.name,
-                                            "message": f"✅ Tool {message.name} completed"
-                                        }
-
-                    # Store the final result only from updates mode
-                    if stream_mode == "updates":
-                        final_result = chunk
+            checkpoints = self.checkpointer.list({"configurable": {"thread_id": "1"}})
+            self.logger.info(f'Current checkpoints -> {checkpoints}')
+            process_checkpoints(checkpoints)
 
             # Return final result
             if final_result and "agent" in final_result:
                 messages = final_result["agent"]["messages"]
                 self.agent_state.messages.append(AIMessage(content=messages[-1].content))
-                self.logger.info(f"Current Agent State after stream query-> {self.agent_state.messages}")
                 if messages:
                     yield {
                         "type": "final_response",
@@ -462,3 +430,103 @@ class TransactionAgent:
             }
             raise AgentException() from e
 
+    async def _process_stream_chunk(self, stream_mode, chunk):
+        """
+        Process individual stream chunks and yield appropriate updates
+
+        Args:
+            stream_mode: The mode of the stream ("custom" or "updates")
+            chunk: The chunk data to process
+
+        Yields:
+            Processed stream updates
+        """
+        # Handle custom stream messages from writer() calls
+        if stream_mode == "custom":
+            yield {
+                "type": "tool_progress",
+                "content": str(chunk),
+                "message": f"📄 Tool Update: {chunk}"
+            }
+            return
+
+        # Process and yield different types of updates
+        if stream_mode == "updates" and isinstance(chunk, dict):
+            for node_name, node_data in chunk.items():
+                if node_name == "agent" and isinstance(node_data, dict):
+                    messages = node_data.get("messages", [])
+                    if messages:
+                        last_message = messages[-1]
+                        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                            # Tool call detected
+                            for tool_call in last_message.tool_calls:
+                                tool_name = tool_call.get('name', 'unknown_tool')
+                                tool_args = tool_call.get('args', {})
+                                yield {
+                                    "type": "tool_call",
+                                    "tool_name": tool_name,
+                                    "tool_args": tool_args,
+                                    "message": f"🔧 Executing tool: {tool_name} with the following {tool_args}"
+                                }
+                        elif hasattr(last_message, 'content') and last_message.content:
+                            # Agent response content
+                            yield {
+                                "type": "agent_thinking",
+                                "message": "🤔 Agent is analyzing..."
+                            }
+
+                elif node_name == "tools" and isinstance(node_data, dict):
+                    # Tool execution results
+                    messages = node_data.get("messages", [])
+                    if messages:
+                        for message in messages:
+                            if hasattr(message, 'name'):
+                                yield {
+                                    "type": "tool_result",
+                                    "tool_name": message.name,
+                                    "message": f"✅ Tool {message.name} completed"
+                                }
+
+# Define a function to process checkpoints
+def process_checkpoints(checkpoints):
+    """
+    Processes a list of checkpoints and displays relevant information.
+
+    Parameters:
+        checkpoints (list): A list of checkpoint tuples to process.
+
+    Returns:
+        None
+
+    This function processes a list of checkpoints.
+    It iterates over the checkpoints and displays the following information for each checkpoint:
+    - Timestamp
+    - Checkpoint ID
+    - Messages associated with the checkpoint
+    """
+    logger = get_agent_logger(name='CheckPoint Logger')
+
+    logger.info("\n==========================================================\n")
+
+    for idx, checkpoint_tuple in enumerate(checkpoints):
+        # Extract key information about the checkpoint
+        checkpoint = checkpoint_tuple.checkpoint
+        messages = checkpoint["channel_values"].get("messages", [])
+
+        # Display checkpoint information
+        logger.info(f"[black]Checkpoint ID: {checkpoint['id']}[/black]")
+
+        # Display checkpoint messages
+        for message in messages:
+            if isinstance(message, HumanMessage):
+                logger.info(
+                    f"User: {message.content}[bright_cyan](Message ID: {message.id})"
+                )
+            elif isinstance(message, AIMessage):
+                logger.info(
+                    f"Agent: {message.content} [bright_cyan](Message ID: {message.id})"
+                )
+
+        logger.info("")
+
+    logger.info("==========================================================")

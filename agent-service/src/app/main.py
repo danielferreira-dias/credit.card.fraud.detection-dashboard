@@ -70,8 +70,10 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
             # Prepare input for agent
             agent.agent_state.messages.append(HumanMessage(content=user_query.query))
             agent.logger.info(f"Current Agent State before stream query-> {agent.agent_state.messages}")
-            agent_input = {"messages": agent.agent_state.messages}
+            # agent_input = {"messages": agent.agent_state.messages}
+            agent_input = {"messages": [HumanMessage(content=user_query.query)]}
 
+            # async for update in agent._stream_query(agent_input):
             async for update in agent._stream_query(agent_input):
                 # Send each update as Server-Sent Event
                 yield (
