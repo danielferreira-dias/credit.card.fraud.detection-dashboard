@@ -1,11 +1,13 @@
-from app.agents.agents import TransactionAgent
+from app.agents.agents import ConversationState, TransactionAgent
 from app.services.database_provider import ProviderService
+from app.schemas.agent_prompt import system_prompt
 from app.services.backend_api_client import BackendAPIClient
 from app.database.transactions_db import TransactionsDB
 from app.schemas.query_schema import QuerySchema
 from fastapi import FastAPI, status, Depends
 from fastapi.responses import StreamingResponse
 from infra.logging.logger import get_agent_logger
+from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 import os
 import json
@@ -34,14 +36,23 @@ def get_transactions_db() -> TransactionsDB:
 def get_backend_client() -> BackendAPIClient:
     return BackendAPIClient()
 
+
 def get_provider_service(db: TransactionsDB = Depends(get_transactions_db)) -> ProviderService:
     """Dependency to provide ProviderService instance"""
     return ProviderService(db)
 
-def get_transaction_agent(provider_service: ProviderService = Depends(get_provider_service), backend_client: BackendAPIClient = Depends(get_backend_client)) -> TransactionAgent:
+#--------------------------------------- TEMPORARY
+
+model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "Llama-4-Maverick-17B-128E-Instruct-FP8")
+backend_client = get_backend_client()
+global_state = ConversationState(system_prompt)
+agent_instance = TransactionAgent(model_name, global_state, backend_client)
+
+#--------------------------------------- 
+
+def get_transaction_agent() -> TransactionAgent:
     """Dependency to provide TransactionAgent instance"""
-    model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "Llama-4-Maverick-17B-128E-Instruct-FP8")
-    return TransactionAgent(model_name, provider_service, backend_client)
+    return agent_instance
 
 #---------------------------------------
 
@@ -57,11 +68,11 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
     async def generate_stream():
         try:
             # Prepare input for agent
-            agent_input = {"messages": agent.history_messages + [{"role": "human", "content": user_query.query}]}
-            logger.info(f'Agent Input -> {agent_input}')
+            agent.agent_state.messages.append(HumanMessage(content=user_query.query))
+            agent.logger.info(f"Current Agent State before stream query-> {agent.agent_state.messages}")
+            agent_input = {"messages": agent.agent_state.messages}
 
             async for update in agent._stream_query(agent_input):
-                logger.info(f'Agent update -> {update}')
                 # Send each update as Server-Sent Event
                 yield (
                     "event: token\n"
@@ -75,6 +86,7 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
                 'content': f'Error: {str(e)}',
                 'message': 'An error occurred'
             }
+            logger.info(f"The current error was -> {error_data['content']}")
             yield (
                 "event: error\n"
                 f"data: {json.dumps(error_data)}\n\n"

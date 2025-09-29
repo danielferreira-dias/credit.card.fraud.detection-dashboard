@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.stores import InMemoryStore
 from langsmith import traceable
 
@@ -13,7 +13,6 @@ sys.path.append(str(agent_service_root))
 
 from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
-from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
 from app.schemas.agent_prompt import system_prompt
 from langgraph.prebuilt import create_react_agent
@@ -25,15 +24,22 @@ from dotenv import load_dotenv
 load_dotenv()
 
 @dataclass
-class TransactionData():
+class TransactionData:
     type: str
     message: str
     content: str = ""
     tool_name: str = ""
     tool_args: str = ""
 
-class TransactionAgent():
-    def __init__(self, model_name : str, provider_service: ProviderService, backend_client: BackendAPIClient):
+class ConversationState:
+    def __init__(self, system_prompt : str):
+        self.messages = [SystemMessage(content=system_prompt)]
+    
+    def get_recent_messages(self, limit: int = 10):
+        return self.messages[-limit:]
+
+class TransactionAgent:
+    def __init__(self, model_name : str, state : ConversationState ,backend_client: BackendAPIClient):
         """
             model = Initializes the Agent Model also known as the LLM
             tools = Gathers all the tools that the Agent can use
@@ -52,13 +58,13 @@ class TransactionAgent():
             temperature=1,
         )
 
-        # Enable LangSmith tracing if configured
-
         self.tools = self._create_tools()
         self.system_prompt = system_prompt
-        self.provider_service = provider_service
         self.backend_client = backend_client
-        self.history_messages=[SystemMessage(content=self.system_prompt)]
+
+        # Initiates State with System Messaage
+        self.agent_state = state
+        self.logger.info(f"Agent State initiated -> {self.agent_state.messages}")
 
         # Store for chat conversations
         self.store = InMemoryStore()
@@ -70,7 +76,6 @@ class TransactionAgent():
             store=self.store,
         )
 
-        self.logger.info("TransactionAgent initialized successfully")
 
     def _create_tools(self):
 
@@ -348,33 +353,22 @@ class TransactionAgent():
                 user_input: User's query string
                 stream: Whether to stream the response (default: True)
         """
-        self.logger.info(f"Received user query: {user_input}")
-
-        if not isinstance(self.history_messages[0], SystemMessage):
-            self.history_messages.insert(0, SystemMessage(content=self.system_prompt))
-            self.logger.debug("System prompt added to message history")
 
         # Add user input
-        self.history_messages.append(HumanMessage(content=user_input))
-        self.logger.debug("User input added to message history")
-
-        # Prepare input for agent
-        agent_input = {"messages": self.history_messages}
+        self.agent_state.messages.append(HumanMessage(content=user_input))
+        self.logger.info(f"Current Agent State before stream query-> {self.agent_state.messages}")
 
         try:
             if stream:
-                self.logger.info("Streaming agent response with progress updates")
-                return await self._stream_query(agent_input)
+                return await self._stream_query()
             else:
-                self.logger.info("Invoking agent without streaming")
-                result = await self.agent.ainvoke(agent_input)
-                self.logger.info("Agent invocation completed successfully")
+                result = await self.agent.ainvoke()
                 return result
         except Exception as e:
             self.logger.error(f"Error during agent invocation: {str(e)}")
             raise AgentException() from e
 
-    async def _stream_query(self, agent_input: dict):
+    async def _stream_query(self, agent_input):
         """
             Stream the agent's response with progress updates
 
@@ -384,13 +378,11 @@ class TransactionAgent():
             Yields:
                 Progress updates and final result
         """
-        self.logger.info("Starting streaming agent execution")
         final_result = None
 
         try:
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
             async for stream_mode, chunk in self.agent.astream(agent_input, stream_mode=["updates", "custom"]):
-                self.logger.debug(f"Streaming chunk received: mode={stream_mode}, chunk={type(chunk)}")
 
                 # Handle custom stream messages from writer() calls
                 if stream_mode == "custom":
@@ -442,11 +434,11 @@ class TransactionAgent():
                     if stream_mode == "updates":
                         final_result = chunk
 
-            self.logger.info(f"Streaming completed successfully")
-
             # Return final result
             if final_result and "agent" in final_result:
                 messages = final_result["agent"]["messages"]
+                self.agent_state.messages.append(AIMessage(content=messages[-1].content))
+                self.logger.info(f"Current Agent State after stream query-> {self.agent_state.messages}")
                 if messages:
                     yield {
                         "type": "final_response",
@@ -469,3 +461,4 @@ class TransactionAgent():
                 "message": "❌ An error occurred"
             }
             raise AgentException() from e
+

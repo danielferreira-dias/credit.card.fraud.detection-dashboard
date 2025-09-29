@@ -50,7 +50,7 @@ export default function AgentPage(){
                     [messageIndex]: fullContent.slice(0, currentIndex + 1)
                 }));
                 currentIndex++;
-                typingTimeoutRef.current = setTimeout(typeCharacter, 1); // Adjust speed here (lower = faster)
+                typingTimeoutRef.current = setTimeout(typeCharacter, 0.1); // Adjust speed here (lower = faster)
             } else {
                 setTypingMessageIndex(null);
             }
