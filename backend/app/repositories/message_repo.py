@@ -3,7 +3,6 @@ from app.models.user_model import Conversation, Message
 from app.infra.logger import setup_logger
 from app.exception.chat_exceptions import ChatException, ChatNotFound
 from sqlalchemy import select, func
-from app.schemas.message_schema import ConversationCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -60,6 +59,23 @@ class ConversationRepository:
         except SQLAlchemyError as e:
             await self.db.rollback()
             logger.error(f"Erro ao deletar conversa com ID {conversation_id}: {e}")
+            raise ChatException("Error in the Conversation Database;") from e
+        
+    async def update_conversation(self, conversation_id: int) -> None:
+        try:
+            conversation = await self.get_conversation(conversation_id)
+            if conversation is None:
+                raise ChatNotFound(f"Conversation with id {conversation_id} not found")
+
+            # Update last_activity_at and updated_at timestamps
+            conversation.last_activity_at = func.now()
+            conversation.updated_at = func.now()
+
+            await self.db.commit()
+            await self.db.refresh(conversation)
+        except SQLAlchemyError as e:
+            await self.db.rollback()
+            logger.error(f"Erro ao atualizar conversa com ID {conversation_id}: {e}")
             raise ChatException("Error in the Conversation Database;") from e
 
 class MessageRepository:

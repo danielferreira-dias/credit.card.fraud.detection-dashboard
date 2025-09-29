@@ -63,7 +63,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
                                 if data.get("type") == "final_response":
                                     final_message = WebSocketMessage( type="Agent", content=data.get("content", "No response available"))
                                     await websocket.send_text(json.dumps(final_message.to_dict()))
-                                    return
+                                    return final_message
 
                             except json.JSONDecodeError as e:
                                 logger.error(f"Failed to parse streaming data: {line_str}")

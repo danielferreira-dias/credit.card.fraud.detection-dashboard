@@ -10,6 +10,7 @@ from langsmith import traceable
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 from langgraph.config import get_stream_writer
+from colorama import init, Fore, Style
 
 # Add the agent-service root directory to Python path
 agent_service_root = Path(__file__).parent.parent.parent.parent
@@ -25,6 +26,9 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Initialize colorama for cross-platform color support
+init(autoreset=True)
 
 @dataclass
 class TransactionData:
@@ -67,8 +71,7 @@ class TransactionAgent:
         self.backend_client = backend_client
 
         # Initiates State with System Messaage
-        self.agent_state = state
-        self.logger.info(f"Agent State initiated -> {self.agent_state.messages}")
+        # self.agent_state = state
 
         # Store for chat conversations
         # self.store = InMemoryStore()
@@ -361,11 +364,6 @@ class TransactionAgent:
                 user_input: User's query string
                 stream: Whether to stream the response (default: True)
         """
-
-        # Add user input
-        self.agent_state.messages.append(HumanMessage(content=user_input))
-        self.logger.info(f"Current Agent State before stream query-> {self.agent_state.messages}")
-
         try:
             if stream:
                 return await self._stream_query({"messages": [HumanMessage(content=user_input)]})
@@ -406,7 +404,7 @@ class TransactionAgent:
             # Return final result
             if final_result and "agent" in final_result:
                 messages = final_result["agent"]["messages"]
-                self.agent_state.messages.append(AIMessage(content=messages[-1].content))
+                # self.agent_state.messages.append(AIMessage(content=messages[-1].content))
                 if messages:
                     yield {
                         "type": "final_response",
@@ -506,7 +504,7 @@ def process_checkpoints(checkpoints):
     """
     logger = get_agent_logger(name='CheckPoint Logger')
 
-    logger.info("\n==========================================================\n")
+    logger.info(f"{Fore.YELLOW}{'='*60}")
 
     for idx, checkpoint_tuple in enumerate(checkpoints):
         # Extract key information about the checkpoint
@@ -514,19 +512,21 @@ def process_checkpoints(checkpoints):
         messages = checkpoint["channel_values"].get("messages", [])
 
         # Display checkpoint information
-        logger.info(f"[black]Checkpoint ID: {checkpoint['id']}[/black]")
+        logger.info(f"{Fore.MAGENTA}Checkpoint ID: {checkpoint['id']}")
 
         # Display checkpoint messages
         for message in messages:
             if isinstance(message, HumanMessage):
                 logger.info(
-                    f"User: {message.content}[bright_cyan](Message ID: {message.id})"
+                    f"{Fore.CYAN}👤 User: {Style.BRIGHT}{message.content}{Style.RESET_ALL} "
+                    f"{Fore.BLUE}(Message ID: {message.id})"
                 )
             elif isinstance(message, AIMessage):
                 logger.info(
-                    f"Agent: {message.content} [bright_cyan](Message ID: {message.id})"
+                    f"{Fore.GREEN}🤖 Agent: {Style.BRIGHT}{message.content}{Style.RESET_ALL} "
+                    f"{Fore.BLUE}(Message ID: {message.id})"
                 )
 
         logger.info("")
 
-    logger.info("==========================================================")
+    logger.info(f"{Fore.YELLOW}{'='*60}")

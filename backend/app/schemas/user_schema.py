@@ -25,11 +25,13 @@ class RegisterResponse(BaseModel):
     token: TokenResponse
 
 class UserSchema(BaseModel):
+    user_id : int
     email: EmailStr
     password: str
     name: str
 
 class UserAuthenticationReponse(BaseModel):
+    id: int
     email: EmailStr
     name: str
 

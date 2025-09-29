@@ -27,8 +27,6 @@ export function UserProvider({ children }: UserProviderProps) {
       return null;
     }
 
-    console.log('Found access token (first 50 chars):', token.substring(0, 50) + '...');
-
     try {
       const response = await fetch('http://localhost:80/auth/verify-token', {
         headers: {

@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ReasoningFlowComponent } from '../components/ReasoningFlowComponent';
 import { mockStepsTest } from '../mock/mockSteps';
+import { useUser } from '../context/UserContext';
 
 interface ReasoningStep {
     type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response';
@@ -10,7 +11,7 @@ interface ReasoningStep {
     timestamp: string;
 }
 interface Message {
-    type: 'system' | 'User' | 'Agent' | 'typing' | 'progress' | 'error';
+    type: 'system' | 'User' | 'Agent' | 'typing' | 'progress' | 'auth_success' | 'error' | 'conversation_started';
     content: string;
     timestamp: string;
     progress_type?: string;
@@ -18,6 +19,7 @@ interface Message {
 }
 
 export default function AgentPage(){
+    const { user, loading } = useUser();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
     const [isConnected, setIsConnected] = useState(false);
@@ -214,8 +216,19 @@ export default function AgentPage(){
     };
     // Websocket Managment
     useEffect(() => {
+        // Don't connect if user is not loaded or authenticated
+        if (loading || !user) {
+            return;
+        }
+
         const connectWebSocket = () => {
-            const ws = new WebSocket('ws://localhost:80/chat/ws/agent/0');
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.error('No access token found');
+                return;
+            }
+
+            const ws = new WebSocket(`ws://localhost:80/chat/ws/agent/${user.id}?token=${token}`);
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
                 setIsConnected(true);
@@ -281,11 +294,9 @@ export default function AgentPage(){
                     reasoning_steps: reasoningStepsRef.current
                 };
                 setMessages(prev => {
-                    console.log('Previous messages before adding final:', prev.length);
                     // Remove progress messages when final message arrives
                     const withoutProgress = prev.filter(m => m.type !== 'progress');
                     const updated = [...withoutProgress, processedMessage];
-                    console.log('Messages after adding final:', updated.length);
 
                     // Start typing animation for Agent messages
                     if (message.type === 'Agent') {
@@ -320,7 +331,7 @@ export default function AgentPage(){
                 wsRef.current.close();
             }
         };
-    }, []);
+    }, [user, loading]); // Re-run when user or loading state changes
     // SendMessage Management
     const sendMessage = () => {
         if (!inputMessage.trim()) return;
@@ -368,7 +379,7 @@ export default function AgentPage(){
                 <div className="flex-1 p-4 overflow-y-auto">
                     {/* Connection status and mock toggle */}
                     <div className="flex items-center justify-between mb-4">
-                        <div className={`text-sm px-3 py-2 rounded-lg w-fit ${
+                        <div className={`text-xs px-3 py-2 rounded-lg w-fit ${
                             isConnected
                                 ? 'bg-black text-green-700 border border-green-900'
                                 : 'bg-black text-red-400 border border-red-800'
@@ -396,7 +407,15 @@ export default function AgentPage(){
                         {messages.map((message, index) => (
                             <div key={index} className={`flex ${message.type === 'User' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={` rounded-lg px-4 py-3 ${
-                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl':  message.type === 'error' ? 'border-zinc-900 border-2 text-white w-[80%]' : message.type === 'Agent' ? 'bg-transparent text-white w-[80%]' : message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800 w-[80%]' : message.type === 'progress' ? ' text-zinc-300 border border-zinc-700 animate-pulse w-[80%]' : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800' } `}>
+                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl' :
+                                    message.type === 'error' ? 'border-zinc-900 border-2 text-white w-[80%]' :
+                                    message.type === 'Agent' ? 'bg-transparent text-white w-[80%]' :
+                                    message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800 w-[80%]' :
+                                    message.type === 'progress' ? 'text-zinc-300 border border-zinc-700 animate-pulse w-[80%]' :
+                                    message.type === 'auth_success' ? 'text-zinc-300 border border-zinc-700' :
+                                    message.type === 'conversation_started' ? 'text-zinc-300 border border-zinc-700' :
+                                    'bg-yellow-900/20 text-yellow-400 border border-yellow-800'
+                                }`}>
                                     {message.type === 'Agent' && message.reasoning_steps && (
                                         <ReasoningFlowComponent
                                             steps={message.reasoning_steps}

@@ -6,11 +6,12 @@ from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
 from app.schemas.message_schema import ConversationCreate, ConversationResponse, MessageResponse
 from app.settings.database import get_db
-from app.service.message_service import ConversationService, MessageService
+from app.service.message_service import ConversationService, MessageService, websocket_conversation_handle
 from app.repositories.message_repo import ConversationRepository, MessageRepository
 from app.ws.connection_manager import ConnectionManager
-from app.schemas.websocket_schema import ProgressMessage, WebSocketMessage
-from app.service.websocket_service import query_agent_service_streaming
+from app.schemas.websocket_schema import WebSocketMessage
+from app.service.websocket_auth_service import authenticate_websocket
+from app.service.websocket_message_handler import websocket_message_handler
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ def get_message_repo(db: AsyncSession = Depends(get_db)):
     return MessageRepository(db)
 
 def get_conversation_service(db: AsyncSession = Depends(get_db)):
-    return ConversationService(db, get_conversation_repository(db), get_message_repo(db), get_user_service(db))
+    return ConversationService(get_conversation_repository(db), get_message_repo(db), get_user_service(db))
 
 def get_conversation_repository(db: AsyncSession = Depends(get_db)):
     return ConversationRepository(db)
@@ -43,36 +44,37 @@ def get_connection_manager():
 
 # --- Router ---------------------------
 
-@router.websocket("/ws/agent/{client_id}")
-async def agent_websocket_endpoint(websocket: WebSocket, client_id: int, connection_manager: ConnectionManager = Depends(get_connection_manager)):
+@router.websocket("/ws/agent/{user_id}")
+async def agent_websocket_endpoint( websocket: WebSocket, user_id: int, token: str,  conversation_id: int = None, connection_manager: ConnectionManager = Depends(get_connection_manager), conversation_service: ConversationService = Depends(get_conversation_service), message_service: MessageService = Depends(get_message_service), security_manager: SecurityManager = Depends(get_security_manager)):
     """WebSocket endpoint for chat with AI agent"""
-    await connection_manager.connect(websocket)
     try:
+        await authenticate_websocket(websocket=websocket , security_manager=security_manager , token=token, connection_manager=connection_manager, user_id=user_id)
+    except Exception as auth_error:
+        logger.error(f"Authentication failed for user {user_id}: {str(auth_error)}")
+        await websocket.close(code=4001, reason="Unauthorized: Invalid token")
+        return
+    
+    # Initialize or retrieve conversation
+    current_conversation_id = conversation_id
+    thread_id = None
+    try:
+        current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=conversation_id  ,user_id=user_id)
+        # Send conversation details to client
+        conversation_info = WebSocketMessage(
+            type="conversation_started",
+            content=f"Connected to conversation {current_conversation_id} (Thread: {thread_id})"
+        )
+        await websocket.send_text(json.dumps(conversation_info.to_dict()))
+
         while True:
-            # Receive user message
-            user_input = await websocket.receive_text()
-            try:
-                # Parse JSON if it's structured data
-                message_data = json.loads(user_input)
-                user_message = message_data.get("content", user_input)
-            except json.JSONDecodeError:
-                # Plain text message
-                user_message = user_input
-
-            # Echo user message back
-            user_echo = WebSocketMessage(type="User", content=user_message, timestamp=datetime.now().isoformat())
-            await websocket.send_text(json.dumps(user_echo.to_dict()))
-
-            # Send initial thinking indicator
-            thinking_indicator = ProgressMessage(type="progress", content="🤔 Agent is starting to analyze your request...", progress_type="initializing")
-            await websocket.send_text(json.dumps(thinking_indicator.to_dict()))
-
-            # Stream agent response with real-time progress
-            await query_agent_service_streaming(websocket, user_message)
+            await websocket_message_handler( websocket = websocket , message_service = message_service, conversation_service = conversation_service, convo_id = current_conversation_id, thread_id = thread_id )
 
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket)
-        logger.info(f"Agent chat disconnected for client {client_id}")
+        logger.info(f"Agent chat disconnected for user {user_id}, conversation {current_conversation_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error for user {user_id}: {str(e)}")
+        await websocket.close(code=1011, reason="Internal server error")
 
 @router.post('/{conversation_id}/message')
 async def send_message(role : str , conversation : ConversationCreate, conversation_service: ConversationService = Depends(get_conversation_service), message_service : MessageService = Depends(get_message_service) , token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager), ) -> ConversationResponse:

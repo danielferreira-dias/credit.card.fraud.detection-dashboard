@@ -38,7 +38,7 @@ class SecurityManager:
         if not is_valid or user is None:
             raise UserCredentialInvalid("Invalid credentials")
 
-        return UserAuthenticationReponse(email=user.email, name=user.name)
+        return UserAuthenticationReponse(id=user.user_id, email=user.email, name=user.name)
     
     def verify_token(self, token: str) -> dict | None:
         try:
@@ -49,8 +49,8 @@ class SecurityManager:
                 raise UserCredentialsException('The token has been expired;')
 
             if payload is None:
-                raise UserCredentialsException('Invalid token')
+                raise UserCredentialsException('Invalid token in Security Manager')
 
             return payload
         except InvalidTokenError as e:
-            raise UserCredentialsException("Invalid Token;") from e
+            raise UserCredentialsException("Invalid Token Security Manager;") from e

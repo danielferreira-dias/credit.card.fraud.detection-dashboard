@@ -1,14 +1,16 @@
 
+from datetime import datetime
 from typing import List
 from app.repositories.message_repo import ConversationRepository, MessageRepository
-from app.schemas.message_schema import ConversationResponse, ConversationCreate, MessageResponse
+from app.schemas.message_schema import ConversationResponse, ConversationCreate, MessageCreate, MessageResponse
 from app.models.user_model import Conversation
 from app.exception.chat_exceptions import ChatNotFound
 from app.service.user_service import UserService
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.misc.metada_info import initial_metadata
 
 class ConversationService():
-    def __init__( self, repo: ConversationRepository, message_repo: MessageRepository, user_service : UserService) :
+    def __init__(self, repo: ConversationRepository, message_repo: MessageRepository, user_service : UserService):
         self.repo = repo
         self.message_repo = message_repo
         self.user_service = user_service
@@ -16,8 +18,13 @@ class ConversationService():
     async def create_conversation(self, conversation: ConversationCreate) -> int:
         conversation_model = Conversation(
             user_id = conversation.user_id,
-            title = conversation.title or "New Chat",
-            created_at = conversation.created_at
+            title = conversation.title,
+            thread_id =  conversation.thread_id,
+            created_at = conversation.created_at,
+            updated_at = conversation.created_at,
+            is_active = True,
+            total_messages = 0,
+            metadata_info = conversation.metadata_info,
         )
         return await self.repo.create_conversation(conversation_model)
 
@@ -42,6 +49,10 @@ class ConversationService():
 
         # Convert to response format
         return [{"id": conv.id, "title": conv.title} for conv in conversations]
+    
+    async def get_conversation_by_conversation_id(self, conversation_id : int ) -> Conversation:
+        # Get all conversations for the user
+        return await self.repo.get_conversation(conversation_id)
 
     async def delete_conversation(self, conversation_id: int, user_id: int) -> str:
         # Verify user exists
@@ -63,6 +74,9 @@ class ConversationService():
 
         return f"Conversation {conversation_id} and all its messages have been deleted"
 
+    async def update_last_activity(self, conversation_id: int):
+        await self.repo.update_conversation(conversation_id)
+
     @classmethod
     def _to_response(cls, conv: Conversation, user_role: str, message: str) -> ConversationResponse:
         """
@@ -81,18 +95,17 @@ class ConversationService():
             created_at = conv.created_at
         )
         
-
 class MessageService():
     def __init__(self, db: AsyncSession, repo: MessageRepository, conversation_repo: ConversationRepository):
         self.repo = repo
         self.conversation_repo = conversation_repo
 
-    async def create_message(self, conversation_id : int , message: ConversationCreate) -> MessageResponse:
+    async def create_message(self, conversation_id : int , message: MessageCreate) -> MessageResponse:
         # Verify conversation exists
         conversation = await self.conversation_repo.get_conversation(conversation_id)
         if conversation is None:
             raise ChatNotFound(f"Conversation with id {conversation_id} not found")
-        return await self.repo.create_message(conversation_id, message.content)
+        return await self.repo.create_message(conversation_id, message)
 
     async def get_messages(self, conversation_id: int) -> List[ConversationResponse]:
         # Verify conversation exists
@@ -111,3 +124,22 @@ class MessageService():
             created_at=msg.created_at
         ) for msg in messages]
 
+async def websocket_conversation_handle(conversation_service: ConversationService, current_conversation_id : int | None, user_id : int) -> tuple[int, str]:
+    # Handle conversation initialization
+    if not current_conversation_id:
+        # Create new conversation with generated thread_id
+        thread_id = f"user_{user_id}_{int(datetime.now().timestamp())}"
+        current_conversation_id = await conversation_service.create_conversation(ConversationCreate(
+            user_id=user_id,
+            title="New Fraud Investigation Session",  # Fixed parameter name
+            thread_id=thread_id,
+            created_at=datetime.now(),
+            metadata_info=initial_metadata
+        ))
+
+        return current_conversation_id, thread_id
+    else:
+        # Retrieve existing conversation to get thread_id
+        conversation : Conversation = await conversation_service.get_conversation_by_conversation_id(current_conversation_id)
+        thread_id : str = conversation.thread_id if conversation else f"user_{user_id}_{current_conversation_id}"
+        return current_conversation_id, thread_id  # Fixed: return thread_id, not conversation.id

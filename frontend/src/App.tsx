@@ -5,7 +5,6 @@ import DashboardPage from "./pages/Dashboard";
 import AgentPage from "./pages/Agent";
 import AuthenticationPage from "./pages/Authentication";
 import { UserProvider } from "./context/UserContext";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function App() {
   return (

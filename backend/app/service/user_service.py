@@ -36,11 +36,11 @@ class UserService:
             raise UserNotFoundException(f"User with ID {user_id} not found")
         return self._to_response_model(user)
     
-    async def get_user_service_email(self, email: EmailStr) -> UserSchema:
+    async def get_user_service_email(self, email: EmailStr) -> UserResponse:
         user = await self.repo.get_user_by_email(email)
         if user is None:
             raise UserNotFoundException(f"User with email {email} not found")
-        return UserSchema(email=user.email,password=user.password,name=user.name)
+        return self._to_response_model(user)
 
     async def get_users_service(self, skip: int = 0, limit: int = 100) -> List[UserResponse]:
         users = await self.repo.get_users(skip=skip, limit=limit)

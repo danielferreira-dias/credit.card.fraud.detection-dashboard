@@ -68,8 +68,8 @@ async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = 
     async def generate_stream():
         try:
             # Prepare input for agent
-            agent.agent_state.messages.append(HumanMessage(content=user_query.query))
-            agent.logger.info(f"Current Agent State before stream query-> {agent.agent_state.messages}")
+            # agent.agent_state.messages.append(HumanMessage(content=user_query.query))
+            # agent.logger.info(f"Current Agent State before stream query-> {agent.agent_state.messages}")
             # agent_input = {"messages": agent.agent_state.messages}
             agent_input = {"messages": [HumanMessage(content=user_query.query)]}
 

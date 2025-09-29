@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, Boolean, String, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, Boolean, String, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from app.settings.base import Base
 from datetime import datetime
 
@@ -19,22 +20,30 @@ class User(Base):
 
 class Conversation(Base):
     __tablename__ = "conversations"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    thread_id = Column(String(255), nullable=False, index=True)  # Changed to String for LangGraph compatibility
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(255))
-    created_at = Column(DateTime, default=datetime.now)
-    
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())  # Auto-update on changes
+    is_active = Column(Boolean, default=True)  
+    total_messages = Column(Integer, default=0) 
+    metadata_info = Column(JSON)
+
     user = relationship("User", back_populates="conversations")
-    messages = relationship("Message", back_populates="conversation")
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
 
 class Message(Base):
     __tablename__ = "messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    conversation_id = Column(Integer, ForeignKey("conversations.id"))
-    role = Column(String(20))  # 'user' or 'assistant'
-    content = Column(Text)
-    created_at = Column(DateTime, default=datetime.now)
-    
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
+    role = Column(String(20), nullable=False)  # 'user', 'assistant', 'system', 'tool'
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    tool_name = Column(String(100))  # Track which tool was used (if role='tool')
+    tool_args = Column(JSON)  # Store tool arguments for audit trail
+    message_id = Column(String(255))  # LangGraph message ID for correlation
+
     conversation = relationship("Conversation", back_populates="messages")
