@@ -15,8 +15,11 @@ class MessageCreate(BaseModel):
     message: str
 
 class ConversationListResponse(BaseModel):
-    conversation_id: Optional[int] = None
-    conversation_title: Optional[str] = None
+    id: int
+    title: str
+
+class ConversationsListResponse(BaseModel):
+    conversations: list[ConversationListResponse]
 class MessageResponse(BaseModel):
     email: EmailStr
     name: str 

@@ -4,7 +4,7 @@ import json
 from app.infra.logger import setup_logger
 from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
-from app.schemas.message_schema import ConversationCreate, ConversationResponse, MessageResponse
+from app.schemas.message_schema import ConversationCreate, ConversationResponse, MessageResponse, ConversationListResponse
 from app.settings.database import get_db
 from app.service.message_service import ConversationService, MessageService, websocket_conversation_handle
 from app.repositories.message_repo import ConversationRepository, MessageRepository
@@ -91,8 +91,8 @@ async def send_message(role : str , conversation : ConversationCreate, conversat
         created_at = datetime.now()
     )
 
-@router.get('/{user_id}', response_model = MessageResponse)
-async def get_messages( user_id : int,  token: str = Depends(security), conversation_service: ConversationService = Depends(get_conversation_service) ,security_manager: SecurityManager = Depends(get_security_manager)) -> List[dict]:
+@router.get('/{user_id}', response_model=List[ConversationListResponse])
+async def get_conversations( user_id : int,  token: str = Depends(security), conversation_service: ConversationService = Depends(get_conversation_service) ,security_manager: SecurityManager = Depends(get_security_manager)) -> List[ConversationListResponse]:
     # This is a protected router, so let's check for a token;
     security_manager.verify_token(token.credentials)
     

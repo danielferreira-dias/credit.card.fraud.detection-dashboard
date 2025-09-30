@@ -1,8 +1,14 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useUser } from "../context/UserContext"
+
+interface chatHistory{
+    id: number,
+    title: string,
+}
 
 export default function ChatHistory(){
     const { user } = useUser();
+    const [historyList, setHistoryList] = useState<chatHistory[]>([]);
 
     useEffect(() => {
         if (!user) return; // Don't fetch if user is not loaded
@@ -28,6 +34,7 @@ export default function ChatHistory(){
                 throw new Error("Error in request: " + res.status);
             }
             const data = await res.json();
+            setHistoryList(data)
             console.log('Chat history:', data);
         };
 
@@ -37,8 +44,10 @@ export default function ChatHistory(){
     }, [user]); // Add user as dependency
 
     return (
-        <div className="flex flex-1 sticky top-0 text-white justify-center items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 h-svh">
-            Chat History
+        <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 h-svh">
+            {historyList.map((index , chat) => (
+                <button className="w-full  h-12 bg-zinc-950 border-[1px] hover:bg-zinc-800 border-zinc-700 rounded-lg justify-center items-center flex flex-col"><div>{index.id}. {index.title}</div></button>
+            ))}
         </div>
     )
 }

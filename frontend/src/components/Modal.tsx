@@ -31,12 +31,10 @@ export function NotificationContainer() {
         }
     };
 
-    
-
     if (notifications.length === 0) return null;
 
     return (
-        <div className="fixed top-5 right-[-5rem] z-50 max-w-sm w-full">
+        <div className="fixed bottom-5 right-[-5rem] z-50 max-w-sm w-full">
             {notifications.map((notification) => (
                 <NotificationItem
                     key={notification.id}
