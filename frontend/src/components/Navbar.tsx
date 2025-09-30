@@ -95,7 +95,7 @@ export default function Navbar(){
                             <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
                             <button
                                 onClick={onClick}
-                                className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? " opacity-100 hover:text-red-300" : "text-zinc-300 hover:text-white"}`}>
+                                className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? " opacity-100 hover:text-zinc-300" : "text-zinc-300 hover:text-white"}`}>
                                 {element}
                             </button>
                         </div>

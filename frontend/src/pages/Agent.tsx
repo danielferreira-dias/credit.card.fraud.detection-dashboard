@@ -8,9 +8,11 @@ import { formatMessageContent } from '../components/TextFormat';
 import ChatHistory from '../components/ChatHistory';
 
 interface ReasoningStep {
-    type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response';
+    type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response' | 'agent_thinking';
     content: string;
     toolName?: string;
+    tool_name?: string;
+    tool_args?: any;
     timestamp: string;
 }
 interface Message {
@@ -30,10 +32,10 @@ export default function AgentPage(){
     const [isTyping, setIsTyping] = useState(false);
     const [currentReasoningSteps, setCurrentReasoningSteps] = useState<ReasoningStep[]>([]);
     const [expandedReasoning, setExpandedReasoning] = useState<{[key: number]: boolean}>({});
-    const [useMockResponse, setUseMockResponse] = useState(false); // Toggle for testing
     const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null);
     const [displayedContent, setDisplayedContent] = useState<{[key: number]: string}>({});
     const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
+    const [currentThreadID, setcurrentThreadID] = useState<string | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,13 +56,58 @@ export default function AgentPage(){
             }
         };
     }, []);
-    const extractToolNameFromContent = (content: string): string => {
-        // Try to extract tool name from content patterns
-        const toolMatch = content.match(/(?:using|calling|invoking|executing)\s+(\w+)/i) ||
-                         content.match(/tool:\s*(\w+)/i) ||
-                         content.match(/(\w+)_tool/i);
-        return toolMatch ? toolMatch[1] : 'Unknown';
-    };
+    
+
+    // Load conversation history when a conversation is selected
+    useEffect(() => {
+        if (loading || !user || !currentConversationId) {
+            return;
+        }
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.error('No access token found');
+            return;
+        }
+
+        const fetchConversationHistory = async () => {
+            try {
+                const url = `http://localhost:80/chat/${user.id}/${currentConversationId}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch conversation: ${response.status}`);
+                }
+
+                const conversationMessages = await response.json();
+                console.log('Loaded conversation history:', conversationMessages);
+
+                // Transform backend messages to frontend Message format
+                const formattedMessages = conversationMessages.map((msg: any) => ({
+                    type: msg.role === 'user' ? 'User' : 'Agent',
+                    content: msg.content,
+                    timestamp: msg.created_at,
+                    reasoning_steps: msg.reasoning_steps
+                }));
+                console.log('conversationMessages ', conversationMessages)
+
+
+                setMessages(formattedMessages);
+            } catch (error) {
+                console.error('Error fetching conversation history:', error);
+                showError('Failed to load conversation history', 3000);
+            }
+        };
+
+        fetchConversationHistory();
+    }, [currentConversationId, user, loading])
+
     // Websocket Managment
     useEffect(() => {
         // Don't connect if user is not loaded or authenticated
@@ -77,12 +124,8 @@ export default function AgentPage(){
 
             // Reset intentional close flag when connecting
             intentionalCloseRef.current = false;
-
             console.log('Current currentConversationId in the Frontend -> ', currentConversationId)
-
-            const wsUrl = currentConversationId
-                ? `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}&conversation_id=${currentConversationId}`
-                : `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}`;
+            const wsUrl = currentConversationId ? `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}&conversation_id=${currentConversationId}` : `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}`;
             const ws = new WebSocket(wsUrl);
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
@@ -114,10 +157,11 @@ export default function AgentPage(){
                         type: message.progress_type === 'tool_call' ? 'tool_call' :
                               message.progress_type === 'tool_progress' ? 'tool_progress' :
                               message.progress_type === 'tool_result' ? 'tool_result' :
+                              message.progress_type === 'agent_thinking' ? 'agent_thinking' :
                               message.progress_type === 'final_response' ? 'final_response' : 'thinking',
                         content: message.content.replace(/\\n/g, '\n'),
-                        toolName: message.progress_type === 'tool_call' || message.progress_type === 'tool_result'
-                            ? extractToolNameFromContent(message.content) : undefined,
+                        tool_name: (message as any).tool_name,
+                        tool_args: (message as any).tool_args,
                         timestamp: message.timestamp || new Date().toISOString()
                     };
 
@@ -198,16 +242,12 @@ export default function AgentPage(){
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
         }
-        // Use mock response or real WebSocket
-        if (useMockResponse) {
-            // simulateMockAgentResponse();
-        } else {
-            if (!wsRef.current || !isConnected) return;
-            const messageData = {
-                content: userMessage
-            };
-            wsRef.current.send(JSON.stringify(messageData));
-        }
+
+        if (!wsRef.current || !isConnected) return;
+        const messageData = {
+            content: userMessage
+        };
+        wsRef.current.send(JSON.stringify(messageData));
     };
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -222,18 +262,17 @@ export default function AgentPage(){
         }));
     };
 
-    const handleSelectChat = (conversationId: number) => {
+    const handleSelectChat = (conversationId: number, threadID: string) => {
         // Mark this as an intentional close
         intentionalCloseRef.current = true;
-
         // Close existing WebSocket connection
         if (wsRef.current) {
             wsRef.current.close();
         }
-
         // Clear current messages and set new conversation
         setMessages([]);
         setCurrentConversationId(conversationId);
+        setcurrentThreadID(threadID)
         // WebSocket will reconnect automatically via useEffect
     };
     return (
@@ -250,11 +289,14 @@ export default function AgentPage(){
                         }`}>
                             {isConnected ? 'Connected to AI Agent' : 'Disconnected - Attempting to reconnect...'}
                         </div>
-                        <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
-                            {currentConversationId ? `ID: ${currentConversationId}` : "New Conversation"}
+                        <div className='flex flex-row gap-x-2'>
+                            <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
+                                {currentConversationId ? `ID: ${currentConversationId}` : "New Conversation"}
+                            </div>
+                            <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
+                                {currentThreadID ? `Thread ID: ${currentThreadID}` : "No Thread ID"}
+                            </div>
                         </div>
-
-                        
                     </div>
 
                     {/* Messages */}

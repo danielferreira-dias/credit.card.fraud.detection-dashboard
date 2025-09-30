@@ -470,7 +470,7 @@ class TransactionAgent:
                             # Agent response content
                             yield {
                                 "type": "agent_thinking",
-                                "message": "🤔 Agent is analyzing..."
+                                "message": f"🤔 {last_message.content}"
                             }
 
                 elif node_name == "tools" and isinstance(node_data, dict):

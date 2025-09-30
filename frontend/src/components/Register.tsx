@@ -132,7 +132,7 @@ export default function Register() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-3 justify-center">
                 <input
                   id="marketing"
                   type="checkbox"
@@ -171,8 +171,8 @@ export default function Register() {
               <span className="text-gray-500 text-sm">OR</span>
             </div>
 
-            <div className="space-y-3">
-              <div className="w-full">
+            <div className="space-y-3 flex justify-center">
+              <div className="w-full m-auto flex justify-center">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleFailure}

@@ -4,10 +4,11 @@ import { useUser } from "../context/UserContext"
 interface chatHistory{
     id: number,
     title: string,
+    thread_id: string
 }
 
 interface ChatHistoryProps {
-    onSelectChat: (conversationId: number) => void;
+    onSelectChat: (conversationId: number, threadID: string) => void;
 }
 
 export default function ChatHistory({ onSelectChat }: ChatHistoryProps){
@@ -52,7 +53,7 @@ export default function ChatHistory({ onSelectChat }: ChatHistoryProps){
             {historyList.map((chat) => (
                 <button
                     key={chat.id}
-                    onClick={() => onSelectChat(chat.id)}
+                    onClick={() => onSelectChat(chat.id, chat.thread_id)}
                     className="w-full h-12 bg-zinc-950 border-[1px] hover:bg-zinc-800 border-zinc-700 rounded-lg justify-center items-center flex flex-col">
                     <div>{chat.id}. {chat.title}</div>
                 </button>

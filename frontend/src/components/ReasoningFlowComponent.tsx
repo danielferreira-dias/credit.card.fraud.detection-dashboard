@@ -1,9 +1,11 @@
 import React from 'react';
 
 interface ReasoningStep {
-    type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response';
+    type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response' | 'agent_thinking';
     content: string;
     toolName?: string;
+    tool_name?: string;
+    tool_args?: any;
     timestamp: string;
 }
 
@@ -21,7 +23,6 @@ export const ReasoningFlowComponent: React.FC<ReasoningFlowComponentProps> = ({
     toggleReasoningExpansion
 }) => {
     const isExpanded = expandedReasoning[messageIndex];
-
     return (
         <div className="my-3 border-y border-zinc-700 py-3 w-full min-w-full">
             <button onClick={() => toggleReasoningExpansion(messageIndex)} className="flex items-center space-x-2 text-sm text-zinc-400 hover:text-zinc-300 transition-colors">
@@ -47,7 +48,7 @@ export const ReasoningFlowComponent: React.FC<ReasoningFlowComponentProps> = ({
                                         'bg-yellow-900/30 text-yellow-300'
                                     }`}>
                                         {step.type === 'thinking' ? 'THINKING' :
-                                         step.type === 'tool_call' ? `TOOL: ${step.toolName || 'Unknown'}` :
+                                         step.type === 'tool_call' ? `TOOL: ${step.tool_name || 'Unknown'}` :
                                          step.type === 'tool_progress' ? 'PROGRESS' :
                                          step.type === 'tool_result' ? 'RESULT' :
                                          'RESPONSE'}

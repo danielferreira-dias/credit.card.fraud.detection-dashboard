@@ -57,18 +57,25 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
                             try:
                                 data = json.loads(line_str[6:])  # Remove 'data: ' prefix
 
-                                # Collect reasoning step
-                                reasoning_step = {
-                                    "type": data.get("type", "unknown"),
-                                    "content": data.get("message", ""),
-                                    "tool_name": data.get("tool_name"),
-                                    "tool_args": data.get("tool_args"),
-                                    "timestamp": data.get("timestamp")
-                                }
-                                reasoning_steps.append(reasoning_step)
+                                # Collect reasoning step - only add if it's not the final response
+                                if data.get("type") != "final_response":
+                                    reasoning_step = {
+                                        "type": data.get("type", "unknown"),
+                                        "content": data.get("message", ""),
+                                        "tool_name": data.get("tool_name"),
+                                        "tool_args": data.get("tool_args"),
+                                        "timestamp": data.get("timestamp")
+                                    }
+                                    reasoning_steps.append(reasoning_step)
 
                                 # Send progress update to WebSocket
-                                progress_message = ProgressMessage(type="progress", content=data.get("message", "Processing..."), progress_type=data.get("type", "unknown"))
+                                progress_message = ProgressMessage(
+                                    type="progress",
+                                    content=data.get("message", "Processing..."),
+                                    progress_type=data.get("type", "unknown"),
+                                    tool_name=data.get("tool_name"),
+                                    tool_args=data.get("tool_args")
+                                )
                                 await websocket.send_text(json.dumps(progress_message.to_dict()))
 
                                 # If it's the final response, send it as agent message

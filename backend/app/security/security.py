@@ -17,7 +17,7 @@ class SecurityManager:
         if self.secret_key is None:
             raise UserException('Secret Key is not set;')
         self.algorithm = "HS256"
-        self.access_token_expire_minutes = 30
+        self.access_token_expire_minutes = 1000000
         self.user_service = user_service
 
     def create_access_token(self, data: dict):

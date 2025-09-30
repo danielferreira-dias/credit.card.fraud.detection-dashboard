@@ -18,6 +18,7 @@ class MessageCreate(BaseModel):
 class ConversationListResponse(BaseModel):
     id: int
     title: str
+    thread_id: str
 
 class ConversationsListResponse(BaseModel):
     conversations: list[ConversationListResponse]
