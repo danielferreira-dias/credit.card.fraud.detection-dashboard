@@ -5,11 +5,14 @@ import DashboardPage from "./pages/Dashboard";
 import AgentPage from "./pages/Agent";
 import AuthenticationPage from "./pages/Authentication";
 import { UserProvider } from "./context/UserContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import { NotificationContainer } from "./components/Modal";
 
 function App() {
   return (
     // UserProvider: Provides user context (user data, auth state) to ALL components in the app
     // This is NOT for route protection - it's for sharing user state globally
+    <NotificationProvider>
       <UserProvider>
         <Routes>
           <Route element={<Layout />}>
@@ -25,7 +28,10 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
+        {/* Global notification container - persists across all routes */}
+        <NotificationContainer />
       </UserProvider>
+    </NotificationProvider>
   );
 }
 

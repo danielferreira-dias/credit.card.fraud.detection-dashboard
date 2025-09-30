@@ -26,4 +26,4 @@ async def authenticate_websocket(websocket: WebSocket , security_manager: Securi
         type="auth_success",
         content=f"Successfully authenticated user {authenticated_user_id}"
     )
-    await websocket.send_text(json.dumps(auth_success.to_dict()))
+    # await websocket.send_text(json.dumps(auth_success.to_dict()))

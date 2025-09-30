@@ -58,16 +58,8 @@ async def agent_websocket_endpoint( websocket: WebSocket, user_id: int, token: s
     current_conversation_id = conversation_id
     thread_id = None
     try:
-        current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=conversation_id  ,user_id=user_id)
-        # Send conversation details to client
-        conversation_info = WebSocketMessage(
-            type="conversation_started",
-            content=f"Connected to conversation {current_conversation_id} (Thread: {thread_id})"
-        )
-        await websocket.send_text(json.dumps(conversation_info.to_dict()))
-
         while True:
-            await websocket_message_handler( websocket = websocket , message_service = message_service, conversation_service = conversation_service, convo_id = current_conversation_id, thread_id = thread_id )
+            await websocket_message_handler( websocket = websocket , message_service = message_service, conversation_service = conversation_service, convo_id = current_conversation_id, thread_id = thread_id , user_id=user_id )
 
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket)
@@ -79,7 +71,7 @@ async def agent_websocket_endpoint( websocket: WebSocket, user_id: int, token: s
 @router.post('/{conversation_id}/message')
 async def send_message(role : str , conversation : ConversationCreate, conversation_service: ConversationService = Depends(get_conversation_service), message_service : MessageService = Depends(get_message_service) , token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager), ) -> ConversationResponse:
     # This is a protected router, so let's check for a token;
-    payload = await security_manager.verify_token(token)
+    payload = security_manager.verify_token(token.credentials)
 
     # Let's check if the conversation_id exists
     if not conversation.conversation_id:
@@ -102,7 +94,7 @@ async def send_message(role : str , conversation : ConversationCreate, conversat
 @router.get('/{user_id}', response_model = MessageResponse)
 async def get_messages( user_id : int,  token: str = Depends(security), conversation_service: ConversationService = Depends(get_conversation_service) ,security_manager: SecurityManager = Depends(get_security_manager)) -> List[dict]:
     # This is a protected router, so let's check for a token;
-    await security_manager.verify_token(token)
+    security_manager.verify_token(token.credentials)
     
     # Let's create the message and the respective conversation and store in the database;
     return await conversation_service.get_conversations(user_id)
@@ -110,7 +102,7 @@ async def get_messages( user_id : int,  token: str = Depends(security), conversa
 @router.get('/{user_id}/{conversation_id}')
 async def get_messages( conversation_id : int, message_service : MessageService = Depends(get_message_service) ,token: str = Depends(security), security_manager: SecurityManager = Depends(get_security_manager)):
     # This is a protected router, so let's check for a token;
-    await security_manager.verify_token(token)
+    security_manager.verify_token(token.credentials)
 
     # Let's create the message and the respective conversation and store in the database;
     return await message_service.get_messages(conversation_id)
@@ -119,7 +111,7 @@ async def get_messages( conversation_id : int, message_service : MessageService 
 @router.delete('/{user_id}/{conversation_id}')
 async def delete_conversation( user_id : int, conversation_id : int,  token: str = Depends(security), conversation_service: ConversationService = Depends(get_conversation_service), security_manager: SecurityManager = Depends(get_security_manager)) -> str:
     # This is a protected router, so let's check for a token;
-    await security_manager.verify_token(token)
+    security_manager.verify_token(token.credentials)
 
     # Let's delete the conversation
     return await conversation_service.delete_conversation(conversation_id, user_id)

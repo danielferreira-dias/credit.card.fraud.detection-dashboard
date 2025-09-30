@@ -43,7 +43,6 @@ export default function TransactionList({ totalTransactions, itemsPerPage }: Tra
                 if (age < 2 * 60 * 1000) { // 2 minutes cache
                 const parsedCachedData = JSON.parse(cachedData);
                 setDataTransactions(parsedCachedData);
-                console.log("cachedData -> ", parsedCachedData)
 
                 // Process the cached data to create filter elements with counts
                 const allTransactions = parsedCachedData.length;

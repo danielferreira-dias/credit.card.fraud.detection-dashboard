@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.service.message_service import ConversationService, MessageService
+from app.service.message_service import ConversationService, MessageService, websocket_conversation_handle
 from app.schemas.websocket_schema import ProgressMessage, WebSocketMessage
 from app.service.websocket_service import query_agent_service_streaming
 from app.infra.logger import setup_logger
@@ -9,7 +9,7 @@ import json
 
 logger = setup_logger(__name__)
 
-async def websocket_message_handler(websocket: WebSocket, message_service: MessageService, conversation_service: ConversationService, convo_id : int, thread_id : str):
+async def websocket_message_handler(websocket: WebSocket, message_service: MessageService, conversation_service: ConversationService, convo_id : int, thread_id : str , user_id : int):
     # Receive user message
     user_input = await websocket.receive_text()
     try:
@@ -19,11 +19,19 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
     except json.JSONDecodeError:
         # Plain text message
         user_message = user_input
+    
+    current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=convo_id  ,user_id=user_id)
+    # Send conversation details to client
+    conversation_info = WebSocketMessage(
+        type="conversation_started",
+        content=f"Created conversation {current_conversation_id} (Thread: {thread_id})"
+    )
+    await websocket.send_text(json.dumps(conversation_info.to_dict()))
 
     # Save user message to database
     await message_service.create_message(
         conversation_id=convo_id,
-        message=MessageCreate(role="user", content=user_message)
+        message=MessageCreate(role="user", message=user_message)
     )
 
     # Echo user message back
@@ -41,7 +49,7 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
     if agent_message and agent_message.content:
         await message_service.create_message(
             conversation_id=convo_id,
-            message=MessageCreate(role="assistant", content=agent_message.content)
+            message=MessageCreate(role="assistant", message=agent_message.content)
         )
 
         # Update conversation activity

@@ -1,8 +1,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ReasoningFlowComponent } from '../components/ReasoningFlowComponent';
-import { mockStepsTest } from '../mock/mockSteps';
+// import { mockStepsTest, simulateMockAgentResponse } from '../mock/mockSteps';
 import { useUser } from '../context/UserContext';
+import { useNotification } from '../hooks/useNotification';
+import { formatMessageContent } from '../components/TextFormat';
+import ChatHistory from '../components/ChatHistory';
 
 interface ReasoningStep {
     type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response';
@@ -11,7 +14,7 @@ interface ReasoningStep {
     timestamp: string;
 }
 interface Message {
-    type: 'system' | 'User' | 'Agent' | 'typing' | 'progress' | 'auth_success' | 'error' | 'conversation_started';
+    type: 'system' | 'User' | 'Agent' | 'typing' | 'progress' | 'error' | 'conversation_started';
     content: string;
     timestamp: string;
     progress_type?: string;
@@ -20,6 +23,7 @@ interface Message {
 
 export default function AgentPage(){
     const { user, loading } = useUser();
+    const { showSuccess, showError, showWarning, showInfo, showAgentNotification, showAuthSuccess } = useNotification();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
     const [isConnected, setIsConnected] = useState(false);
@@ -40,25 +44,7 @@ export default function AgentPage(){
     useEffect(() => {
         scrollToBottom();
     }, [messages, displayedContent]);
-    const startTypingAnimation = (messageIndex: number, fullContent: string) => {
-        setTypingMessageIndex(messageIndex);
-        setDisplayedContent(prev => ({ ...prev, [messageIndex]: '' }));
-
-        let currentIndex = 0;
-        const typeCharacter = () => {
-            if (currentIndex < fullContent.length) {
-                setDisplayedContent(prev => ({
-                    ...prev,
-                    [messageIndex]: fullContent.slice(0, currentIndex + 1)
-                }));
-                currentIndex++;
-                typingTimeoutRef.current = setTimeout(typeCharacter, 0.1); // Adjust speed here (lower = faster)
-            } else {
-                setTypingMessageIndex(null);
-            }
-        };
-        typeCharacter();
-    };
+    
     useEffect(() => {
         return () => {
             if (typingTimeoutRef.current) {
@@ -72,147 +58,6 @@ export default function AgentPage(){
                          content.match(/tool:\s*(\w+)/i) ||
                          content.match(/(\w+)_tool/i);
         return toolMatch ? toolMatch[1] : 'Unknown';
-    };
-    const formatMessageContent = (content: string): React.ReactElement => {
-        // Check if content contains table patterns (lines with | characters)
-        const lines = content.split('\n');
-        const hasTable = lines.some(line =>
-            line.includes('|') && line.split('|').length > 2
-        );
-
-        if (hasTable) {
-            // Find table sections and format them separately
-            const sections: React.ReactElement[] = [];
-            let currentSection = '';
-            let inTable = false;
-            let sectionIndex = 0;
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const isTableLine = line.includes('|') && line.split('|').length > 2;
-
-                if (isTableLine && !inTable) {
-                    // Starting a table - save previous section
-                    if (currentSection.trim()) {
-                        sections.push(
-                            <span key={`text-${sectionIndex++}`}>
-                                {formatTextContent(currentSection)}
-                            </span>
-                        );
-                    }
-                    currentSection = line + '\n';
-                    inTable = true;
-                } else if (isTableLine && inTable) {
-                    // Continue table
-                    currentSection += line + '\n';
-                } else if (!isTableLine && inTable) {
-                    // End of table
-                    sections.push(
-                        <div key={`table-${sectionIndex++}`} className="table-content">
-                            {currentSection.trim()}
-                        </div>
-                    );
-                    currentSection = line + '\n';
-                    inTable = false;
-                } else {
-                    // Regular content
-                    currentSection += line + '\n';
-                }
-            }
-
-            // Handle remaining content
-            if (currentSection.trim()) {
-                if (inTable) {
-                    sections.push(
-                        <div key={`table-${sectionIndex}`} className="table-content">
-                            {currentSection.trim()}
-                        </div>
-                    );
-                } else {
-                    sections.push(
-                        <span key={`text-${sectionIndex}`}>
-                            {formatTextContent(currentSection)}
-                        </span>
-                    );
-                }
-            }
-
-            return <>{sections}</>;
-        }
-
-        // No tables, use regular formatting
-        return <>{formatTextContent(content)}</>;
-    };
-    const formatTextContent = (content: string): React.ReactElement => {
-        // Split content by **text** patterns to handle bold formatting
-        const parts = content.split(/(\*\*.*?\*\*)/g);
-        return (
-            <>
-                {parts.map((part, index) => {
-                    // Check if this part is bold (wrapped in **)
-                    if (part.startsWith('**') && part.endsWith('**')) {
-                        const boldText = part.slice(2, -2); // Remove the ** from both ends
-                        return <span key={index} className="font-bold">{boldText}</span>;
-                    }
-                    // Regular text - preserve line breaks
-                    return <span key={index}>{part}</span>;
-                })}
-            </>
-        );
-    };
-    const simulateMockAgentResponse = async () => {
-        setIsTyping(true);
-        const mockSteps = mockStepsTest
-        // Accumulate reasoning steps locally (fixes async state issue)
-        const accumulatedSteps: ReasoningStep[] = [];
-        // Simulate streaming responses
-        for (let i = 0; i < mockSteps.length; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay between steps
-            const mockMessage = mockSteps[i];
-            // Create reasoning step
-            const newStep: ReasoningStep = {
-                type: mockMessage.progress_type === 'tool_call' ? 'tool_call' :
-                      mockMessage.progress_type === 'tool_result' ? 'tool_result' :
-                      mockMessage.progress_type === 'tool_progress' ? 'tool_progress' :
-                      mockMessage.progress_type === 'final_response' ? 'final_response' :
-                      'thinking',
-                content: mockMessage.content,
-                toolName: mockMessage.progress_type === 'tool_call' || mockMessage.progress_type === 'tool_result'
-                    ? extractToolNameFromContent(mockMessage.content) : undefined,
-                timestamp: mockMessage.timestamp
-            };
-            // Add to local accumulator
-            accumulatedSteps.push(newStep);
-            // Update state for real-time display
-            setCurrentReasoningSteps([...accumulatedSteps]);
-            setMessages(prev => {
-                const withoutProgress = prev.filter(m => m.type !== 'progress');
-                return [...withoutProgress, {
-                    type: 'progress' as const,
-                    content: mockMessage.content,
-                    timestamp: mockMessage.timestamp,
-                    progress_type: mockMessage.progress_type
-                }];
-            });
-        }
-        // Final response
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsTyping(false);
-        const finalResponse = {
-            type: 'Agent' as const,
-            content: "Here are the first 20 transactions from the database:\n\n1. **Customer:** CUST_72886 | **Amount:** $377.43 | **Fraud:** No  \n2. **Customer:** CUST_70474 | **Amount:** $572.72 | **Fraud:** Yes  \n3. **Customer:** CUST_10715 | **Amount:** $666.79 | **Fraud:** No  \n4. **Customer:** CUST_16193 | **Amount:** $409.89 | **Fraud:** No  \n5. **Customer:** CUST_87572 | **Amount:** $434.97 | **Fraud:** Yes  \n6. **Customer:** CUST_55630 | **Amount:** $2.00 | **Fraud:** Yes  \n7. **Customer:** CUST_89147 | **Amount:** $443.05 | **Fraud:** No  \n8. **Customer:** CUST_10150 | **Amount:** $878.03 | **Fraud:** No  \n9. **Customer:** CUST_83143 | **Amount:** $62.95 | **Fraud:** No  \n10. **Customer:** CUST_35022 | **Amount:** $2524.57 | **Fraud:** Yes  \n11. **Customer:** CUST_64274 | **Amount:** $346.45 | **Fraud:** No  \n12. **Customer:** CUST_65989 | **Amount:** $561.34 | **Fraud:** No  \n13. **Customer:** CUST_82514 | **Amount:** $282.95 | **Fraud:** No  \n14. **Customer:** CUST_42282 | **Amount:** $0.37 | **Fraud:** Yes  \n15. **Customer:** CUST_79886 | **Amount:** $699.49 | **Fraud:** No  \n16. **Customer:** CUST_80907 | **Amount:** $349.98 | **Fraud:** No  \n17. **Customer:** CUST_81861 | **Amount:** $1186.18 | **Fraud:** No  \n18. **Customer:** CUST_75970 | **Amount:** $1333.25 | **Fraud:** No  \n19. **Customer:** CUST_75986 | **Amount:** $448.72 | **Fraud:** No  \n20. **Customer:** CUST_75433 | **Amount:** $393.74 | **Fraud:** No  \n\n⚠️ Note: The **transaction IDs** are currently missing in this dataset, so identifying specific transactions will need additional queries.\n\nDo you want me to show **the next 20 transactions** or perhaps filter only **fraudulent ones**?",
-            timestamp: new Date().toISOString(),
-            reasoning_steps: accumulatedSteps // Use local accumulator instead of state
-        };
-        setMessages(prev => {
-            const withoutProgress = prev.filter(m => m.type !== 'progress');
-            const newMessages = [...withoutProgress, finalResponse];
-            // Start typing animation for the new message
-            const messageIndex = newMessages.length - 1;
-            setTimeout(() => startTypingAnimation(messageIndex, finalResponse.content), 100);
-            return newMessages;
-        });
-        setCurrentReasoningSteps([]);
     };
     // Websocket Managment
     useEffect(() => {
@@ -232,6 +77,7 @@ export default function AgentPage(){
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
                 setIsConnected(true);
+                showSuccess('Connected to AI Agent successfully!', 3000);
             };
             ws.onmessage = (event) => {
                 const message: Message = JSON.parse(event.data);
@@ -297,13 +143,6 @@ export default function AgentPage(){
                     // Remove progress messages when final message arrives
                     const withoutProgress = prev.filter(m => m.type !== 'progress');
                     const updated = [...withoutProgress, processedMessage];
-
-                    // Start typing animation for Agent messages
-                    if (message.type === 'Agent') {
-                        const messageIndex = updated.length - 1;
-                        setTimeout(() => startTypingAnimation(messageIndex, processedMessage.content), 100);
-                    }
-
                     return updated;
                 });
                 // Clear reasoning steps after final message
@@ -315,12 +154,14 @@ export default function AgentPage(){
             ws.onclose = () => {
                 console.log('WebSocket connection closed');
                 setIsConnected(false);
+                showWarning('Connection lost. Attempting to reconnect...', 4000);
                 // Attempt to reconnect after 3 seconds
                 setTimeout(connectWebSocket, 3000);
             };
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
                 setIsConnected(false);
+                showError('WebSocket connection error occurred', 5000);
             };
             wsRef.current = ws;
         };
@@ -331,7 +172,7 @@ export default function AgentPage(){
                 wsRef.current.close();
             }
         };
-    }, [user, loading]); // Re-run when user or loading state changes
+    }, [user]); 
     // SendMessage Management
     const sendMessage = () => {
         if (!inputMessage.trim()) return;
@@ -351,7 +192,7 @@ export default function AgentPage(){
         }
         // Use mock response or real WebSocket
         if (useMockResponse) {
-            simulateMockAgentResponse();
+            // simulateMockAgentResponse();
         } else {
             if (!wsRef.current || !isConnected) return;
             const messageData = {
@@ -387,18 +228,48 @@ export default function AgentPage(){
                             {isConnected ? 'Connected to AI Agent' : 'Disconnected - Attempting to reconnect...'}
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                            <label className="text-sm text-zinc-400">Mock Mode:</label>
-                            <button
-                                onClick={() => setUseMockResponse(!useMockResponse)}
-                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                    useMockResponse
-                                        ? 'bg-zinc-800 text-blue-300 border border-blue-700'
-                                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                                }`}
-                            >
-                                {useMockResponse ? 'ON' : 'OFF'}
-                            </button>
+                        <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                                {/* <label className="text-sm text-zinc-400">Mock Mode:</label>
+                                <button
+                                    onClick={() => setUseMockResponse(!useMockResponse)}
+                                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                        useMockResponse
+                                            ? 'bg-zinc-800 text-blue-300 border border-blue-700'
+                                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                                    }`}
+                                >
+                                    {useMockResponse ? 'ON' : 'OFF'}
+                                </button> */}
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <label className="text-sm text-zinc-400">Test Notifications:</label>
+                                <button
+                                    onClick={() => showSuccess('This is a success notification!')}
+                                    className="px-2 py-1 rounded text-xs bg-green-800 text-green-200 hover:bg-green-700"
+                                >
+                                    Success
+                                </button>
+                                <button
+                                    onClick={() => showError('This is an error notification!')}
+                                    className="px-2 py-1 rounded text-xs bg-red-800 text-red-200 hover:bg-red-700"
+                                >
+                                    Error
+                                </button>
+                                <button
+                                    onClick={() => showWarning('This is a warning notification!')}
+                                    className="px-2 py-1 rounded text-xs bg-yellow-800 text-yellow-200 hover:bg-yellow-700"
+                                >
+                                    Warning
+                                </button>
+                                <button
+                                    onClick={() => showInfo('This is an info notification!')}
+                                    className="px-2 py-1 rounded text-xs bg-blue-800 text-blue-200 hover:bg-blue-700"
+                                >
+                                    Info
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -412,7 +283,6 @@ export default function AgentPage(){
                                     message.type === 'Agent' ? 'bg-transparent text-white w-[80%]' :
                                     message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800 w-[80%]' :
                                     message.type === 'progress' ? 'text-zinc-300 border border-zinc-700 animate-pulse w-[80%]' :
-                                    message.type === 'auth_success' ? 'text-zinc-300 border border-zinc-700' :
                                     message.type === 'conversation_started' ? 'text-zinc-300 border border-zinc-700' :
                                     'bg-yellow-900/20 text-yellow-400 border border-yellow-800'
                                 }`}>
@@ -495,9 +365,7 @@ export default function AgentPage(){
                     </div>
                 </div>
             </div>
-            <div className="flex flex-1 sticky top-0 text-white justify-center items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 h-svh">
-                Chat History
-            </div>
+            <ChatHistory />
         </div>
     )
 }
