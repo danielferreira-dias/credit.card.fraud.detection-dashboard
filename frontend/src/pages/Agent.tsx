@@ -36,6 +36,7 @@ export default function AgentPage(){
     const [displayedContent, setDisplayedContent] = useState<{[key: number]: string}>({});
     const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
     const [currentThreadID, setcurrentThreadID] = useState<string | null>(null);
+    const [chatHistoryRefresh, setChatHistoryRefresh] = useState<number>(0);
     const wsRef = useRef<WebSocket | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -112,6 +113,7 @@ export default function AgentPage(){
     useEffect(() => {
         // Don't connect if user is not loaded or authenticated
         if (loading || !user) {
+            console.log('WebSocket: Waiting for user to load...');
             return;
         }
 
@@ -124,17 +126,31 @@ export default function AgentPage(){
 
             // Reset intentional close flag when connecting
             intentionalCloseRef.current = false;
-            console.log('Current currentConversationId in the Frontend -> ', currentConversationId)
-            const wsUrl = currentConversationId ? `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}&conversation_id=${currentConversationId}` : `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}`;
+
+            // Build WebSocket URL without conversation_id (we'll send it in messages)
+            const wsUrl = `ws://localhost:80/chat/ws/agent/${user.id}?token=${encodeURIComponent(token)}`;
+            console.log('Connecting to WebSocket:', wsUrl.substring(0, 50) + '...');
+
             const ws = new WebSocket(wsUrl);
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
                 setIsConnected(true);
-                showSuccess('Connected to AI Agent successfully!', 3000);
+                // showSuccess('Connected to AI Agent successfully!', 3000);
             };
             ws.onmessage = (event) => {
                 const message: Message = JSON.parse(event.data);
                 console.log("WebSocket message received:", message);
+
+                // Handle conversation_started - update conversation ID and thread ID
+                if (message.type === 'conversation_started') {
+                    const convData = message as any;
+                    console.log("New conversation created:", convData);
+                    setCurrentConversationId(convData.conversation_id);
+                    setcurrentThreadID(convData.thread_id);
+                    // Trigger chat history refresh
+                    setChatHistoryRefresh(prev => prev + 1);
+                    return;
+                }
 
                 // Skip User messages from WebSocket - they're already added locally
                 if (message.type === 'User') {
@@ -224,7 +240,7 @@ export default function AgentPage(){
                 wsRef.current.close();
             }
         };
-    }, [user, currentConversationId]); 
+    }, [user]); // Removed currentConversationId - WebSocket should persist across conversation changes 
     // SendMessage Management
     const sendMessage = () => {
         if (!inputMessage.trim()) return;
@@ -245,7 +261,9 @@ export default function AgentPage(){
 
         if (!wsRef.current || !isConnected) return;
         const messageData = {
-            content: userMessage
+            content: userMessage,
+            conversation_id: currentConversationId,
+            thread_id: currentThreadID
         };
         wsRef.current.send(JSON.stringify(messageData));
     };
@@ -263,17 +281,13 @@ export default function AgentPage(){
     };
 
     const handleSelectChat = (conversationId: number, threadID: string) => {
-        // Mark this as an intentional close
-        intentionalCloseRef.current = true;
-        // Close existing WebSocket connection
-        if (wsRef.current) {
-            wsRef.current.close();
-        }
         // Clear current messages and set new conversation
         setMessages([]);
         setCurrentConversationId(conversationId);
-        setcurrentThreadID(threadID)
-        // WebSocket will reconnect automatically via useEffect
+        setcurrentThreadID(threadID);
+
+        // Don't close WebSocket - just update the conversation context
+        // The next message sent will use the updated conversationId
     };
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
@@ -391,7 +405,7 @@ export default function AgentPage(){
                     </div>
                 </div>
             </div>
-            <ChatHistory onSelectChat={handleSelectChat} />
+            <ChatHistory onSelectChat={handleSelectChat} refreshTrigger={chatHistoryRefresh} />
         </div>
     )
 }

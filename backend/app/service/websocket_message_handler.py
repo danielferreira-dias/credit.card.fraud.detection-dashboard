@@ -16,17 +16,25 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
         # Parse JSON if it's structured data
         message_data = json.loads(user_input)
         user_message = message_data.get("content", user_input)
+        # Get conversation_id and thread_id from message if provided
+        convo_id = message_data.get("conversation_id") or convo_id
+        thread_id = message_data.get("thread_id") or thread_id
     except json.JSONDecodeError:
         # Plain text message
         user_message = user_input
     
     current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=convo_id  ,user_id=user_id)
-    # Send conversation details to client
-    conversation_info = WebSocketMessage(
-        type="conversation_started",
-        content=f"Created conversation {current_conversation_id} (Thread: {thread_id})"
-    )
-    # await websocket.send_text(json.dumps(conversation_info.to_dict()))
+
+    # Send conversation details to client if this is a new conversation
+    if not convo_id:
+        conversation_info = {
+            "type": "conversation_started",
+            "conversation_id": current_conversation_id,
+            "thread_id": thread_id,
+            "content": f"Started conversation {current_conversation_id}",
+            "timestamp": datetime.now().isoformat()
+        }
+        await websocket.send_text(json.dumps(conversation_info))
 
     # Save user message to database
     await message_service.create_message(
@@ -58,5 +66,3 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
 
         # Update conversation activity
         await conversation_service.update_last_activity(current_conversation_id)
-
-    logger.info(f"THIS WAS THE LAST AGENT_MESSAGE -> {agent_message.content if agent_message else 'None'}")

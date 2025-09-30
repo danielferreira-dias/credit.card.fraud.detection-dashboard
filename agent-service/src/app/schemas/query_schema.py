@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 class QuerySchema(BaseModel):
     query : str
+    thread_id: Optional[str] = None
     
 class QueryResponse(BaseModel):
     query: str

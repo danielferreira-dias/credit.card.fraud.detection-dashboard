@@ -49,7 +49,6 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
             payload = {"query": user_message, "thread_id": thread_id}
             async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}) as response:
                 if response.status == 200:
-                    logger.info(f'The response content is -> {response.content}')
                     # Process streaming response
                     async for line in response.content:
                         line_str = line.decode('utf-8').strip()

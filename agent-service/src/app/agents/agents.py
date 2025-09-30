@@ -5,9 +5,9 @@ from typing import List
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langchain_core.stores import InMemoryStore
 from langsmith import traceable
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.prebuilt import create_react_agent
 from langgraph.config import get_stream_writer
 from colorama import init, Fore, Style
@@ -47,7 +47,7 @@ class ConversationState:
         return self.messages[-limit:]
 
 class TransactionAgent:
-    def __init__(self, model_name : str, state : ConversationState ,backend_client: BackendAPIClient):
+    def __init__(self, model_name : str ,backend_client: BackendAPIClient):
         """
             model = Initializes the Agent Model also known as the LLM
             tools = Gathers all the tools that the Agent can use
@@ -355,7 +355,7 @@ class TransactionAgent:
         return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
     @traceable(name="query_agent")
-    async def query_agent(self, user_input: str, stream: bool = True):
+    async def query_agent(self, user_input: str, thread_id : str ,stream: bool = True):
         """
             Ensures the first message is the System Prompt initialized, then adds the user Input as HumanMessage
             It then invokes the agent by running once with the input and returning the final structured output;
@@ -366,15 +366,15 @@ class TransactionAgent:
         """
         try:
             if stream:
-                return await self._stream_query({"messages": [HumanMessage(content=user_input)]})
+                return await self._stream_query({"messages": [HumanMessage(content=user_input)]}, thread_id)
             else:
-                result = await self.agent.ainvoke({"messages": [HumanMessage(content=user_input)]}, {'configurable': {'thread_id': "1"}})
+                result = await self.agent.ainvoke({"messages": [HumanMessage(content=user_input)]}, {'configurable': {'thread_id': f"{thread_id}"}})
                 return result
         except Exception as e:
             self.logger.error(f"Error during agent invocation: {str(e)}")
             raise AgentException() from e
 
-    async def _stream_query(self, agent_input):
+    async def _stream_query(self, agent_input, thread_id: str):
         """
             Stream the agent's response with progress updates
 
@@ -388,7 +388,7 @@ class TransactionAgent:
 
         try:
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
-            async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': "1"}} ,stream_mode=["updates", "custom"]):
+            async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': f"{thread_id}"}} ,stream_mode=["updates", "custom"]):
                 # Process chunk using the extracted function
                 async for update in self._process_stream_chunk(stream_mode, chunk):
                     yield update

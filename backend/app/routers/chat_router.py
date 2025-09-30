@@ -4,12 +4,11 @@ import json
 from app.infra.logger import setup_logger
 from app.routers.auth_router import get_security_manager, get_user_service
 from app.security.security import SecurityManager
-from app.schemas.message_schema import ConversationCreate, ConversationResponse, MessageResponse, ConversationListResponse
+from app.schemas.message_schema import ConversationCreate, ConversationResponse, ConversationListResponse
 from app.settings.database import get_db
-from app.service.message_service import ConversationService, MessageService, websocket_conversation_handle
+from app.service.message_service import ConversationService, MessageService
 from app.repositories.message_repo import ConversationRepository, MessageRepository
 from app.ws.connection_manager import ConnectionManager
-from app.schemas.websocket_schema import WebSocketMessage
 from app.service.websocket_auth_service import authenticate_websocket
 from app.service.websocket_message_handler import websocket_message_handler
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect

@@ -45,8 +45,7 @@ def get_provider_service(db: TransactionsDB = Depends(get_transactions_db)) -> P
 
 model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "Llama-4-Maverick-17B-128E-Instruct-FP8")
 backend_client = get_backend_client()
-global_state = ConversationState(system_prompt)
-agent_instance = TransactionAgent(model_name, global_state, backend_client)
+agent_instance = TransactionAgent(model_name, backend_client)
 
 #--------------------------------------- 
 
@@ -62,13 +61,16 @@ def read_root():
     return {"message": "Hello from credit-card-fraud-detection-dashboard!"}
 
 @app.post("/user_message/stream")
-async def stream_agent_query(user_query: QuerySchema, agent: TransactionAgent = Depends(get_transaction_agent)):
+async def stream_agent_query(user_query: QuerySchema ,agent: TransactionAgent = Depends(get_transaction_agent)):
     """Streaming route that yields agent progress updates"""
+
+    # Get thread_id from request body, default to "default" if not provided
+    thread_id = user_query.thread_id if user_query.thread_id else "default"
 
     async def generate_stream():
         try:
             agent_input = {"messages": [HumanMessage(content=user_query.query)]}
-            async for update in agent._stream_query(agent_input):
+            async for update in agent._stream_query(agent_input, thread_id):
                 # Send each update as Server-Sent Event
                 yield (
                     "event: token\n"

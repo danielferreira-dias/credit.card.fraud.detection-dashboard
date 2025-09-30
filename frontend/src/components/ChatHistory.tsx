@@ -9,9 +9,10 @@ interface chatHistory{
 
 interface ChatHistoryProps {
     onSelectChat: (conversationId: number, threadID: string) => void;
+    refreshTrigger?: number;
 }
 
-export default function ChatHistory({ onSelectChat }: ChatHistoryProps){
+export default function ChatHistory({ onSelectChat, refreshTrigger }: ChatHistoryProps){
     const { user } = useUser();
     const [historyList, setHistoryList] = useState<chatHistory[]>([]);
 
@@ -46,7 +47,7 @@ export default function ChatHistory({ onSelectChat }: ChatHistoryProps){
         fetchData().catch(error => {
             console.error('Failed to fetch chat history:', error);
         });
-    }, [user]); // Add user as dependency
+    }, [user, refreshTrigger]); // Add refreshTrigger to dependencies
 
     return (
         <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 h-svh">
