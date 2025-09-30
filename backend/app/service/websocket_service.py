@@ -10,7 +10,7 @@ logger = setup_logger(__name__)
 
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
 
-async def query_agent_service_streaming(websocket: WebSocket, user_message: str):
+async def query_agent_service_streaming(websocket: WebSocket, user_message: str, thread_id: str):
     """
     Query the agent service with streaming responses via WebSocket.
 
@@ -42,9 +42,11 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
         - JSON parsing errors: Logs and continues processing
         - General exceptions: Logs and sends unexpected error message
     """
+    reasoning_steps = []  # Collect reasoning steps
+
     try:
         async with aiohttp.ClientSession() as session:
-            payload = {"query": user_message}
+            payload = {"query": user_message, "thread_id": thread_id}
             async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}) as response:
                 if response.status == 200:
                     logger.info(f'The response content is -> {response.content}')
@@ -55,6 +57,16 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
                             try:
                                 data = json.loads(line_str[6:])  # Remove 'data: ' prefix
 
+                                # Collect reasoning step
+                                reasoning_step = {
+                                    "type": data.get("type", "unknown"),
+                                    "content": data.get("message", ""),
+                                    "tool_name": data.get("tool_name"),
+                                    "tool_args": data.get("tool_args"),
+                                    "timestamp": data.get("timestamp")
+                                }
+                                reasoning_steps.append(reasoning_step)
+
                                 # Send progress update to WebSocket
                                 progress_message = ProgressMessage(type="progress", content=data.get("message", "Processing..."), progress_type=data.get("type", "unknown"))
                                 await websocket.send_text(json.dumps(progress_message.to_dict()))
@@ -62,6 +74,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str)
                                 # If it's the final response, send it as agent message
                                 if data.get("type") == "final_response":
                                     final_message = WebSocketMessage( type="Agent", content=data.get("content", "No response available"))
+                                    final_message.reasoning_steps = reasoning_steps  # Attach reasoning steps
                                     await websocket.send_text(json.dumps(final_message.to_dict()))
                                     return final_message
 

@@ -26,11 +26,11 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
         type="conversation_started",
         content=f"Created conversation {current_conversation_id} (Thread: {thread_id})"
     )
-    await websocket.send_text(json.dumps(conversation_info.to_dict()))
+    # await websocket.send_text(json.dumps(conversation_info.to_dict()))
 
     # Save user message to database
     await message_service.create_message(
-        conversation_id=convo_id,
+        conversation_id=current_conversation_id,
         message=MessageCreate(role="user", message=user_message)
     )
 
@@ -48,11 +48,15 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
     # Save agent response to database
     if agent_message and agent_message.content:
         await message_service.create_message(
-            conversation_id=convo_id,
-            message=MessageCreate(role="assistant", message=agent_message.content)
+            conversation_id=current_conversation_id,
+            message=MessageCreate(
+                role="agent",
+                message=agent_message.content,
+                reasoning_steps=getattr(agent_message, 'reasoning_steps', None)
+            )
         )
 
         # Update conversation activity
-        await conversation_service.update_last_activity(convo_id)
+        await conversation_service.update_last_activity(current_conversation_id)
 
     logger.info(f"THIS WAS THE LAST AGENT_MESSAGE -> {agent_message.content if agent_message else 'None'}")

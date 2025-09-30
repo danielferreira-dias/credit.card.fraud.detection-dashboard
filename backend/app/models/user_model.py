@@ -42,8 +42,6 @@ class Message(Base):
     role = Column(String(20), nullable=False)  # 'user', 'assistant', 'system', 'tool'
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
-    tool_name = Column(String(100))  # Track which tool was used (if role='tool')
-    tool_args = Column(JSON)  # Store tool arguments for audit trail
-    message_id = Column(String(255))  # LangGraph message ID for correlation
+    reasoning_steps = Column(JSON, nullable=True)  # Store agent reasoning steps as JSON array
 
     conversation = relationship("Conversation", back_populates="messages")

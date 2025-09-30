@@ -3,11 +3,14 @@ from datetime import datetime
 from typing import List
 from app.repositories.message_repo import ConversationRepository, MessageRepository
 from app.schemas.message_schema import ConversationResponse, ConversationCreate, MessageCreate, MessageResponse
-from app.models.user_model import Conversation
+from app.models.user_model import Conversation, Message
 from app.exception.chat_exceptions import ChatNotFound
 from app.service.user_service import UserService
+from app.infra.logger import setup_logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.misc.metada_info import initial_metadata
+
+logger = setup_logger(__name__)
 
 class ConversationService():
     def __init__(self, repo: ConversationRepository, message_repo: MessageRepository, user_service : UserService):
@@ -23,7 +26,7 @@ class ConversationService():
             created_at = conversation.created_at,
             updated_at = conversation.created_at,
             is_active = True,
-            total_messages = 0,
+            total_messages = 1,
             metadata_info = conversation.metadata_info,
         )
         return await self.repo.create_conversation(conversation_model)
@@ -105,7 +108,14 @@ class MessageService():
         conversation = await self.conversation_repo.get_conversation(conversation_id)
         if conversation is None:
             raise ChatNotFound(f"Conversation with id {conversation_id} not found")
-        return await self.repo.create_message(conversation_id, message)
+        new_message = Message(
+            conversation_id=conversation_id,
+            role=message.role,
+            content=message.message,
+            created_at=datetime.now(),
+            reasoning_steps=message.reasoning_steps
+        )
+        return await self.repo.create_message(conversation_id, new_message)
 
     async def get_messages(self, conversation_id: int) -> List[ConversationResponse]:
         # Verify conversation exists
@@ -121,10 +131,13 @@ class MessageService():
         return [ConversationResponse(
             role=msg.role,
             content=msg.content,
-            created_at=msg.created_at
+            created_at=msg.created_at,
+            reasoning_steps=msg.reasoning_steps
         ) for msg in messages]
 
 async def websocket_conversation_handle(conversation_service: ConversationService, current_conversation_id : int | None, user_id : int) -> tuple[int, str]:
+    logger.info(f'Current conversation ID -> {current_conversation_id}')
+    logger.info(f'user_id -> {user_id}')
     # Handle conversation initialization
     if not current_conversation_id:
         # Create new conversation with generated thread_id

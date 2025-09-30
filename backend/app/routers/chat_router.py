@@ -54,6 +54,7 @@ async def agent_websocket_endpoint( websocket: WebSocket, user_id: int, token: s
         await websocket.close(code=4001, reason="Unauthorized: Invalid token")
         return
     
+    logger.info(f'Initial Conversation ID -> {conversation_id}')
     # Initialize or retrieve conversation
     current_conversation_id = conversation_id
     thread_id = None

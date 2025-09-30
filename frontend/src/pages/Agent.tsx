@@ -33,11 +33,13 @@ export default function AgentPage(){
     const [useMockResponse, setUseMockResponse] = useState(false); // Toggle for testing
     const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null);
     const [displayedContent, setDisplayedContent] = useState<{[key: number]: string}>({});
+    const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const reasoningStepsRef = useRef<ReasoningStep[]>([]);
     const typingTimeoutRef = useRef<number | null>(null);
+    const intentionalCloseRef = useRef<boolean>(false);
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -73,7 +75,15 @@ export default function AgentPage(){
                 return;
             }
 
-            const ws = new WebSocket(`ws://localhost:80/chat/ws/agent/${user.id}?token=${token}`);
+            // Reset intentional close flag when connecting
+            intentionalCloseRef.current = false;
+
+            console.log('Current currentConversationId in the Frontend -> ', currentConversationId)
+
+            const wsUrl = currentConversationId
+                ? `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}&conversation_id=${currentConversationId}`
+                : `ws://localhost:80/chat/ws/agent/${user.id}?token=${token}`;
+            const ws = new WebSocket(wsUrl);
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
                 setIsConnected(true);
@@ -154,9 +164,6 @@ export default function AgentPage(){
             ws.onclose = () => {
                 console.log('WebSocket connection closed');
                 setIsConnected(false);
-                showWarning('Connection lost. Attempting to reconnect...', 4000);
-                // Attempt to reconnect after 3 seconds
-                setTimeout(connectWebSocket, 3000);
             };
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
@@ -169,10 +176,11 @@ export default function AgentPage(){
         connectWebSocket();
         return () => {
             if (wsRef.current) {
+                intentionalCloseRef.current = true;
                 wsRef.current.close();
             }
         };
-    }, [user]); 
+    }, [user, currentConversationId]); 
     // SendMessage Management
     const sendMessage = () => {
         if (!inputMessage.trim()) return;
@@ -213,6 +221,21 @@ export default function AgentPage(){
             [messageIndex]: !prev[messageIndex]
         }));
     };
+
+    const handleSelectChat = (conversationId: number) => {
+        // Mark this as an intentional close
+        intentionalCloseRef.current = true;
+
+        // Close existing WebSocket connection
+        if (wsRef.current) {
+            wsRef.current.close();
+        }
+
+        // Clear current messages and set new conversation
+        setMessages([]);
+        setCurrentConversationId(conversationId);
+        // WebSocket will reconnect automatically via useEffect
+    };
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
             <div className="flex flex-col h-full w-[80%] text-white border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 min-h-screen max-h-[fit]">
@@ -227,50 +250,11 @@ export default function AgentPage(){
                         }`}>
                             {isConnected ? 'Connected to AI Agent' : 'Disconnected - Attempting to reconnect...'}
                         </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2">
-                                {/* <label className="text-sm text-zinc-400">Mock Mode:</label>
-                                <button
-                                    onClick={() => setUseMockResponse(!useMockResponse)}
-                                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                        useMockResponse
-                                            ? 'bg-zinc-800 text-blue-300 border border-blue-700'
-                                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                                    }`}
-                                >
-                                    {useMockResponse ? 'ON' : 'OFF'}
-                                </button> */}
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <label className="text-sm text-zinc-400">Test Notifications:</label>
-                                <button
-                                    onClick={() => showSuccess('This is a success notification!')}
-                                    className="px-2 py-1 rounded text-xs bg-green-800 text-green-200 hover:bg-green-700"
-                                >
-                                    Success
-                                </button>
-                                <button
-                                    onClick={() => showError('This is an error notification!')}
-                                    className="px-2 py-1 rounded text-xs bg-red-800 text-red-200 hover:bg-red-700"
-                                >
-                                    Error
-                                </button>
-                                <button
-                                    onClick={() => showWarning('This is a warning notification!')}
-                                    className="px-2 py-1 rounded text-xs bg-yellow-800 text-yellow-200 hover:bg-yellow-700"
-                                >
-                                    Warning
-                                </button>
-                                <button
-                                    onClick={() => showInfo('This is an info notification!')}
-                                    className="px-2 py-1 rounded text-xs bg-blue-800 text-blue-200 hover:bg-blue-700"
-                                >
-                                    Info
-                                </button>
-                            </div>
+                        <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
+                            {currentConversationId ? `ID: ${currentConversationId}` : "New Conversation"}
                         </div>
+
+                        
                     </div>
 
                     {/* Messages */}
@@ -365,7 +349,7 @@ export default function AgentPage(){
                     </div>
                 </div>
             </div>
-            <ChatHistory />
+            <ChatHistory onSelectChat={handleSelectChat} />
         </div>
     )
 }

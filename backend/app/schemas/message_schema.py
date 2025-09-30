@@ -13,6 +13,7 @@ class ConversationCreate(BaseModel):
 class MessageCreate(BaseModel):
     role: str
     message: str
+    reasoning_steps: Optional[list[dict]] = None
 
 class ConversationListResponse(BaseModel):
     id: int
@@ -28,3 +29,4 @@ class ConversationResponse(BaseModel):
     role: str
     content: str
     created_at: datetime = datetime.now()
+    reasoning_steps: Optional[list[dict]] = None
