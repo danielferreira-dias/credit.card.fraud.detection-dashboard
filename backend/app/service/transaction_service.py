@@ -42,9 +42,9 @@ class TransactionService:
         transaction_list: List[Transaction] = await self.repo.get_all_transactions(filters, limit, skip)
 
         if transaction_list is None or len(transaction_list) == 0:
-            logger.error("No transactions found in the database.")
-            raise TransactionNotFoundError(name="Transactions Not Found", message="Transactions do not exist.") 
-        
+            logger.info("No transactions found matching the filters.")
+            return []
+
         if not include_predictions:
             return [self._to_response(ts) for ts in transaction_list]
         else:

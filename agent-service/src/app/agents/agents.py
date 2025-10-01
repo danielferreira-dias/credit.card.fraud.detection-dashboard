@@ -6,11 +6,10 @@ from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langsmith import traceable
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.prebuilt import create_react_agent
 from langgraph.config import get_stream_writer
 from colorama import init, Fore, Style
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 # Add the agent-service root directory to Python path
 agent_service_root = Path(__file__).parent.parent.parent.parent
@@ -70,23 +69,138 @@ class TransactionAgent:
         self.system_prompt = system_prompt
         self.backend_client = backend_client
 
-        # Initiates State with System Messaage
-        # self.agent_state = state
+        # Checkpointer will be initialized in setup()
+        self.checkpointer = None
+        self.agent = None
+        self._checkpointer_cm = None  # Store the context manager
 
-        # Store for chat conversations
-        # self.store = InMemoryStore()
+    async def setup(self):
+        """
+        Async setup method to initialize PostgresSaver and create the agent.
+        Must be called after __init__ and before using the agent.
+        """
+        if self.checkpointer is None:
+            self.logger.info("Setting up PostgresSaver for conversation checkpoints")
+            try:
+                # Get the connection string
+                conn_string = os.getenv("DATABASE_URL")
 
-        # Store checkpoints conversation
-        self.checkpointer = InMemorySaver()
+                # Create the async context manager
+                self._checkpointer_cm = AsyncPostgresSaver.from_conn_string(conn_string)
 
-        # Initialize both ReAct agent and LangGraph workflow
-        self.agent = create_react_agent(
-            model=self.model,
-            tools=self.tools,
-            checkpointer=self.checkpointer
-            # store=self.store,
-        )
+                # Enter the context manager to get the checkpointer instance
+                self.checkpointer = await self._checkpointer_cm.__aenter__()
 
+                # Setup creates the necessary tables in PostgreSQL
+                await self.checkpointer.setup()
+
+                # Initialize the ReAct agent with checkpointer
+                self.agent = create_react_agent(
+                    model=self.model,
+                    tools=self.tools,
+                    checkpointer=self.checkpointer
+                )
+
+                self.logger.info("PostgresSaver setup completed successfully")
+
+            except Exception as e:
+                # Cleanup partial initialization
+                self.logger.error(f"Setup failed: {e}")
+                if self._checkpointer_cm is not None:
+                    await self._checkpointer_cm.__aexit__(None, None, None)
+                self.checkpointer = None
+                self.agent = None
+                self._checkpointer_cm = None
+                raise
+        else:
+            self.logger.warning("Setup already called, skipping initialization")
+
+    async def cleanup(self):
+        """
+        Cleanup method to properly close database connections.
+        Should be called on application shutdown.
+        """
+        if self.checkpointer is not None:
+            self.logger.info("Cleaning up PostgresSaver connections")
+
+            # Exit the context manager properly
+            if self._checkpointer_cm is not None:
+                await self._checkpointer_cm.__aexit__(None, None, None)
+                self._checkpointer_cm = None
+
+            self.checkpointer = None
+            self.logger.info("PostgresSaver cleanup completed")
+
+    async def get_conversation_history(self, thread_id: str, limit: int = 10):
+        """
+        Retrieve conversation history from checkpoints for a specific thread.
+
+        Args:
+            thread_id: The thread identifier
+            limit: Maximum number of messages to retrieve (default: 10)
+
+        Returns:
+            List of message dictionaries with role and content
+        """
+        if self.checkpointer is None:
+            self.logger.warning("Checkpointer not initialized. Call setup() first.")
+            return []
+
+        try:
+            config = {"configurable": {"thread_id": thread_id}}
+
+            # Get the latest checkpoint for this thread
+            checkpoint = await self.checkpointer.aget(config)
+
+            if checkpoint is None:
+                self.logger.info(f"No checkpoint found for thread {thread_id}")
+                return []
+
+            # Extract messages from checkpoint
+            messages = checkpoint.get("channel_values", {}).get("messages", [])
+
+            # Convert to simple dict format and limit
+            history = []
+            for msg in messages[-limit:]:
+                if isinstance(msg, HumanMessage):
+                    history.append({"role": "user", "content": msg.content})
+                elif isinstance(msg, AIMessage):
+                    history.append({"role": "assistant", "content": msg.content})
+                elif isinstance(msg, SystemMessage):
+                    history.append({"role": "system", "content": msg.content})
+
+            self.logger.info(f"Retrieved {len(history)} messages from thread {thread_id}")
+            return history
+
+        except Exception as e:
+            self.logger.error(f"Error retrieving conversation history: {str(e)}")
+            return []
+
+    async def list_thread_checkpoints(self, thread_id: str):
+        """
+        List all checkpoints for a specific thread.
+        Useful for debugging and understanding conversation state.
+
+        Args:
+            thread_id: The thread identifier
+
+        Returns:
+            List of checkpoint metadata
+        """
+        if self.checkpointer is None:
+            self.logger.warning("Checkpointer not initialized. Call setup() first.")
+            return []
+
+        try:
+            config = {"configurable": {"thread_id": thread_id}}
+            checkpoints = list(self.checkpointer.list(config))
+
+            self.logger.info(f"Found {len(checkpoints)} checkpoints for thread {thread_id}")
+            return checkpoints
+
+        except Exception as e:
+            self.logger.error(f"Error listing checkpoints: {str(e)}")
+            return []
 
     def _create_tools(self):
 
@@ -397,14 +511,13 @@ class TransactionAgent:
                 if stream_mode == "updates":
                     final_result = chunk
 
-            checkpoints = self.checkpointer.list({"configurable": {"thread_id": "1"}})
-            self.logger.info(f'Current checkpoints -> {checkpoints}')
-            process_checkpoints(checkpoints)
+            # List checkpoints for the current thread
+            checkpoints = self.checkpointer.alist({"configurable": {"thread_id": thread_id}})
+            self.logger.info(f'Current checkpoints for thread {thread_id} -> {checkpoints}')
 
             # Return final result
             if final_result and "agent" in final_result:
                 messages = final_result["agent"]["messages"]
-                # self.agent_state.messages.append(AIMessage(content=messages[-1].content))
                 if messages:
                     yield {
                         "type": "final_response",
@@ -426,7 +539,7 @@ class TransactionAgent:
                 "content": f"Error: {str(e)}",
                 "message": "❌ An error occurred"
             }
-            raise AgentException() from e
+            raise AgentException(message=f"Error: {str(e)}") from e
 
     async def _process_stream_chunk(self, stream_mode, chunk):
         """
@@ -485,48 +598,3 @@ class TransactionAgent:
                                     "message": f"✅ Tool {message.name} completed"
                                 }
 
-# Define a function to process checkpoints
-def process_checkpoints(checkpoints):
-    """
-    Processes a list of checkpoints and displays relevant information.
-
-    Parameters:
-        checkpoints (list): A list of checkpoint tuples to process.
-
-    Returns:
-        None
-
-    This function processes a list of checkpoints.
-    It iterates over the checkpoints and displays the following information for each checkpoint:
-    - Timestamp
-    - Checkpoint ID
-    - Messages associated with the checkpoint
-    """
-    logger = get_agent_logger(name='CheckPoint Logger')
-
-    logger.info(f"{Fore.YELLOW}{'='*60}")
-
-    for idx, checkpoint_tuple in enumerate(checkpoints):
-        # Extract key information about the checkpoint
-        checkpoint = checkpoint_tuple.checkpoint
-        messages = checkpoint["channel_values"].get("messages", [])
-
-        # Display checkpoint information
-        logger.info(f"{Fore.MAGENTA}Checkpoint ID: {checkpoint['id']}")
-
-        # Display checkpoint messages
-        for message in messages:
-            if isinstance(message, HumanMessage):
-                logger.info(
-                    f"{Fore.CYAN}👤 User: {Style.BRIGHT}{message.content}{Style.RESET_ALL} "
-                    f"{Fore.BLUE}(Message ID: {message.id})"
-                )
-            elif isinstance(message, AIMessage):
-                logger.info(
-                    f"{Fore.GREEN}🤖 Agent: {Style.BRIGHT}{message.content}{Style.RESET_ALL} "
-                    f"{Fore.BLUE}(Message ID: {message.id})"
-                )
-
-        logger.info("")
-
-    logger.info(f"{Fore.YELLOW}{'='*60}")

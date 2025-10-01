@@ -41,7 +41,6 @@ export default function AgentPage(){
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const reasoningStepsRef = useRef<ReasoningStep[]>([]);
-    const typingTimeoutRef = useRef<number | null>(null);
     const intentionalCloseRef = useRef<boolean>(false);
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,13 +49,7 @@ export default function AgentPage(){
         scrollToBottom();
     }, [messages, displayedContent]);
     
-    useEffect(() => {
-        return () => {
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-            }
-        };
-    }, []);
+    
     
 
     // Load conversation history when a conversation is selected
@@ -144,10 +137,8 @@ export default function AgentPage(){
                 // Handle conversation_started - update conversation ID and thread ID
                 if (message.type === 'conversation_started') {
                     const convData = message as any;
-                    console.log("New conversation created:", convData);
                     setCurrentConversationId(convData.conversation_id);
                     setcurrentThreadID(convData.thread_id);
-                    // Trigger chat history refresh
                     setChatHistoryRefresh(prev => prev + 1);
                     return;
                 }

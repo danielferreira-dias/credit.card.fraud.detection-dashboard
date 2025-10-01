@@ -13,5 +13,7 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "starlette>=0.48.0",
     "uvicorn>=0.37.0",
-    "colorama==0.4.6"
+    "colorama==0.4.6",
+    "psycopg[binary,pool]>=3.2.10",
+    "langgraph-checkpoint-postgres>=2.0.24",
 ]

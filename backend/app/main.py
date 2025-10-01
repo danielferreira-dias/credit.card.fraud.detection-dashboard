@@ -1,4 +1,4 @@
-from app.models.user_model import Conversation, Message, User
+from contextlib import asynccontextmanager
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
 from app.exception.user_exceptions import UserException
@@ -6,12 +6,12 @@ from fastapi import FastAPI, status
 from app.routers.transaction_router import router as transaction_router
 from app.routers.chat_router import router as chat_router
 from app.settings.database import async_engine
-from app.models.transaction_model import Transaction
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from app.exception.transaction_exceptions import TransactionsException
 from app.exception.handler import transaction_handler, user_handler
 from app.infra.logger import setup_logger
+from app.settings.base import Base
 
 logger = setup_logger("main")
 
@@ -22,15 +22,19 @@ class HealthCheck(BaseModel):
 async def create_tables():
     """Create database tables on startup"""
     async with async_engine.begin() as conn:
-        await conn.run_sync(Transaction.metadata.create_all)
-        await conn.run_sync(User.metadata.create_all)
-        await conn.run_sync(Conversation.metadata.create_all)
-        await conn.run_sync(Message.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_tables()
+    yield
+    await async_engine.dispose()
 
 app = FastAPI(
     title="Credit Card Fraud Detection API",
     description="API for detecting credit card fraud using machine learning",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -50,11 +54,6 @@ app.include_router(chat_router)
 # Register exception handlers --------------------------------------------------
 app.add_exception_handler(TransactionsException, transaction_handler)
 app.add_exception_handler(UserException, user_handler)
-
-# Startup event to create tables
-@app.on_event("startup")
-async def startup_event():
-    await create_tables()
 
 @app.get("/")
 def read_root():

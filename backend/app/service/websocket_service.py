@@ -1,4 +1,5 @@
 # Agent service configuration
+from datetime import datetime
 import json
 import aiohttp
 from app.infra.logger import setup_logger
@@ -42,7 +43,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
         - JSON parsing errors: Logs and continues processing
         - General exceptions: Logs and sends unexpected error message
     """
-    reasoning_steps = []  # Collect reasoning steps
+    reasoning_steps = [{'type': 'thinking', 'content': '🤔 Agent is starting to analyze your request...'}]  # Collect reasoning steps
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -55,7 +56,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
                         if line_str.startswith('data: '):
                             try:
                                 data = json.loads(line_str[6:])  # Remove 'data: ' prefix
-
+                                logger.info(f'Current data -> {data}')
                                 # Collect reasoning step - only add if it's not the final response
                                 if data.get("type") != "final_response":
                                     reasoning_step = {
@@ -80,6 +81,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
                                 # If it's the final response, send it as agent message
                                 if data.get("type") == "final_response":
                                     final_message = WebSocketMessage( type="Agent", content=data.get("content", "No response available"))
+                                    reasoning_steps.append({"type": "final_response", "content": data.get("content", "No response available") , "message": "✨ Response ready" })
                                     final_message.reasoning_steps = reasoning_steps  # Attach reasoning steps
                                     await websocket.send_text(json.dumps(final_message.to_dict()))
                                     return final_message
