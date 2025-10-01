@@ -49,9 +49,6 @@ export default function AgentPage(){
         scrollToBottom();
     }, [messages, displayedContent]);
     
-    
-    
-
     // Load conversation history when a conversation is selected
     useEffect(() => {
         if (loading || !user || !currentConversationId) {
@@ -110,6 +107,12 @@ export default function AgentPage(){
             return;
         }
 
+        // Prevent multiple connections
+        if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+            console.log('WebSocket: Already connected or connecting, skipping...');
+            return;
+        }
+
         const connectWebSocket = () => {
             const token = localStorage.getItem('access_token');
             if (!token) {
@@ -122,8 +125,6 @@ export default function AgentPage(){
 
             // Build WebSocket URL without conversation_id (we'll send it in messages)
             const wsUrl = `ws://localhost:80/chat/ws/agent/${user.id}?token=${encodeURIComponent(token)}`;
-            console.log('Connecting to WebSocket:', wsUrl.substring(0, 50) + '...');
-
             const ws = new WebSocket(wsUrl);
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
@@ -219,7 +220,7 @@ export default function AgentPage(){
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
                 setIsConnected(false);
-                showError('WebSocket connection error occurred', 5000);
+                // showError('WebSocket connection error occurred', 5000);
             };
             wsRef.current = ws;
         };
@@ -231,7 +232,7 @@ export default function AgentPage(){
                 wsRef.current.close();
             }
         };
-    }, [user]); // Removed currentConversationId - WebSocket should persist across conversation changes 
+    }, [user]);
     // SendMessage Management
     const sendMessage = () => {
         if (!inputMessage.trim()) return;
