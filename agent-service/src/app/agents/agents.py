@@ -20,7 +20,6 @@ from infra.logging import get_agent_logger
 from app.services.backend_api_client import BackendAPIClient
 from app.schemas.agent_prompt import system_prompt
 
-
 import os
 from dotenv import load_dotenv
 
@@ -91,8 +90,14 @@ class TransactionAgent:
                 # Enter the context manager to get the checkpointer instance
                 self.checkpointer = await self._checkpointer_cm.__aenter__()
 
-                # Setup creates the necessary tables in PostgreSQL
-                await self.checkpointer.setup()
+                # Catch "column already exists" errors gracefully
+                try:
+                    await self.checkpointer.setup()
+                except Exception as setup_error:
+                    if "already exists" in str(setup_error):
+                        self.logger.warning(f"Database tables already exist, skipping setup: {setup_error}")
+                    else:
+                        raise
 
                 # Initialize the ReAct agent with checkpointer
                 self.agent = create_react_agent(

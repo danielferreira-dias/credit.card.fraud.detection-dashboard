@@ -160,7 +160,6 @@ class TransactionRepository:
             stmt = select(Transaction).where(Transaction.transaction_id == transaction_id)
             result = await self.db.execute(stmt)
             transaction = result.scalar_one_or_none()
-            logger.info(f"The transaction fetched by the database was the following: {transaction}")
             return transaction
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter transação por ID {transaction_id}: {e}")
