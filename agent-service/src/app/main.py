@@ -196,7 +196,7 @@ async def stream_agent_query(user_query: QuerySchema ,agent: TransactionAgent = 
     async def generate_stream():
         try:
             agent_input = {"messages": [HumanMessage(content=user_query.query)]}
-            async for update in agent._stream_query(agent_input, thread_id):
+            async for update in agent._stream_query(agent_input=agent_input, thread_id=thread_id):
                 # Send each update as Server-Sent Event
                 yield (
                     "event: token\n"

@@ -103,7 +103,8 @@ class TransactionAgent:
                 self.agent = create_react_agent(
                     model=self.model,
                     tools=self.tools,
-                    checkpointer=self.checkpointer
+                    checkpointer=self.checkpointer,
+                    prompt=self.system_prompt
                 )
 
                 self.logger.info("PostgresSaver setup completed successfully")
@@ -603,3 +604,23 @@ class TransactionAgent:
                                     "message": f"✅ Tool {message.name} completed"
                                 }
 
+class TitleNLP:
+    
+    def __init__(self, model_name : str , backend: BackendAPIClient):
+        self.model = AzureChatOpenAI(
+            azure_deployment=model_name,
+            api_version=os.getenv("OPENAI_API_VERSION"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            max_tokens=50,
+            temperature=1,
+        )
+        self.backend_client = backend
+        self.system_prompt = "You are a NLP Model that takes in the user's query, summarizes and generate a max 6 word title to attach it to a conversation."
+
+    async def _generate_title(self, user_query: str):
+        return await self.model.ainvoke(f"{user_query}")
+        pass
+
+if __name__ == "__main__":
+    nlp = TitleNLP()
