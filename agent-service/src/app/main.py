@@ -202,10 +202,8 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
     async def generate_stream():
         try:
             # Only generate title if requested (for new conversations)
-            logger.info(f"PAYLOAD {user_query.model_dump()}")
             if user_query.generate_title:
                 chat_title = await nlp_agent._generate_title(user_query.query)
-                logger.info(f"CURRENT CHAT_TITLE FROM BACKEND {chat_title}")
 
                 # Send the chat title as the first event
                 title_data = {

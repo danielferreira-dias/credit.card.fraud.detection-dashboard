@@ -67,6 +67,7 @@ class TransactionAgent:
 
         self.tools = self._create_tools()
         self.backend_client = backend_client
+        self.system_prompt = system_prompt
 
         # Checkpointer will be initialized in setup()
         self.checkpointer = None
@@ -490,6 +491,17 @@ class TransactionAgent:
         final_result = None
 
         try:
+            checkpoint = await self.checkpointer.aget({"configurable": {"thread_id": thread_id}})
+            is_new_conversation = checkpoint is None or not checkpoint.get("channel_values", {}).get("messages", [])
+            logger.info(f'{checkpoint}')
+
+            # Add SystemMessage at the beginning for new conversations
+            if is_new_conversation:
+                messages = agent_input.get("messages", [])
+                messages = [SystemMessage(content=self.system_prompt)] + messages
+                agent_input = {"messages": messages}
+
+
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
             async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': f"{thread_id}"}} ,stream_mode=["updates", "custom"]):
                 # Process chunk using the extracted function
@@ -499,10 +511,6 @@ class TransactionAgent:
                 # Store the final result only from updates mode
                 if stream_mode == "updates":
                     final_result = chunk
-
-            # List checkpoints for the current thread
-            checkpoints = self.checkpointer.alist({"configurable": {"thread_id": thread_id}})
-            self.logger.info(f'Current checkpoints for thread {thread_id} -> {checkpoints}')
 
             # Return final result
             if final_result and "agent" in final_result:
