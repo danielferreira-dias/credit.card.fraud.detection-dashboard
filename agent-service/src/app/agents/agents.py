@@ -603,24 +603,23 @@ class TransactionAgent:
                                     "tool_name": message.name,
                                     "message": f"✅ Tool {message.name} completed"
                                 }
-
 class TitleNLP:
     
-    def __init__(self, model_name : str , backend: BackendAPIClient):
+    def __init__(self, model_name : str):
         self.model = AzureChatOpenAI(
             azure_deployment=model_name,
             api_version=os.getenv("OPENAI_API_VERSION"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT_GPT5_NANO"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             max_tokens=50,
             temperature=1,
         )
-        self.backend_client = backend
-        self.system_prompt = "You are a NLP Model that takes in the user's query, summarizes and generate a max 6 word title to attach it to a conversation."
+        self.system_prompt = "You are a NLP Model that takes in the user's query and generates a conversation title associated to it;"
 
     async def _generate_title(self, user_query: str):
-        return await self.model.ainvoke(f"{user_query}")
-        pass
+        conversation = [
+            SystemMessage(f"{self.system_prompt}"),
+            HumanMessage(f"{user_query}"),
+        ]
+        return await self.model.ainvoke(f"{conversation}")
 
-if __name__ == "__main__":
-    nlp = TitleNLP()

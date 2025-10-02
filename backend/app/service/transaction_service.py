@@ -107,15 +107,12 @@ class TransactionService:
         logger.info(f"Current transaction data for prediction is -> {transaction_data}")
 
         try:
-            transaction_data_numpy = np.array([[transaction_data.model_dump(by_alias=True)[c] for c in FEATURE_COLUMNS]], dtype=float)
-            ##logger.info(f"Data was transformed into numpy {transaction_data_numpy}")
-
             transaction_data_dataframe = pd.DataFrame([transaction_data.model_dump(by_alias=True)], columns=FEATURE_COLUMNS)
 
             logger.info("Feature columns received: %s", list(transaction_data_dataframe.columns))
             assert list(transaction_data_dataframe.columns) == FEATURE_COLUMNS, "Ordem das colunas incorreta!"
             # Se tens scaler + modelo separados:
-            X_scaled = self.scaler.transform(transaction_data_numpy)
+            X_scaled = self.scaler.transform(transaction_data_dataframe)
             y_pred = int(self.model.predict(X_scaled)[0])
 
             probas = getattr(self.model, "predict_proba", None)

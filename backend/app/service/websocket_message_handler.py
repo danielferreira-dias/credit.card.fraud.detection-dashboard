@@ -22,11 +22,26 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
     except json.JSONDecodeError:
         # Plain text message
         user_message = user_input
-    
-    current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=convo_id  ,user_id=user_id)
+
+    # Echo user message back
+    user_echo = WebSocketMessage(type="User", content=user_message, timestamp=datetime.now().isoformat())
+    await websocket.send_text(json.dumps(user_echo.to_dict()))
+
+    # Send initial thinking indicator
+    thinking_indicator = ProgressMessage(type="progress", content="🤔 Agent is starting to analyze your request...", progress_type="initializing")
+    await websocket.send_text(json.dumps(thinking_indicator.to_dict()))
+
+    # Determine if this is a new conversation
+    is_new_conversation = not convo_id
+
+    # Stream agent response with real-time progress (pass thread_id and is_new_conversation)
+    agent_message, chat_title = await query_agent_service_streaming(websocket, user_message, thread_id, is_new_conversation)
+    logger.info(f'This was the title generated -> {chat_title}')
+
+    current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=convo_id  ,user_id=user_id , title=chat_title)
 
     # Send conversation details to client if this is a new conversation
-    if not convo_id:
+    if is_new_conversation:
         conversation_info = {
             "type": "conversation_started",
             "conversation_id": current_conversation_id,
@@ -42,16 +57,13 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
         message=MessageCreate(role="user", message=user_message)
     )
 
-    # Echo user message back
-    user_echo = WebSocketMessage(type="User", content=user_message, timestamp=datetime.now().isoformat())
-    await websocket.send_text(json.dumps(user_echo.to_dict()))
-
-    # Send initial thinking indicator
-    thinking_indicator = ProgressMessage(type="progress", content="🤔 Agent is starting to analyze your request...", progress_type="initializing")
-    await websocket.send_text(json.dumps(thinking_indicator.to_dict()))
-
-    # Stream agent response with real-time progress (pass thread_id)
-    agent_message = await query_agent_service_streaming(websocket, user_message, thread_id)
+    # Update conversation title if this is a new conversation and we got a title
+    if chat_title and is_new_conversation:
+        conversation = await conversation_service.get_conversation_by_conversation_id(current_conversation_id)
+        if conversation:
+            conversation.title = chat_title
+            await conversation_service.repo.add_conversation_message(conversation)
+            logger.info(f"Updated conversation {current_conversation_id} title to: {chat_title}")
 
     # Save agent response to database
     if agent_message and agent_message.content:

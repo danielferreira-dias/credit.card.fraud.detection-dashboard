@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Optional
-from app.agents.agents import TransactionAgent
+from app.agents.agents import TitleNLP, TransactionAgent
 from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
 from app.database.transactions_db import TransactionsDB
@@ -25,6 +25,7 @@ class HealthCheck(BaseModel):
 class AgentState:
     def __init__(self):
         self.agent : Optional[TransactionAgent] = None
+        self.agent_nlp : Optional[TitleNLP] = None
 
 agent_state = AgentState()
 
@@ -87,14 +88,19 @@ async def lifespan(app: FastAPI):
     
     # Initialize expensive resources
     model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "Llama-4-Maverick-17B-128E-Instruct-FP8")
+    model_name_nlp = os.getenv("AZURE_OPENAI_DEPLOYMENT_GPT5_NANO", "Llama-4-Maverick-17B-128E-Instruct-FP8")
     backend_client = get_backend_client() 
 
     agent_instance = TransactionAgent(
         model_name=model_name,
         backend_client=backend_client
     )
+    agent_instance_nlp = TitleNLP(
+        model_name=model_name_nlp,
+    )
     await agent_instance.setup() 
     agent_state.agent = agent_instance
+    agent_state.agent_nlp = agent_instance_nlp
     
     logger.info("✅ Ready to handle requests")
     
@@ -122,6 +128,12 @@ def get_transaction_agent() -> TransactionAgent:
         raise RuntimeError("Agent not initialized")
     return agent_state.agent
 
+def get_nlp_agent() -> TitleNLP:
+    """Dependency to provide TransactionAgent instance"""
+    if agent_state.agent is None:
+        raise RuntimeError("Agent not initialized")
+    return agent_state.agent_nlp
+
 #---------------------------------------
 
 @app.get("/")
@@ -130,7 +142,7 @@ def read_root():
     return {"message": "Hello from credit-card-fraud-detection-dashboard!"}
 
 @app.post("/user_message/stream")
-async def stream_agent_query(user_query: QuerySchema ,agent: TransactionAgent = Depends(get_transaction_agent)):
+async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent = Depends(get_transaction_agent), nlp_agent : TitleNLP = Depends(get_nlp_agent)):
     """
     Stream AI agent responses with real-time progress updates via Server-Sent Events (SSE).
 
@@ -195,6 +207,21 @@ async def stream_agent_query(user_query: QuerySchema ,agent: TransactionAgent = 
 
     async def generate_stream():
         try:
+            # Only generate title if requested (for new conversations)
+            if user_query.generate_title:
+                chat_title : str = await nlp_agent._generate_title(user_query.query)
+
+                # Send the chat title as the first event
+                title_data = {
+                    'type': 'chat_title',
+                    'content': chat_title.content if hasattr(chat_title, 'content') else str(chat_title),
+                    'message': 'Chat title generated'
+                }
+                yield (
+                    "event: token\n"
+                    f"data: {json.dumps(title_data)}\n\n"
+                )
+
             agent_input = {"messages": [HumanMessage(content=user_query.query)]}
             async for update in agent._stream_query(agent_input=agent_input, thread_id=thread_id):
                 # Send each update as Server-Sent Event

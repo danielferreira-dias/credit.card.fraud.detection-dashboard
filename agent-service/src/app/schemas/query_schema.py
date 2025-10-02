@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class QuerySchema(BaseModel):
     query : str
     thread_id: Optional[str] = None
+    generate_title: Optional[bool] = False  # Only generate title for new conversations
     
 class QueryResponse(BaseModel):
     query: str

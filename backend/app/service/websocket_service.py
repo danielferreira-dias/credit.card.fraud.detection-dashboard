@@ -11,7 +11,7 @@ logger = setup_logger(__name__)
 
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
 
-async def query_agent_service_streaming(websocket: WebSocket, user_message: str, thread_id: str):
+async def query_agent_service_streaming(websocket: WebSocket, user_message: str, thread_id: str, is_new_conversation: bool = False):
     """
     Query the agent service with streaming responses via WebSocket.
 
@@ -24,7 +24,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
         user_message (str): The user's query/message to send to the agent service
 
     Returns:
-        None: Results are sent directly through the WebSocket connection
+        tuple: (final_message, chat_title) - The final agent message and generated chat title
 
     Raises:
         aiohttp.ClientError: If connection to agent service fails
@@ -44,10 +44,11 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
         - General exceptions: Logs and sends unexpected error message
     """
     reasoning_steps = [{'type': 'thinking', 'content': '🤔 Agent is starting to analyze your request...'}]  # Collect reasoning steps
+    chat_title = None  # Store chat title
 
     try:
         async with aiohttp.ClientSession() as session:
-            payload = {"query": user_message, "thread_id": thread_id}
+            payload = {"query": user_message, "thread_id": thread_id, "generate_title": is_new_conversation}
             async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}) as response:
                 if response.status == 200:
                     # Process streaming response
@@ -57,6 +58,13 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
                             try:
                                 data = json.loads(line_str[6:])  # Remove 'data: ' prefix
                                 logger.info(f'Current data -> {data}')
+
+                                # Capture chat title
+                                if data.get("type") == "chat_title":
+                                    chat_title = data.get("content", "New Conversation")
+                                    logger.info(f'Chat title received: {chat_title}')
+                                    continue
+
                                 # Collect reasoning step - only add if it's not the final response
                                 if data.get("type") != "final_response":
                                     reasoning_step = {
@@ -84,7 +92,7 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
                                     reasoning_steps.append({"type": "final_response", "content": data.get("content", "No response available") , "message": "✨ Response ready" })
                                     final_message.reasoning_steps = reasoning_steps  # Attach reasoning steps
                                     await websocket.send_text(json.dumps(final_message.to_dict()))
-                                    return final_message
+                                    return final_message, chat_title
 
                             except json.JSONDecodeError as e:
                                 logger.error(f"Failed to parse streaming data: {line_str}")
@@ -94,12 +102,15 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
                     logger.error(f"Agent service error {response.status}: {error_text}")
                     error_message = WebSocketMessage(type="Agent", content=f"Agent service error: {response.status}")
                     await websocket.send_text(json.dumps(error_message.to_dict()))
+                    return None, None
 
     except aiohttp.ClientError as e:
         logger.error(f"Failed to connect to agent service: {str(e)}")
         error_message = WebSocketMessage(type="Agent", content=f"Failed to connect to agent service. Please check if the service is running.")
         await websocket.send_text(json.dumps(error_message.to_dict()))
+        return None, None
     except Exception as e:
         logger.error(f"Unexpected error querying agent service: {str(e)}")
         error_message = WebSocketMessage(type="Agent", content=f"Unexpected error:")
         await websocket.send_text(json.dumps(error_message.to_dict()))
+        return None, None

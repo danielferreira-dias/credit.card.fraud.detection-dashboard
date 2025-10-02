@@ -281,6 +281,47 @@ export default function AgentPage(){
         // Don't close WebSocket - just update the conversation context
         // The next message sent will use the updated conversationId
     };
+
+    const handleDeleteConversation = async () => {
+        if (!currentConversationId || !user) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            showError('No access token found', 3000);
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:80/chat/${user.id}/${currentConversationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to delete conversation: ${response.status}`);
+            }
+
+            // Clear current conversation
+            setMessages([]);
+            setCurrentConversationId(null);
+            setcurrentThreadID(null);
+            setChatHistoryRefresh(prev => prev + 1);
+            showSuccess('Conversation deleted successfully', 3000);
+        } catch (error) {
+            console.error('Error deleting conversation:', error);
+            showError('Failed to delete conversation', 3000);
+        }
+    };
+
+    const handleNewConversation = () => {
+        // Clear current conversation state to start fresh
+        setMessages([]);
+        setCurrentConversationId(null);
+        setcurrentThreadID(null);
+        showInfo('Starting new conversation', 2000);
+    };
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
             <div className="flex flex-col h-full w-[80%] text-white border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 min-h-screen max-h-[fit]">
@@ -302,6 +343,22 @@ export default function AgentPage(){
                             <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
                                 {currentThreadID ? `Thread ID: ${currentThreadID}` : "No Thread ID"}
                             </div>
+                            {currentConversationId && (
+                                <>
+                                    <button
+                                        onClick={handleNewConversation}
+                                        className="text-xs px-3 py-2 rounded-lg bg-zinc-950 text-blue-400 border border-blue-800 hover:bg-blue-900/30 transition-colors"
+                                    >
+                                        New Conversation
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteConversation}
+                                        className="text-xs px-3 py-2 rounded-lg bg-zinc-950 text-red-400 border border-red-800 hover:bg-red-900/30 transition-colors"
+                                    >
+                                        Delete Conversation
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 

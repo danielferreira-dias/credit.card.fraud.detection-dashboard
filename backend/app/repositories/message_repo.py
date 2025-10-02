@@ -2,7 +2,7 @@ from typing import List
 from app.models.user_model import Conversation, Message
 from app.infra.logger import setup_logger
 from app.exception.chat_exceptions import ChatException, ChatNotFound
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -60,6 +60,26 @@ class ConversationRepository:
             await self.db.rollback()
             logger.error(f"Erro ao deletar conversa com ID {conversation_id}: {e}")
             raise ChatException("Error in the Conversation Database;") from e
+
+    async def delete_checkpoints_by_thread_id(self, thread_id: str) -> None:
+        """
+        Delete all LangGraph checkpoints for a specific thread_id.
+        These are stored in the 'checkpoints' table created by AsyncPostgresSaver.
+        """
+        try:
+            # Delete from checkpoints table where thread_id matches
+            delete_checkpoints_query = text("""
+                DELETE FROM checkpoints
+                WHERE thread_id = :thread_id
+            """)
+
+            await self.db.execute(delete_checkpoints_query, {"thread_id": thread_id})
+            await self.db.commit()
+            logger.info(f"Deleted checkpoints for thread_id: {thread_id}")
+        except SQLAlchemyError as e:
+            await self.db.rollback()
+            logger.error(f"Error deleting checkpoints for thread_id {thread_id}: {e}")
+            raise ChatException("Error deleting checkpoints from database") from e
         
     async def update_conversation(self, conversation_id: int) -> None:
         try:
