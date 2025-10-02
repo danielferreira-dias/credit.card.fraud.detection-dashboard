@@ -6,9 +6,8 @@ from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langsmith import traceable
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langgraph.config import get_stream_writer
-from colorama import init, Fore, Style
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 # Add the agent-service root directory to Python path
@@ -25,8 +24,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize colorama for cross-platform color support
-init(autoreset=True)
+@dataclass
+class UserContext:
+    user_name: str
+    user_id: int
 
 @dataclass
 class TransactionData:
@@ -612,7 +613,7 @@ class TitleNLP:
             api_version=os.getenv("OPENAI_API_VERSION"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT_GPT5_NANO"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            max_completion_tokens=50,
+            max_tokens=50,
             temperature=1,
         )
         self.system_prompt = "You are a NLP Model that takes in the user's query and generates a conversation title associated to it;"

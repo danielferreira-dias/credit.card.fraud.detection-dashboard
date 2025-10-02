@@ -48,7 +48,7 @@ async def count_filtered_transactions(filters: TransactionFilter = Depends(), se
         data=response
     )
 
-@router.get("/stats", response_model=ResponseWithMessage)
+@router.get("/stats")
 async def transaction_stats(service: TransactionService = Depends(get_transaction_service)):
     """
     Get statistics about transactions, including total count, fraudulent count, and non-fraudulent count.
