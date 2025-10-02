@@ -5,6 +5,8 @@ class QuerySchema(BaseModel):
     query : str
     thread_id: Optional[str] = None
     generate_title: Optional[bool] = False  # Only generate title for new conversations
+    user_name: Optional[str] = None  # User's name for personalized responses
+    user_id: Optional[int] = None  # User's ID for context
     
 class QueryResponse(BaseModel):
     query: str

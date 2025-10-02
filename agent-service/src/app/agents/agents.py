@@ -100,11 +100,12 @@ class TransactionAgent:
                         raise
 
                 # Initialize the ReAct agent with checkpointer
-                self.agent = create_react_agent(
+                # Note: We handle system prompt manually to avoid it being prepended on every message
+                self.agent = create_agent(
                     model=self.model,
                     tools=self.tools,
                     checkpointer=self.checkpointer,
-                    prompt=self.system_prompt
+                    context_schema=UserContext
                 )
 
                 self.logger.info("PostgresSaver setup completed successfully")
@@ -611,7 +612,7 @@ class TitleNLP:
             api_version=os.getenv("OPENAI_API_VERSION"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT_GPT5_NANO"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            max_tokens=50,
+            max_completion_tokens=50,
             temperature=1,
         )
         self.system_prompt = "You are a NLP Model that takes in the user's query and generates a conversation title associated to it;"
