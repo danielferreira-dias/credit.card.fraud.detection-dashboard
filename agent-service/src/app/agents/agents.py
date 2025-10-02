@@ -66,7 +66,6 @@ class TransactionAgent:
         )
 
         self.tools = self._create_tools()
-        self.system_prompt = system_prompt
         self.backend_client = backend_client
 
         # Checkpointer will be initialized in setup()
@@ -139,7 +138,7 @@ class TransactionAgent:
             self.checkpointer = None
             self.logger.info("PostgresSaver cleanup completed")
 
-    async def get_conversation_history(self, thread_id: str, limit: int = 10):
+    async def get_conversation_history(self, thread_id: str, limit: int = 20):
         """
         Retrieve conversation history from checkpoints for a specific thread.
 
@@ -476,26 +475,8 @@ class TransactionAgent:
 
         return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
-    @traceable(name="query_agent")
-    async def query_agent(self, user_input: str, thread_id : str ,stream: bool = True):
-        """
-            Ensures the first message is the System Prompt initialized, then adds the user Input as HumanMessage
-            It then invokes the agent by running once with the input and returning the final structured output;
 
-            Args:
-                user_input: User's query string
-                stream: Whether to stream the response (default: True)
-        """
-        try:
-            if stream:
-                return await self._stream_query({"messages": [HumanMessage(content=user_input)]}, thread_id)
-            else:
-                result = await self.agent.ainvoke({"messages": [HumanMessage(content=user_input)]}, {'configurable': {'thread_id': f"{thread_id}"}})
-                return result
-        except Exception as e:
-            self.logger.error(f"Error during agent invocation: {str(e)}")
-            raise AgentException() from e
-
+    @traceable(name="query_stream_query_agent")
     async def _stream_query(self, agent_input, thread_id: str):
         """
             Stream the agent's response with progress updates

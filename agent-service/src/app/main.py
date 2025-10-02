@@ -8,7 +8,8 @@ from app.schemas.query_schema import QuerySchema
 from fastapi import FastAPI, status, Depends
 from fastapi.responses import StreamingResponse
 from infra.logging.logger import get_agent_logger
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+from app.schemas.agent_prompt import system_prompt
 from pydantic import BaseModel
 import os
 import json
@@ -188,23 +189,6 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
     - Agent has full context of conversation across requests
     - Use same `thread_id` for multi-turn conversations
     - Use different `thread_id` for separate conversation sessions
-
-    Example Frontend Integration:
-    -----------------------------
-    Args:
-        user_query (QuerySchema): User's query and optional thread_id
-        agent (TransactionAgent): Injected agent instance from dependency
-
-    Returns:
-        StreamingResponse: SSE stream with agent progress and final response
-
-    Raises:
-        RuntimeError: If agent not initialized (shouldn't happen with proper lifespan)
-        AgentException: If LangGraph agent encounters errors during execution
-
-    Note:
-        The stream uses a 0.1s delay between events to prevent overwhelming
-        the client. For production, consider adjusting based on network conditions.
     """
 
     # Get thread_id from request body, default to "default" if not provided
@@ -265,7 +249,7 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
     )
 
 @app.get("/conversation_history/{thread_id}")
-async def get_conversation_history( thread_id: str, limit: int = 10, agent: TransactionAgent = Depends(get_transaction_agent)):
+async def get_conversation_history( thread_id: str, limit: int = 20, agent: TransactionAgent = Depends(get_transaction_agent)):
     """
     Retrieve conversation history for a specific thread from checkpoints.
 
