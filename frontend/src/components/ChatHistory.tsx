@@ -55,8 +55,8 @@ export default function ChatHistory({ onSelectChat, refreshTrigger }: ChatHistor
                 <button
                     key={chat.id}
                     onClick={() => onSelectChat(chat.id, chat.thread_id)}
-                    className="w-full h-12 bg-zinc-950 border-[1px] hover:bg-zinc-800 border-zinc-700 rounded-lg justify-center items-center flex flex-col">
-                    <div>{chat.id}. {chat.title}</div>
+                    className="w-full h-12 text-sm border-b-[1px] border-zinc-800 hover:bg-zinc-800  rounded-lg justify-center items-center flex flex-col">
+                    <div>{chat.title}</div>
                 </button>
             ))}
         </div>

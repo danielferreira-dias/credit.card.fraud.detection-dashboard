@@ -23,6 +23,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = get_agent_logger("Agent Log", "INFO")
 
 @dataclass
 class UserContext:
@@ -61,7 +62,6 @@ class TransactionAgent:
             api_version=os.getenv("OPENAI_API_VERSION"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            max_tokens=1000,
             temperature=1,
         )
 
@@ -605,23 +605,32 @@ class TransactionAgent:
                                     "tool_name": message.name,
                                     "message": f"✅ Tool {message.name} completed"
                                 }
+
+@dataclass
+class NPLOutput:
+    title: str
 class TitleNLP:
-    
     def __init__(self, model_name : str):
         self.model = AzureChatOpenAI(
             azure_deployment=model_name,
             api_version=os.getenv("OPENAI_API_VERSION"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT_GPT5_NANO"),
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            max_tokens=50,
             temperature=1,
         )
-        self.system_prompt = "You are a NLP Model that takes in the user's query and generates a conversation title associated to it;"
+        self.system_prompt = "You are a NLP Model that takes in the user's query and generates a 4-5 word conversation title associated to it. The title should be concise, descriptive, and capture the main topic of the conversation."
+        self.agent = create_agent(
+            model = self.model,
+            prompt = self.system_prompt,
+            tools=[],
+            response_format=NPLOutput
+        )
 
     async def _generate_title(self, user_query: str):
-        conversation = [
-            SystemMessage(f"{self.system_prompt}"),
-            HumanMessage(f"{user_query}"),
-        ]
-        return await self.model.ainvoke(f"{conversation}")
+        response = await self.agent.ainvoke({"messages": [ SystemMessage(f"{self.system_prompt}") ,HumanMessage(content=user_query)]})
+        final_title = response.get('structured_response').title
+        if final_title is None:
+            return "New Conversation" 
+        return final_title
+
 

@@ -141,6 +141,12 @@ def read_root():
     logger.info("Root endpoint called")
     return {"message": "Hello from credit-card-fraud-detection-dashboard!"}
 
+
+class StreamException(Exception):
+    def __init__(self, message="An exception in Streaming has happened"):
+        super().__init__(message)
+
+
 @app.post("/user_message/stream")
 async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent = Depends(get_transaction_agent), nlp_agent : TitleNLP = Depends(get_nlp_agent)):
     """
@@ -203,18 +209,24 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
 
     # Get thread_id from request body, default to "default" if not provided
     thread_id = user_query.thread_id if user_query.thread_id else "default"
-    logger.info(f'The current thread ID is -> {thread_id}')
+    user_id = user_query.user_id if user_query.user_id else None
+    user_name = user_query.user_name if user_query.user_name else 'Daniel Dias'
+    
+    if user_id is None:
+        raise StreamException(message="User ID is None")
 
     async def generate_stream():
         try:
             # Only generate title if requested (for new conversations)
+            logger.info(f"PAYLOAD {user_query.model_dump()}")
             if user_query.generate_title:
-                chat_title : str = await nlp_agent._generate_title(user_query.query)
+                chat_title = await nlp_agent._generate_title(user_query.query)
+                logger.info(f"CURRENT CHAT_TITLE FROM BACKEND {chat_title}")
 
                 # Send the chat title as the first event
                 title_data = {
                     'type': 'chat_title',
-                    'content': chat_title.content if hasattr(chat_title, 'content') else str(chat_title),
+                    'content': chat_title,
                     'message': 'Chat title generated'
                 }
                 yield (
@@ -222,7 +234,7 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
                     f"data: {json.dumps(title_data)}\n\n"
                 )
 
-            agent_input = {"messages": [HumanMessage(content=user_query.query)]}
+            agent_input = {"messages": [HumanMessage(content=f"{user_name}: " + user_query.query)]}
             async for update in agent._stream_query(agent_input=agent_input, thread_id=thread_id):
                 # Send each update as Server-Sent Event
                 yield (

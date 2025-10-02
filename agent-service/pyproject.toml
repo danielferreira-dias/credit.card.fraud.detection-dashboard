@@ -16,4 +16,5 @@ dependencies = [
     "colorama==0.4.6",
     "psycopg[binary,pool]>=3.2.10",
     "langgraph-checkpoint-postgres>=2.0.24",
+    "langchain-azure-ai>=0.1.4",
 ]

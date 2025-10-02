@@ -11,7 +11,7 @@ logger = setup_logger(__name__)
 
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
 
-async def query_agent_service_streaming(websocket: WebSocket, user_message: str, thread_id: str, is_new_conversation: bool = False):
+async def query_agent_service_streaming(websocket: WebSocket, user_id : int , user_name : str , user_message: str, thread_id: str, is_new_conversation: bool = False, ):
     """
     Query the agent service with streaming responses via WebSocket.
 
@@ -44,11 +44,11 @@ async def query_agent_service_streaming(websocket: WebSocket, user_message: str,
         - General exceptions: Logs and sends unexpected error message
     """
     reasoning_steps = [{'type': 'thinking', 'content': '🤔 Agent is starting to analyze your request...'}]  # Collect reasoning steps
-    chat_title = None  # Store chat title
+    chat_title = "New Conversation"  # Store chat title
 
     try:
         async with aiohttp.ClientSession() as session:
-            payload = {"query": user_message, "thread_id": thread_id, "generate_title": is_new_conversation}
+            payload = { "user_id" : user_id , "user_name" : user_name, "query": user_message, "thread_id": thread_id, "generate_title": is_new_conversation}
             async with session.post(f"{AGENT_SERVICE_URL}/user_message/stream", json=payload, headers={"Content-Type": "application/json"}) as response:
                 if response.status == 200:
                     # Process streaming response
