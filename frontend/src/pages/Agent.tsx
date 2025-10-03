@@ -324,7 +324,7 @@ export default function AgentPage(){
     };
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
-            <div className="flex flex-col h-full w-[80%] text-white rounded-xl bg-[#0F0F11] min-h-screen max-h-[fit]" style={{ boxShadow: 'var(--shadow-l)' }}>
+            <div className="flex flex-col h-full w-[80%] text-white rounded-xl bg-zinc-950 min-h-screen max-h-[fit]" style={{ boxShadow: 'var(--shadow-l)' }}>
 
                 <div className="flex-1 p-4 overflow-y-auto">
                     {/* Connection status and mock toggle */}

@@ -16,8 +16,8 @@ export default function AuthenticationPage() {
   }, [user, loading, navigate, location]);
   
   return (
-    loading ? <Loading /> : <div className="flex flex-col w-full h-[80%] text-white justify-center items-center border-[1px] bg-[#0F0F11] border-zinc-700 min-h-screen ">
-      <div className="flex flex-col w-full h-[80%] min-w-[400px] border-[1px] bg-[#0F0F11] border-zinc-700 shadow-xl shadow-zinc-900 rounded-xl min-h-[600px]">
+    loading ? <Loading /> : <div className="flex flex-col w-full h-[80%] text-white justify-center items-center border-[1px] bg-zinc-950 border-zinc-700 min-h-screen ">
+      <div className="flex flex-col w-full h-[80%] min-w-[400px] border-[1px] bg-zinc-950 border-zinc-700 shadow-xl shadow-zinc-900 rounded-xl min-h-[600px]">
         <Register />
       </div>
     </div>

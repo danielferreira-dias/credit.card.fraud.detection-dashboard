@@ -57,7 +57,7 @@ export default function ChatHistory({ onSelectChat, refreshTrigger, currentConve
     );
 
     return (
-        <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center rounded-xl bg-[#0F0F11] h-svh" style={{ boxShadow: 'var(--shadow-l)' }}>
+        <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center rounded-xl bg-zinc-950 h-svh" style={{ boxShadow: 'var(--shadow-l)' }}>
             {sortedHistoryList.map((chat) => (
                 <button
                     key={chat.id}
