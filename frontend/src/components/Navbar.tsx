@@ -57,8 +57,8 @@ export default function Navbar(){
                 borderRadius: '0.75rem',
                 backgroundImage: `
                     linear-gradient(#0a0a0a, #0a0a0a),
-                    linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(10, 10, 10, 1) 25%, rgba(10, 10, 10, 1) 85%, rgba(139, 92, 246, 1) 100%),
-                    linear-gradient(225deg, rgba(168, 85, 247, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(6, 182, 212, 1) 100%)
+                    linear-gradient(200deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 55%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
                 `,
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'

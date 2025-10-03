@@ -74,7 +74,17 @@ export default function TransactionPage(){
     
 
     return (
-        <div className="flex flex-col h-full w-full text-white p-4 gap-y-1 flex-1 rounded-xl bg-zinc-950 min-h-screen max-h-[fit]" style={{ boxShadow: 'var(--shadow-l)' }}>
+        <div className="flex flex-col h-full w-full text-white p-4 gap-y-1 rounded-xl bg-zinc-950 min-h-screen max-h-[fit]" style={{
+                border: 'double 1px transparent',
+                borderRadius: '0.75rem',
+                backgroundImage: `
+                    linear-gradient(#0a0a0a, #0a0a0a),
+                    linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 25%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
+                `,
+                backgroundOrigin: 'border-box',
+                backgroundClip: 'padding-box, border-box, border-box'
+            }}>
             <h2 className="text-2xl font-semibold opacity-90 mt-4">Transactions Analytics</h2>
             <h3 className="text-sm opacity-70">Monitor your transactions in real-time</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full gap-4 items-center mt-6">

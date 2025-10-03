@@ -323,12 +323,21 @@ export default function AgentPage(){
         showInfo('Starting new conversation', 2000);
     };
     return (
-        <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
-            <div className="flex flex-col h-full w-[80%] text-white rounded-xl bg-zinc-950 min-h-screen max-h-[fit]" style={{ boxShadow: 'var(--shadow-l)' }}>
-
+        <div className="flex flex-col sm:flex-row w-full min-h-screen max-h-[fit] gap-x-2">
+            <div className="flex flex-col h-full w-full sm:w-[75%] text-white rounded-xl bg-zinc-950 min-h-screen max-h-[fit]" style={{
+                border: 'double 1px transparent',
+                borderRadius: '0.75rem',
+                backgroundImage: `
+                    linear-gradient(#0a0a0a, #0a0a0a),
+                    linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 25%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
+                `,
+                backgroundOrigin: 'border-box',
+                backgroundClip: 'padding-box, border-box, border-box'
+            }}>
                 <div className="flex-1 p-4 overflow-y-auto">
                     {/* Connection status and mock toggle */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-row flex-wrap items-center justify-between mb-4">
                         <div className={`text-xs px-3 py-2 rounded-lg w-fit ${
                             isConnected
                                 ? 'bg-black text-green-700'
