@@ -50,7 +50,20 @@ export default function Navbar(){
             setIsMobileOpen={setIsMobileOpen}
         />
 
-        <div className={`${isCollapsed ? "lg:w-20 " : "lg:w-[17.5%]"} } w-20 h-svh  top-0  max-[500px]:w-full max-[500px]:rounded-none max-[500px]:border-0  max-[500px]:fixed max-[500px]:z-50 ${!isMobileOpen ? "max-[500px]:hidden" : ""} h-[98vh] bg-zinc-950 flex flex-col rounded-xl p-2 items-center sticky transition-all duration-300 ease-in-out`} style={{ boxShadow: 'var(--shadow-l)' }}>
+        <div
+            className={`${isCollapsed ? "lg:w-20 " : "lg:w-[17.5%]"} } w-20 h-svh  top-0  max-[500px]:w-full max-[500px]:rounded-none max-[500px]:border-0  max-[500px]:fixed max-[500px]:z-50 ${!isMobileOpen ? "max-[500px]:hidden" : ""} h-[98vh] flex flex-col rounded-xl p-2 items-center sticky transition-all duration-300 ease-in-out relative`}
+            style={{
+                border: 'double 1px transparent',
+                borderRadius: '0.75rem',
+                backgroundImage: `
+                    linear-gradient(#0a0a0a, #0a0a0a),
+                    linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(10, 10, 10, 1) 25%, rgba(10, 10, 10, 1) 85%, rgba(139, 92, 246, 1) 100%),
+                    linear-gradient(225deg, rgba(168, 85, 247, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(6, 182, 212, 1) 100%)
+                `,
+                backgroundOrigin: 'border-box',
+                backgroundClip: 'padding-box, border-box, border-box'
+            }}>
+
             <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform   transition duration-300 ease-in-out opacity-100 hover:shadow-2xl hover:shadow-zinc-800 w-9 h-9 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-[1rem] border-[#2A2A2A] shadow-r-lg items-center justify-center">
                 <img src={isCollapsed ? "/right-chevron-svgrepo-com.svg":"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-3 h-3 transform transition duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
             </button>
