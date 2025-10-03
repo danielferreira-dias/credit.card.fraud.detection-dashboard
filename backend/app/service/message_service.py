@@ -51,7 +51,7 @@ class ConversationService():
         conversations = await self.repo.get_conversations_by_user_id(user_id)
 
         # Convert to response format
-        return [{"id": conv.id, "title": conv.title, "thread_id": conv.thread_id} for conv in conversations]
+        return [{"id": conv.id, "title": conv.title, "thread_id": conv.thread_id, "updated_at": conv.updated_at} for conv in conversations]
     
     async def get_conversation_by_conversation_id(self, conversation_id : int ) -> Conversation:
         # Get all conversations for the user

@@ -4,15 +4,17 @@ import { useUser } from "../context/UserContext"
 interface chatHistory{
     id: number,
     title: string,
-    thread_id: string
+    thread_id: string,
+    updated_at: string
 }
 
 interface ChatHistoryProps {
     onSelectChat: (conversationId: number, threadID: string) => void;
     refreshTrigger?: number;
+    currentConversationId?: number | null;
 }
 
-export default function ChatHistory({ onSelectChat, refreshTrigger }: ChatHistoryProps){
+export default function ChatHistory({ onSelectChat, refreshTrigger, currentConversationId }: ChatHistoryProps){
     const { user } = useUser();
     const [historyList, setHistoryList] = useState<chatHistory[]>([]);
 
@@ -40,8 +42,8 @@ export default function ChatHistory({ onSelectChat, refreshTrigger }: ChatHistor
                 throw new Error("Error in request: " + res.status);
             }
             const data = await res.json();
-            setHistoryList(data)
             console.log('Chat history:', data);
+            setHistoryList(data);
         };
 
         fetchData().catch(error => {
@@ -49,13 +51,22 @@ export default function ChatHistory({ onSelectChat, refreshTrigger }: ChatHistor
         });
     }, [user, refreshTrigger]); // Add refreshTrigger to dependencies
 
+    // Sort conversations by updated_at whenever historyList changes
+    const sortedHistoryList = [...historyList].sort((a: chatHistory, b: chatHistory) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+
     return (
         <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center rounded-xl bg-[#0F0F11] h-svh" style={{ boxShadow: 'var(--shadow-l)' }}>
-            {historyList.map((chat) => (
+            {sortedHistoryList.map((chat) => (
                 <button
                     key={chat.id}
                     onClick={() => onSelectChat(chat.id, chat.thread_id)}
-                    className="w-full h-12 text-sm border-b-[1px] border-zinc-800 hover:bg-zinc-800  rounded-lg justify-center items-center flex flex-col">
+                    className={`w-full h-12 text-xs border-zinc-800 hover:bg-zinc-800 rounded-lg justify-center items-center flex flex-col ${
+                        currentConversationId === chat.id ? 'bg-zinc-800' : ''
+                    }`}
+                    style={{ boxShadow: 'var(--shadow-s)' }}
+                >
                     <div>{chat.title}</div>
                 </button>
             ))}

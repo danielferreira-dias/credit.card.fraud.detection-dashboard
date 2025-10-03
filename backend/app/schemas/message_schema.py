@@ -19,9 +19,11 @@ class ConversationListResponse(BaseModel):
     id: int
     title: str
     thread_id: str
+    updated_at: Optional[datetime]
 
 class ConversationsListResponse(BaseModel):
     conversations: list[ConversationListResponse]
+
 class MessageResponse(BaseModel):
     email: EmailStr
     name: str 

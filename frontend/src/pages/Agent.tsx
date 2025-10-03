@@ -125,7 +125,7 @@ export default function AgentPage(){
 
             // Build WebSocket URL without conversation_id (we'll send it in messages)
             const wsUrl = `ws://localhost:80/chat/ws/agent/${user.id}?token=${encodeURIComponent(token)}`;
-            const ws = new WebSocket(wsUrl);
+            const ws = new WebSocket(wsUrl)
             ws.onopen = () => {
                 console.log('Connected to agent WebSocket');
                 setIsConnected(true);
@@ -458,7 +458,7 @@ export default function AgentPage(){
                     </div>
                 </div>
             </div>
-            <ChatHistory onSelectChat={handleSelectChat} refreshTrigger={chatHistoryRefresh} />
+            <ChatHistory onSelectChat={handleSelectChat} refreshTrigger={chatHistoryRefresh} currentConversationId={currentConversationId} />
         </div>
     )
 }

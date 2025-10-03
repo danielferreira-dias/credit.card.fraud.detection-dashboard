@@ -4,16 +4,26 @@ from transformers import AutoTokenizer
 from docling.document_converter import DocumentConverter
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma, PGVector
 from langchain.schema import Document  # ADDED: Need this for LangChain documents
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
+
 docs = [
     "./documents/eda_insights.md",
     "./documents/feature_importance.md",
     "./documents/fraud_patterns.md",
     "./documents/transaction_indicators.md"
 ]
+
+# Database connection string
+CONNECTION_STRING = os.getenv("DATABASE_URL")
+COLLECTION_NAME = "fraud_analysis_docs"
+
 
 class DocumentTokenizer:
     def __init__(self, model_id: str, max_tokens: int):
@@ -58,6 +68,13 @@ def proccess_documents():
     
     # FIXED: Create list to store LangChain Document objects
     langchain_documents = []
+
+    vectorstore = PGVector(
+        collection_name=COLLECTION_NAME,
+        connection_string=CONNECTION_STRING,
+        embeddings=embeddings,
+        use_jsonb=True,  # Store metadata as JSONB for better querying
+    )
     
     for doc_path in docs:
         print(f"\nProcessing: {doc_path}")
@@ -94,16 +111,10 @@ def proccess_documents():
     
     print(f"\n✓ Total chunks to store: {len(langchain_documents)}")
     
-    # FIXED: Create vector store with the collected documents
-    print("\nCreating vector store...")
-    vectorstore = Chroma.from_documents(
-        documents=langchain_documents,  # Use the LangChain documents we collected
-        embedding=embeddings,
-        persist_directory="./chroma_main_db",
-        collection_name="fraud_analysis_docs"
-    )
-    
-    print("✓ Vector store created and populated!")
+     # Add to pgvector
+    print("\nStoring in pgvector...")
+    vectorstore.add_documents(langchain_documents)
+    print("✓ All chunks stored in PostgreSQL!")
 
     # Now you can insert into your vector database
     # Example for different databases:
@@ -148,17 +159,18 @@ def proccess_documents():
     #     metadatas=[{"source": chunk["source"]} for chunk in all_chunks_with_embeddings]
     # )
 
-
 if __name__ == "__main__":
     # Initialize embeddings (same as when you created it)
     embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL_ID)
     
-    # Load existing Chroma vectorstore
-    vectorstore = Chroma(
-        persist_directory="./chroma_main_db",
-        embedding_function=embeddings,
-        collection_name="fraud_analysis_docs"  # Use same name as when created
+    # Connect to existing vectorstore
+    vectorstore = PGVector(
+        collection_name=COLLECTION_NAME,
+        connection_string=CONNECTION_STRING,
+        embeddings=embeddings,
     )
+    
+    print("✓ Connected to pgvector database!")
     
     print("✓ Vectorstore loaded successfully!")
     print(f"✓ Collection contains {vectorstore._collection.count()} documents\n")
@@ -178,17 +190,11 @@ if __name__ == "__main__":
             continue
         
         # FIXED: Use user_query variable, not 'query'
-        results = vectorstore.similarity_search(user_query, k=2)
-        
-        if not results:
-            print("No results found.")
-            continue
-        
-        for i, result in enumerate(results, 1):
-            print(f"\n{'='*60}")
-            print(f"Result {i}:")
-            print(f"Content: {result.page_content[:400]}...")
-            print(f"Source: {result.metadata['source']}")
-            print(f"{'='*60}")
+        results_with_scores = vectorstore.similarity_search_with_score(user_query, k=3)
+
+        for i, (result, score) in enumerate(results_with_scores, 1):
+            print(f"\nResult {i} (Score: {score:.4f}):")
+            print(f"Content: {result.page_content}...")
+            print(f"Source: {result.metadata.get('source', 'Unknown')}")
 
   

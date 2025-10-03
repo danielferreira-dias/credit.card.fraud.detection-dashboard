@@ -565,6 +565,7 @@ dependencies = [
     { name = "langchain-huggingface" },
     { name = "langchain-openai" },
     { name = "openai" },
+    { name = "python-dotenv" },
     { name = "sentence-transformers" },
 ]
 
@@ -580,6 +581,7 @@ requires-dist = [
     { name = "langchain-huggingface", specifier = ">=0.3.1" },
     { name = "langchain-openai", specifier = ">=0.3.34" },
     { name = "openai", specifier = ">=2.1.0" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "sentence-transformers", specifier = ">=5.1.1" },
 ]
 
