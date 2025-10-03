@@ -2,7 +2,6 @@ from docling.chunking import HybridChunker
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from transformers import AutoTokenizer
 from docling.document_converter import DocumentConverter
-from langchain_openai import AzureOpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain.schema import Document  # ADDED: Need this for LangChain documents
@@ -24,6 +23,9 @@ if not CONNECTION_STRING.startswith("postgresql+psycopg://"):
     CONNECTION_STRING = CONNECTION_STRING.replace("postgresql://", "postgresql+psycopg://")
 
 COLLECTION_NAME = "fraud_analysis_docs"
+
+AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
+AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY")
 
 print(f"Connecting to: {CONNECTION_STRING.replace(os.getenv('POSTGRES_PASSWORD', 'postgres'), '***')}")
 class DocumentTokenizer:
@@ -92,7 +94,6 @@ def proccess_documents():
                     "source": doc_path,
                     "chunk_index": i,
                     "chunk_id": f"{doc_path}_{i}",
-                    # You can add more metadata from chunk.meta if needed
                 }
             )
             
@@ -137,28 +138,6 @@ def proccess_documents():
     #         "content_vector": chunk["embedding"],
     #         "source": chunk["source"]
     #     }])
-    
-    # --- Pinecone ---
-    # import pinecone
-    # 
-    # index = pinecone.Index("your-index-name")
-    # vectors_to_upsert = [
-    #     (chunk["id"], chunk["embedding"], {"text": chunk["text"], "source": chunk["source"]})
-    #     for chunk in all_chunks_with_embeddings
-    # ]
-    # index.upsert(vectors=vectors_to_upsert)
-    
-    # --- ChromaDB ---
-    # import chromadb
-    # 
-    # client = chromadb.Client()
-    # collection = client.create_collection("fraud_docs")
-    # collection.add(
-    #     ids=[chunk["id"] for chunk in all_chunks_with_embeddings],
-    #     embeddings=[chunk["embedding"] for chunk in all_chunks_with_embeddings],
-    #     documents=[chunk["text"] for chunk in all_chunks_with_embeddings],
-    #     metadatas=[{"source": chunk["source"]} for chunk in all_chunks_with_embeddings]
-    # )
 
 def query_vectorstore():
     """Query existing vectorstore"""
@@ -197,7 +176,7 @@ def query_vectorstore():
             for i, (result, score) in enumerate(results_with_scores, 1):
                 print(f"\n{'='*60}")
                 print(f"Result {i} (Score: {score:.4f}):")
-                print(f"Content: {result.page_content[:300]}...")
+                print(f"Content: {result.page_content}...")
                 print(f"Source: {result.metadata.get('source', 'Unknown')}")
                 print(f"{'='*60}")
         except Exception as e:
