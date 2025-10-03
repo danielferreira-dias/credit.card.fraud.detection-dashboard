@@ -6,9 +6,13 @@ requires-python = "==3.11.13"
 dependencies = [
     "azure-identity>=1.25.0",
     "azure-search-documents>=11.5.3",
+    "chromadb>=1.1.0",
     "docling>=2.55.0",
+    "langchain-community>=0.3.30",
     "langchain-core>=0.3.77",
     "langchain-docling>=1.1.0",
     "langchain-huggingface>=0.3.1",
+    "langchain-openai>=0.3.34",
     "openai>=2.1.0",
+    "sentence-transformers>=5.1.1",
 ]
