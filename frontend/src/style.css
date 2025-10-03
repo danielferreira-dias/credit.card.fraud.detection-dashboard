@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+:root {
+  /* bg-colors */
+  --primary: oklch(0.9 0.17 100);
+  --bg-dark: oklch(0.1 0 264);
+  --bg: oklch(0.2 0 264);
+  --bg-light: oklch(0.3 0 264);
+  /* text-colors */
+  --text: oklch(0.96 0 264);
+  --text-muted: oklch(0.76 0 264);
+  /* shadows */
+  --shadow-s:
+    inset 0 1px 2px #ffffff30, /* top highlight */
+    0 1px 2px #00000030, /* dark shadow */
+    0 2px 4px #00000015; /* soft shadow */
+  --shadow-m:
+    inset 0 1px 2px #ffffff50, /* top highlight */
+    0 2px 4px #00000030, /* dark shadow */
+    0 4px 8px #00000015; /* soft shadow */
+  --shadow-l:
+    inset 0 1px 2px #ffffff70, /* top highlight */
+    0 4px 6px #00000030, /* dark shadow */
+    0 6px 10px #00000015; /* soft shadow */
+  --shadow-new-convo:
+    inset 0 1px 2px #0099ff70, /* top highlight */
+    0 4px 6px #00000030, /* dark shadow */
+    0 6px 10px #00000015; /* soft shadow */
+  --shadow-delete-convo:
+    inset 0 1px 2px #ff000070, /* top highlight */
+    0 4px 6px #00000030, /* dark shadow */
+    0 6px 10px #00000015; /* soft shadow */
+}
+
 html, body, #root {
     width: 100%;
     height: 100%;

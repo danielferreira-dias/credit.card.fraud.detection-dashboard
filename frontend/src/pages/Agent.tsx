@@ -324,36 +324,38 @@ export default function AgentPage(){
     };
     return (
         <div className="flex w-full min-h-screen max-h-[fit] gap-x-2">
-            <div className="flex flex-col h-full w-[80%] text-white border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 min-h-screen max-h-[fit]">
+            <div className="flex flex-col h-full w-[80%] text-white rounded-xl bg-[#0F0F11] min-h-screen max-h-[fit]" style={{ boxShadow: 'var(--shadow-l)' }}>
 
                 <div className="flex-1 p-4 overflow-y-auto">
                     {/* Connection status and mock toggle */}
                     <div className="flex items-center justify-between mb-4">
                         <div className={`text-xs px-3 py-2 rounded-lg w-fit ${
                             isConnected
-                                ? 'bg-black text-green-700 border border-green-900'
-                                : 'bg-black text-red-400 border border-red-800'
-                        }`}>
+                                ? 'bg-black text-green-700'
+                                : 'bg-black text-red-400'
+                        }`} style={{ boxShadow: 'var(--shadow-s)'}}>
                             {isConnected ? 'Connected to AI Agent' : 'Disconnected - Attempting to reconnect...'}
                         </div>
                         <div className='flex flex-row gap-x-2'>
-                            <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
+                            <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-zinc-900 text-zinc-200 `} style={{ boxShadow: 'var(--shadow-s)'}}>
                                 {currentConversationId ? `ID: ${currentConversationId}` : "New Conversation"}
                             </div>
-                            <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-black text-zinc-500 border border-zinc-500`}>
+                            <div className={`text-xs px-3 py-2 rounded-lg w-fit bg-zinc-900 text-zinc-200`} style={{ boxShadow: 'var(--shadow-s)'}}>
                                 {currentThreadID ? `Thread ID: ${currentThreadID}` : "No Thread ID"}
                             </div>
                             {currentConversationId && (
                                 <>
                                     <button
                                         onClick={handleNewConversation}
-                                        className="text-xs px-3 py-2 rounded-lg bg-zinc-950 text-blue-400 border border-blue-800 hover:bg-blue-900/30 transition-colors"
+                                        className="text-xs px-3 py-2 rounded-lg bg-zinc-950 text-blue-400 hover:bg-blue-900/30 transition-colors"
+                                        style={{ boxShadow: 'var(--shadow-new-convo)' }}
                                     >
                                         New Conversation
                                     </button>
                                     <button
                                         onClick={handleDeleteConversation}
-                                        className="text-xs px-3 py-2 rounded-lg bg-zinc-950 text-red-400 border border-red-800 hover:bg-red-900/30 transition-colors"
+                                        className="text-xs px-3 py-2 rounded-lg bg-zinc-950 text-red-400 hover:bg-red-900/30 transition-colors"
+                                        style={{ boxShadow: 'var(--shadow-delete-convo)' }}
                                     >
                                         Delete Conversation
                                     </button>
@@ -446,7 +448,9 @@ export default function AgentPage(){
                         <button
                             onClick={sendMessage}
                             disabled={!isConnected || isTyping || typingMessageIndex !== null || !inputMessage.trim()}
-                            className="flex-shrink-0 w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                            className="flex-shrink-0 w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            style={{ boxShadow: 'var(--shadow-l)' }}
+                        >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>

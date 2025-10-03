@@ -50,7 +50,7 @@ export default function ChatHistory({ onSelectChat, refreshTrigger }: ChatHistor
     }, [user, refreshTrigger]); // Add refreshTrigger to dependencies
 
     return (
-        <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center border-[1px] rounded-xl bg-[#0F0F11] border-zinc-700 h-svh">
+        <div className="flex flex-1 flex-col sticky top-0 text-white gap-y-2 p-2 justify-start items-center rounded-xl bg-[#0F0F11] h-svh" style={{ boxShadow: 'var(--shadow-l)' }}>
             {historyList.map((chat) => (
                 <button
                     key={chat.id}
