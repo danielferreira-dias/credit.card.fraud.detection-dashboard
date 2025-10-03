@@ -4,15 +4,13 @@ from transformers import AutoTokenizer
 from docling.document_converter import DocumentConverter
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma, PGVector
+from langchain_postgres.vectorstores import PGVector
 from langchain.schema import Document  # ADDED: Need this for LangChain documents
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
 EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
-
 docs = [
     "./documents/eda_insights.md",
     "./documents/feature_importance.md",
@@ -20,18 +18,20 @@ docs = [
     "./documents/transaction_indicators.md"
 ]
 
-# Database connection string
-CONNECTION_STRING = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL_LOCAL")
+CONNECTION_STRING = DATABASE_URL.replace("@postgres:", "@localhost:")
+if not CONNECTION_STRING.startswith("postgresql+psycopg://"):
+    CONNECTION_STRING = CONNECTION_STRING.replace("postgresql://", "postgresql+psycopg://")
+
 COLLECTION_NAME = "fraud_analysis_docs"
 
-
+print(f"Connecting to: {CONNECTION_STRING.replace(os.getenv('POSTGRES_PASSWORD', 'postgres'), '***')}")
 class DocumentTokenizer:
     def __init__(self, model_id: str, max_tokens: int):
         self.tokenizer = HuggingFaceTokenizer(
             tokenizer=AutoTokenizer.from_pretrained(model_id),
             max_tokens=max_tokens
         )
-
 class DocumentChunker:
     def __init__(self, tokenizer: DocumentTokenizer):
         self.chunker = HybridChunker(
@@ -68,13 +68,6 @@ def proccess_documents():
     
     # FIXED: Create list to store LangChain Document objects
     langchain_documents = []
-
-    vectorstore = PGVector(
-        collection_name=COLLECTION_NAME,
-        connection_string=CONNECTION_STRING,
-        embeddings=embeddings,
-        use_jsonb=True,  # Store metadata as JSONB for better querying
-    )
     
     for doc_path in docs:
         print(f"\nProcessing: {doc_path}")
@@ -110,11 +103,19 @@ def proccess_documents():
                 print(f"First chunk preview: {enriched_text}...")
     
     print(f"\n✓ Total chunks to store: {len(langchain_documents)}")
+
+    vectorstore = PGVector(
+        embeddings=embeddings,
+        collection_name=COLLECTION_NAME,
+        connection=CONNECTION_STRING,
+        use_jsonb=True,  # Store metadata as JSONB for better querying
+    )
     
-     # Add to pgvector
-    print("\nStoring in pgvector...")
+    print("Storing documents in pgvector...")
     vectorstore.add_documents(langchain_documents)
     print("✓ All chunks stored in PostgreSQL!")
+    
+    return vectorstore
 
     # Now you can insert into your vector database
     # Example for different databases:
@@ -159,24 +160,21 @@ def proccess_documents():
     #     metadatas=[{"source": chunk["source"]} for chunk in all_chunks_with_embeddings]
     # )
 
-if __name__ == "__main__":
-    # Initialize embeddings (same as when you created it)
+def query_vectorstore():
+    """Query existing vectorstore"""
+    print("\nConnecting to vectorstore...")
     embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL_ID)
     
-    # Connect to existing vectorstore
     vectorstore = PGVector(
-        collection_name=COLLECTION_NAME,
-        connection_string=CONNECTION_STRING,
         embeddings=embeddings,
+        collection_name=COLLECTION_NAME,
+        connection=CONNECTION_STRING,
     )
     
     print("✓ Connected to pgvector database!")
     
-    print("✓ Vectorstore loaded successfully!")
-    print(f"✓ Collection contains {vectorstore._collection.count()} documents\n")
-    
     # Interactive query loop
-    print("--- Testing retrieval ---")
+    print("\n--- Vector Search Interface ---")
     print("Enter your query (or 'quit' to exit):")
     
     while True:
@@ -189,12 +187,33 @@ if __name__ == "__main__":
         if not user_query:
             continue
         
-        # FIXED: Use user_query variable, not 'query'
-        results_with_scores = vectorstore.similarity_search_with_score(user_query, k=3)
+        try:
+            results_with_scores = vectorstore.similarity_search_with_score(user_query, k=3)
+            
+            if not results_with_scores:
+                print("No results found.")
+                continue
+            
+            for i, (result, score) in enumerate(results_with_scores, 1):
+                print(f"\n{'='*60}")
+                print(f"Result {i} (Score: {score:.4f}):")
+                print(f"Content: {result.page_content[:300]}...")
+                print(f"Source: {result.metadata.get('source', 'Unknown')}")
+                print(f"{'='*60}")
+        except Exception as e:
+            print(f"Error during search: {e}")
 
-        for i, (result, score) in enumerate(results_with_scores, 1):
-            print(f"\nResult {i} (Score: {score:.4f}):")
-            print(f"Content: {result.page_content}...")
-            print(f"Source: {result.metadata.get('source', 'Unknown')}")
+if __name__ == "__main__":
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "query":
+        # Run in query mode: python main.py query
+        query_vectorstore()
+    else:
+        # Run in ingestion mode: python main.py
+        proccess_documents()
+        print("\n" + "="*60)
+        print("Ingestion complete! Run 'python main.py query' to search.")
+        print("="*60)
 
   
