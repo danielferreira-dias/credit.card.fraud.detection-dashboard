@@ -17,7 +17,6 @@ if __name__ == "__main__":
         azure_search_key=os.getenv("AZURE_SEARCH_KEY"),
         index_name=INDEX_NAME,
         embedding_function=embeddings,
-        semantic_configuration_name="fraud-semantic-config",
     )
     
     print("✓ Connected to Azure AI Search!")
