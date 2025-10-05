@@ -57,15 +57,15 @@ export default function Navbar(){
                 borderRadius: '0.75rem',
                 backgroundImage: `
                     linear-gradient(#0a0a0a, #0a0a0a),
-                    linear-gradient(200deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 55%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
-                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
+                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 10%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                    linear-gradient(200deg, rgba(177, 14, 14, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
                 `,
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
 
-            <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform   transition duration-300 ease-in-out opacity-100 hover:shadow-2xl hover:shadow-zinc-800 w-9 h-9 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-[1rem] border-[#2A2A2A] shadow-r-lg items-center justify-center">
-                <img src={isCollapsed ? "/right-chevron-svgrepo-com.svg":"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-3 h-3 transform transition duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
+            <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform bg-black transition duration-300 ease-in-out opacity-100 hover:shadow-2xl hover:shadow-zinc-800 w-6 h-6 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-[1rem] border-[#2A2A2A] shadow-r-lg items-center justify-center">
+                <img src={isCollapsed ? "/right-chevron-svgrepo-com.svg":"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-2 h-2 transform transition duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
             </button>
             {/* Mobile close button (only under 500px when sidebar is open at full width) */}
             <button onClick={() => setIsMobileOpen(false)} className="hidden max-[500px]:flex absolute top-[2rem] right-3 w-9 h-9 rounded-full bg-[#0F0F11] border border-[#2A2A2A] shadow-md shadow-zinc-800 items-center justify-center">

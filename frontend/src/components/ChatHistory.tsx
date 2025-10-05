@@ -62,7 +62,7 @@ export default function ChatHistory({ onSelectChat, refreshTrigger, currentConve
                 borderRadius: '0.75rem',
                 backgroundImage: `
                     linear-gradient(#0a0a0a, #0a0a0a),
-                    linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 25%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                    linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 10%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
                     linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
                 `,
                 backgroundOrigin: 'border-box',
@@ -72,8 +72,8 @@ export default function ChatHistory({ onSelectChat, refreshTrigger, currentConve
                 <button
                     key={chat.id}
                     onClick={() => onSelectChat(chat.id, chat.thread_id)}
-                    className={`w-full h-12 text-xs border-zinc-800 hover:bg-zinc-800 rounded-lg justify-center items-center flex flex-col ${
-                        currentConversationId === chat.id ? 'bg-zinc-800' : ''
+                    className={`w-[95%] h-12 text-xs border-zinc-800 hover:bg-zinc-900 rounded-lg justify-center items-center flex flex-col ${
+                        currentConversationId === chat.id ? 'bg-zinc-900' : ''
                     }`}
                     style={{ boxShadow: 'var(--shadow-s)' }}
                 >

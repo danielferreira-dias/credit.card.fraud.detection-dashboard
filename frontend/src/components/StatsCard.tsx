@@ -23,7 +23,7 @@ export default function StatsCard( { typeStat, statValue , colour } : StatsCardP
     };
 
     return (
-        <div className={`flex flex-col justify-evenly ${colour} w-[95%] h-30 rounded-2xl opacity-80 items-center p-2 `}>
+        <div className={`flex flex-col justify-evenly ${colour} w-[95%] h-30 rounded-2xl opacity-80 items-center p-2`} style={{ boxShadow: 'var(--shadow-l)' }}>
             <div className={`flex flex-row justify-evenly w-full items-center`}>
                 <span className="opacity-100 text-[1.0rem]">{typeStat}</span>
                 {/* <img src={"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-5 h-5 transform transition duration-300 }`} /> */}

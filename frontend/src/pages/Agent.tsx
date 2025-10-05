@@ -329,8 +329,8 @@ export default function AgentPage(){
                 borderRadius: '0.75rem',
                 backgroundImage: `
                     linear-gradient(#0a0a0a, #0a0a0a),
-                    linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 25%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
-                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
+                    linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 6%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                    linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 5%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
                 `,
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
@@ -378,7 +378,7 @@ export default function AgentPage(){
                         {messages.map((message, index) => (
                             <div key={index} className={`flex ${message.type === 'User' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={` rounded-lg px-4 py-3 ${
-                                    message.type === 'User' ? 'bg-zinc-800 text-white text-xl' :
+                                    message.type === 'User' ? 'bg-neutral-900 text-white text-xl' :
                                     message.type === 'error' ? 'border-zinc-900 border-2 text-white w-[80%]' :
                                     message.type === 'Agent' ? 'bg-transparent text-white w-[80%]' :
                                     message.type === 'system' ? 'bg-green-900/20 text-green-400 border border-green-800 w-[80%]' :

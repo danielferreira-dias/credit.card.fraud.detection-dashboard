@@ -44,7 +44,7 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
     };
 
     return (
-        <div className="bg-black border border-zinc-700 rounded-lg px-6 py-4 shadow-[0_0_8px_rgba(0,0,0,0.5)]">
+        <div className="bg-black rounded-lg px-6 py-4" style={{ boxShadow: 'var(--shadow-l)' }}>
             <div className="flex flex-col space-y-2">
                 {/* Header with merchant and amount */}
                 <div className="flex justify-between items-start">
