@@ -3,6 +3,7 @@ from typing import Optional
 from app.agents.agents import TitleNLP, TransactionAgent
 from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
+from app.services.vector_service import AzureVectorService, PGVectorService, EmbeddingModel
 from app.database.transactions_db import TransactionsDB
 from app.schemas.query_schema import QuerySchema
 from fastapi import FastAPI, status, Depends
@@ -38,6 +39,15 @@ def get_transactions_db() -> TransactionsDB:
 
 def get_backend_client() -> BackendAPIClient:
     return BackendAPIClient()
+
+def get_embedding_model() -> EmbeddingModel:
+    return EmbeddingModel(model_id="sentence-transformers/all-MiniLM-L6-v2")
+
+def get_azure_vector_database(embedding_model : EmbeddingModel = Depends(get_embedding_model)) -> AzureVectorService:
+    return AzureVectorService(embedding_model=embedding_model)
+
+def get_pg_vector_database(embedding_model : EmbeddingModel = Depends(get_embedding_model)) -> PGVectorService:
+    return PGVectorService(embedding_model=embedding_model)
 
 def get_provider_service(db: TransactionsDB = Depends(get_transactions_db)) -> ProviderService:
     """Dependency to provide ProviderService instance"""
@@ -90,11 +100,16 @@ async def lifespan(app: FastAPI):
     # Initialize expensive resources
     model_name = os.getenv("AZURE_OPENAI_DEPLOYMENT", "Llama-4-Maverick-17B-128E-Instruct-FP8")
     model_name_nlp = os.getenv("AZURE_OPENAI_DEPLOYMENT_GPT5_NANO", "Llama-4-Maverick-17B-128E-Instruct-FP8")
-    backend_client = get_backend_client() 
+    backend_client = get_backend_client()
+
+    # Create dependencies manually (not using FastAPI dependency injection in lifespan)
+    embedding_model = get_embedding_model()
+    azure_vector_database = AzureVectorService(embedding_model=embedding_model)
 
     agent_instance = TransactionAgent(
         model_name=model_name,
-        backend_client=backend_client
+        backend_client=backend_client,
+        vector_database=azure_vector_database
     )
     agent_instance_nlp = TitleNLP(
         model_name=model_name_nlp,

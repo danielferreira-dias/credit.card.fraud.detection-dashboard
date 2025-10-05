@@ -17,6 +17,7 @@ sys.path.append(str(agent_service_root))
 from infra.exceptions.agent_exceptions import AgentException
 from infra.logging import get_agent_logger
 from app.services.backend_api_client import BackendAPIClient
+from app.services.vector_service import AzureVectorService, PGVectorService
 from app.schemas.agent_prompt import system_prompt
 
 import os
@@ -30,24 +31,8 @@ class UserContext:
     user_name: str
     user_id: int
 
-@dataclass
-class TransactionData:
-    type: str
-    message: str
-    content: str = ""
-    tool_name: str = ""
-    tool_args: str = ""
-
-class ConversationState:
-    def __init__(self, system_prompt : str):
-        self.messages: List[HumanMessage | AIMessage | SystemMessage]
-        self.messages = [SystemMessage(content=system_prompt)]
-    
-    def get_recent_messages(self, limit: int = 10):
-        return self.messages[-limit:]
-
 class TransactionAgent:
-    def __init__(self, model_name : str ,backend_client: BackendAPIClient):
+    def __init__(self, model_name : str , backend_client: BackendAPIClient , vector_database : AzureVectorService | PGVectorService):
         """
             model = Initializes the Agent Model also known as the LLM
             tools = Gathers all the tools that the Agent can use
@@ -67,6 +52,7 @@ class TransactionAgent:
 
         self.tools = self._create_tools()
         self.backend_client = backend_client
+        self.vector_database = vector_database
         self.system_prompt = system_prompt
 
         # Checkpointer will be initialized in setup()
@@ -100,8 +86,6 @@ class TransactionAgent:
                     else:
                         raise
 
-                # Initialize the ReAct agent with checkpointer
-                # Note: We handle system prompt manually to avoid it being prepended on every message
                 self.agent = create_agent(
                     model=self.model,
                     tools=self.tools,
@@ -211,6 +195,33 @@ class TransactionAgent:
             return []
 
     def _create_tools(self):
+
+        @tool("search_knowledge_base", description="Search the fraud detection knowledge base for detailed insights on fraud patterns, ML model details, and transaction analysis. Use when users ask about: fraud patterns by geography/device/amount, XGBoost model training and feature importance, transaction risk indicators and thresholds, EDA insights and statistical analysis, or theoretical fraud detection concepts. Contains expert knowledge on high-risk countries (Nigeria, Russia, Mexico, Brazil), suspicious devices, velocity patterns, and model interpretation.")
+        async def search_knowledge_base( query: str, limit: int = 5) -> str:
+            """Search the knowledge base using semantic similarity."""
+            try:
+                response = await self.vector_database.hybrid_search_documents(user_query=query, k=limit)
+
+                # Format context for LLM
+                context_text = "\n\n".join([
+                    f"Source: {doc['Source']}\n{doc['Content']}" 
+                    for doc in response
+                ])
+                
+                # Generate response with context
+                output = f"""Use the following context to answer the question.
+    
+                Context:
+                {context_text}
+
+                Question: {query}
+
+                Answer:
+                """
+
+                return output
+            except AgentException as e:
+                raise AgentException(message=f'Something went wrong on knowledge retrievel tool -> {e}')
 
         @tool("get_all_transactions_count_tool", description="Get COUNT OF ALL transactions matching a specific field value (no limit). Use this when user wants a number of transactions existant in the database")
         async def get_all_transactions_count_tool(column: str, value: str):
@@ -474,7 +485,7 @@ class TransactionAgent:
                 self.logger.error(f"Error in check_backend_connection_tool: {str(e)}")
                 return f"❌ Error checking backend connection: {str(e)}"
 
-        return [get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
+        return [search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
 
     @traceable(name="query_stream_query_agent")

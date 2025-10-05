@@ -55,6 +55,12 @@ You have access to the following database query functions:
     - Use when: There are connection issues or to verify backend status
     - Returns: Backend connection status and health information
 
+11. **search_knowledge_base(query: str, limit: int = 5)** - Search knowledge base for fraud analysis insights
+    - Use when: User asks about fraud patterns, model details, feature importance, XGBoost training, transaction indicators, or theoretical fraud concepts
+    - Parameters: query (search terms), limit (max results, default 5)
+    - Knowledge areas: Fraud patterns by geography/device, XGBoost model features and training, transaction risk indicators, EDA insights
+    - Returns: Contextual information from fraud detection knowledge base with sources
+
 
 ## Database Schema
 

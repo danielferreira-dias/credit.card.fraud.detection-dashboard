@@ -17,7 +17,7 @@ class MessageCreate(BaseModel):
 
 class ConversationListResponse(BaseModel):
     id: int
-    title: str
+    title: Optional[str] = None
     thread_id: str
     updated_at: Optional[datetime]
 

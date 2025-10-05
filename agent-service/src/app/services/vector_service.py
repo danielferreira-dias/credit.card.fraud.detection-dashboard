@@ -1,6 +1,7 @@
 import os
 from langchain_community.vectorstores.azuresearch import AzureSearch
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_postgres.vectorstores import PGVector
 from infra.logging import get_agent_logger
 import asyncio
 
@@ -46,10 +47,26 @@ class AzureVectorService:
             'Score': result.metadata.get('@search.score', None)
         } for result in results]
         
-
 class PGVectorService:
-    def __init__(self):
-        pass
+    def __init__(self, embedding_model : EmbeddingModel):
+        # Connect to existing index
+        self.embedding_model = embedding_model
+        self.vectorstore = PGVector(
+            embeddings=embedding_model.embeddings,
+            collection_name="fraud_analysis_docs",
+            connection=os.getenv('DATABASE_URL'),
+        )
+        logger.info('✓ Connected to PGVector!')
+    
+    async def search_documents(self, user_query: str, k: int = 5):
+        """Async vector similarity search"""
+        results = await self.vectorstore.asimilarity_search( query=user_query, k=k )
+        
+        return [{
+            'Content': result.page_content,
+            'Source': result.metadata.get('source', 'Unknown'),
+            'Metadata': result.metadata
+        } for result in results]
 
 # Usage example
 async def main():
