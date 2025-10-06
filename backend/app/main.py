@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
+from app.routers.stats_router import router as stats_router
 from app.exception.user_exceptions import UserException
 from fastapi import FastAPI, status
 from app.routers.transaction_router import router as transaction_router
@@ -50,6 +51,7 @@ app.include_router(transaction_router)
 app.include_router(user_router)
 app.include_router(auth_router)
 app.include_router(chat_router) 
+app.include_router(stats_router) 
 
 # Register exception handlers --------------------------------------------------
 app.add_exception_handler(TransactionsException, transaction_handler)

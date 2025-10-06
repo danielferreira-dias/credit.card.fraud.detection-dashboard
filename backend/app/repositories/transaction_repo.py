@@ -31,6 +31,74 @@ class TransactionRepository:
             "fraud_transactions": frauds
         }
     
+    async def get_transaction_stats_filtered(self, filters: TransactionFilter) -> dict[str, int]:
+        try:
+            total_stmt = select(func.count(Transaction.transaction_id))
+            fraud_stmt = select(func.count(Transaction.transaction_id)).where(Transaction.is_fraud == True)
+
+            if filters.country:
+                total_stmt = total_stmt.where(Transaction.country.ilike(f"%{filters.country}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.country.ilike(f"%{filters.country}%"))
+            if filters.city:
+                total_stmt = total_stmt.where(Transaction.city.ilike(f"%{filters.city}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.city.ilike(f"%{filters.city}%"))
+            if filters.merchant_category:
+                total_stmt = total_stmt.where(Transaction.merchant_category.ilike(f"%{filters.merchant_category}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.merchant_category.ilike(f"%{filters.merchant_category}%"))
+            if filters.merchant:
+                total_stmt = total_stmt.where(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.merchant.ilike(f"%{filters.merchant}%"))
+            if filters.card_type:
+                total_stmt = total_stmt.where(Transaction.card_type.ilike(f"%{filters.card_type}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.card_type.ilike(f"%{filters.card_type}%"))
+            if filters.card_present is not None:
+                total_stmt = total_stmt.where(Transaction.card_present == filters.card_present)
+                fraud_stmt = fraud_stmt.where(Transaction.card_present == filters.card_present)
+            if filters.channel:
+                total_stmt = total_stmt.where(Transaction.channel.ilike(f"%{filters.channel}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.channel.ilike(f"%{filters.channel}%"))
+            if filters.device:
+                total_stmt = total_stmt.where(Transaction.device.ilike(f"%{filters.device}%"))
+                fraud_stmt = fraud_stmt.where(Transaction.device.ilike(f"%{filters.device}%"))
+            if filters.distance_from_home:
+                total_stmt = total_stmt.where(Transaction.distance_from_home == filters.distance_from_home)
+                fraud_stmt = fraud_stmt.where(Transaction.distance_from_home == filters.distance_from_home)
+            if filters.high_risk_merchant is not None:
+                total_stmt = total_stmt.where(Transaction.high_risk_merchant == filters.high_risk_merchant)
+                fraud_stmt = fraud_stmt.where(Transaction.high_risk_merchant == filters.high_risk_merchant)
+            if filters.weekend_transaction is not None:
+                total_stmt = total_stmt.where(Transaction.weekend_transaction == filters.weekend_transaction)
+                fraud_stmt = fraud_stmt.where(Transaction.weekend_transaction == filters.weekend_transaction)
+            if filters.customer_id:
+                total_stmt = total_stmt.where(Transaction.customer_id == filters.customer_id)
+                fraud_stmt = fraud_stmt.where(Transaction.customer_id == filters.customer_id)
+            if filters.start_date:
+                total_stmt = total_stmt.where(Transaction.timestamp >= filters.start_date)
+                fraud_stmt = fraud_stmt.where(Transaction.timestamp >= filters.start_date)
+            if filters.end_date:
+                total_stmt = total_stmt.where(Transaction.timestamp <= filters.end_date)
+                fraud_stmt = fraud_stmt.where(Transaction.timestamp <= filters.end_date)
+            if filters.min_amount:
+                total_stmt = total_stmt.where(Transaction.amount >= filters.min_amount)
+                fraud_stmt = fraud_stmt.where(Transaction.amount >= filters.min_amount)
+            if filters.max_amount:
+                total_stmt = total_stmt.where(Transaction.amount <= filters.max_amount)
+                fraud_stmt = fraud_stmt.where(Transaction.amount <= filters.max_amount)
+
+            total_result = await self.db.execute(total_stmt)
+            fraud_result = await self.db.execute(fraud_stmt)
+
+            total = total_result.scalar() or 0
+            frauds = fraud_result.scalar() or 0
+
+            return {
+                "total_transactions": total,
+                "fraud_transactions": frauds
+            }
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao obter estatísticas filtradas de transações: {e}")
+            raise DatabaseException("Error accessing the database") from e
+    
     async def get_transaction_stats(self) -> dict[str, int]:
         try:
             total_stmt = select(func.count(Transaction.transaction_id))
@@ -90,6 +158,8 @@ class TransactionRepository:
                 stmt = stmt.where(Transaction.distance_from_home == filters.distance_from_home)
             if filters.high_risk_merchant is not None:
                 stmt = stmt.where(Transaction.high_risk_merchant == filters.high_risk_merchant)
+            if filters.weekend_transaction is not None:
+                stmt = stmt.where(Transaction.weekend_transaction == filters.weekend_transaction)
             if filters.start_date:
                 stmt = stmt.where(Transaction.date >= filters.start_date)
             if filters.end_date:
@@ -136,6 +206,8 @@ class TransactionRepository:
                 stmt = stmt.where(Transaction.distance_from_home == filters.distance_from_home)
             if filters.high_risk_merchant is not None:
                 stmt = stmt.where(Transaction.high_risk_merchant == filters.high_risk_merchant)
+            if filters.weekend_transaction is not None:
+                stmt = stmt.where(Transaction.weekend_transaction == filters.weekend_transaction)
             if filters.start_date:
                 stmt = stmt.where(Transaction.date >= filters.start_date)
             if filters.end_date:
@@ -201,6 +273,33 @@ class TransactionRepository:
             await self.db.rollback()
             logger.error(f"Erro ao atualizar transação: {e}")
             raise DatabaseException("Erro ao atualizar a transação na base de dados") from e
+
+    async def get_distinct_values(self, field: str) -> List[str]:
+        try:
+            field_mapping = {
+                "country": Transaction.country,
+                "city": Transaction.city,
+                "merchant": Transaction.merchant,
+                "merchant_category": Transaction.merchant_category,
+                "high_risk_merchant": Transaction.high_risk_merchant,
+                "distance_from_home": Transaction.distance_from_home,
+                "weekend_transaction": Transaction.weekend_transaction,
+                "card_type": Transaction.card_type,
+                "channel": Transaction.channel,
+                "device": Transaction.device,
+            }
+
+            if field not in field_mapping:
+                raise ValueError(f"Invalid field: {field}")
+
+            column = field_mapping[field]
+            stmt = select(column).distinct().where(column.isnot(None))
+            result = await self.db.execute(stmt)
+            values = [row[0] for row in result.all()]
+            return values
+        except SQLAlchemyError as e:
+            logger.error(f"Erro ao obter valores distintos para {field}: {e}")
+            raise DatabaseException("Error accessing the database") from e
         
         
         

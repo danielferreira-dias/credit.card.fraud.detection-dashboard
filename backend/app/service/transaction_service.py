@@ -35,6 +35,9 @@ class TransactionService:
     async def get_transaction_stats(self) -> dict[str, int]:
         return await self.repo.get_transaction_stats()
     
+    async def get_filtered_transactions_stats(self, filters: TransactionFilter) -> dict[str, int]:
+        return await self.repo.get_transaction_stats_filtered(filters=filters)
+
     async def get_filtered_transactions_qt(self, filters: TransactionFilter) -> dict[str, int]:
         return await self.repo.get_filtered_transaction_count(filters)
 
@@ -73,7 +76,6 @@ class TransactionService:
             probability = self.predict_transaction(transaction.transaction_id)
             return self._to_response(transaction, probability)
             
-
     async def predict_transaction(self, transaction_id: str) -> dict:
 
         if transaction_id is None:
@@ -161,6 +163,10 @@ class TransactionService:
         updated_result = await self.repo.update_transaction(existing_transaction)
         return self._to_response(updated_result)
     
+    async def get_distinct_filter(self, filter_value: str) -> List[str]:
+        return await self.repo.get_distinct_values(field=filter_value)
+        
+
     @staticmethod
     def mask_card(card: str) -> str:
         """

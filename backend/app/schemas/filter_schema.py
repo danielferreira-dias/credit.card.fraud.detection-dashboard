@@ -15,6 +15,7 @@ class TransactionFilter(BaseModel):
     device: Optional[str] = None
     distance_from_home: Optional[int] = None
     high_risk_merchant: Optional[bool] = None
+    weekend_transaction: Optional[bool] = None
     min_amount: Optional[float] = None
     max_amount: Optional[float] = None
     start_date: Optional[datetime] = None
