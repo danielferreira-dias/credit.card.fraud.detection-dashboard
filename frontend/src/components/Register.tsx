@@ -1,5 +1,21 @@
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 async function RegisterUser(email: string): Promise<void> {
   const registerData = { email };
@@ -112,81 +128,89 @@ export default function Register() {
   };
 
   return (
-      <div className="min-h-screen h-full bg-[#161719] flex w-full items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
-          <h1 className="text-4xl font-bold text-gray-800 text-center mb-8">Sign up</h1>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition duration-200"
-                required
-              />
-            </div>
+    <div className="min-h-screen h-full bg-[#161719] flex w-full items-center justify-center p-4">
+      <div className="flex flex-col gap-6 w-full max-w-md">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create an account</CardTitle>
+            <CardDescription>
+              Enter your email below to create your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="m@example.com"
+                    required
+                  />
+                </Field>
 
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3 justify-center">
-                <input
-                  id="marketing"
-                  type="checkbox"
-                  checked={agreedToMarketing}
-                  onChange={(e) => setAgreedToMarketing(e.target.checked)}
-                  className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                />
-                <label htmlFor="marketing" className="text-sm text-gray-600">
-                  Auth0 may contact me with marketing communications opt-out details in{" "}
-                  <a href="#" className="text-blue-500 underline">Privacy Policy</a>
-                </label>
-              </div>
+                <Field>
+                  <div className="flex items-start space-x-3">
+                    <input
+                      id="marketing"
+                      type="checkbox"
+                      checked={agreedToMarketing}
+                      onChange={(e) => setAgreedToMarketing(e.target.checked)}
+                      className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                    />
+                    <FieldDescription className="text-left">
+                      Auth0 may contact me with marketing communications opt-out details in{" "}
+                      <a href="#" className="text-primary underline underline-offset-4 hover:no-underline">Privacy Policy</a>
+                    </FieldDescription>
+                  </div>
+                </Field>
 
-              <p className="text-sm text-gray-600">
-                By continuing, you agree to the{" "}
-                <a href="#" className="text-blue-500 underline">Self Service PSS</a> and{" "}
-                <a href="#" className="text-blue-500 underline">Privacy Policy</a>.
-              </p>
-            </div>
+                <Field>
+                  <FieldDescription className="text-center">
+                    By continuing, you agree to the{" "}
+                    <a href="#" className="text-primary underline underline-offset-4 hover:no-underline">Self Service PSS</a> and{" "}
+                    <a href="#" className="text-primary underline underline-offset-4 hover:no-underline">Privacy Policy</a>.
+                  </FieldDescription>
+                </Field>
 
-            {error && (
-              <div className="text-red-500 text-sm text-center">
-                {error}
-              </div>
-            )}
+                {error && (
+                  <Field>
+                    <FieldDescription className="text-destructive text-center">
+                      {error}
+                    </FieldDescription>
+                  </Field>
+                )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Creating Account...' : 'Continue'}
-            </button>
-
-            <div className="text-center">
-              <span className="text-gray-500 text-sm">OR</span>
-            </div>
-
-            <div className="space-y-3 flex justify-center">
-              <div className="w-full m-auto flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleFailure}
-                  auto_select={true}
-                  theme="outline"
-                  text="continue_with"
-                  shape="rectangular"
-                  width="100%"
-                />
-              </div>
-
-            </div>
-          </form>
-        </div>
+                <Field>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Creating Account...' : 'Continue'}
+                  </Button>
+                  <FieldDescription className="text-center">
+                    <span className="text-muted-foreground text-sm">OR</span>
+                  </FieldDescription>
+                  <div className="w-full flex justify-center">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleFailure}
+                      auto_select={true}
+                      theme="outline"
+                      text="continue_with"
+                      shape="rectangular"
+                      width="100%"
+                    />
+                  </div>
+                  <FieldDescription className="text-center">
+                    Already have an account? <a href="#" className="text-primary underline underline-offset-4 hover:no-underline">Sign in</a>
+                  </FieldDescription>
+                </Field>
+              </FieldGroup>
+            </form>
+          </CardContent>
+        </Card>
       </div>
+    </div>
   );
 }

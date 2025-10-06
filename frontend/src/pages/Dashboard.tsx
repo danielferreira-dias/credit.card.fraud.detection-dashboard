@@ -181,10 +181,16 @@ export default function DashboardPage() {
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
-                <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
-                <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
+                <div className="flex flex-col md:flex-row justify-between items-center">
+                    <div className="flex flex-col">
+                        <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
+                        <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
+                    </div>
+                    <button className="w-40 h-10 p-2 rounded-xl text-sm" style={{ boxShadow: 'var(--shadow-s)'}}> Generate Report </button>
+                </div>
+                
                 <div className="flex flex-col">
-                    <Card className="bg-zinc-950 border-0 w-full" style={{ boxShadow: 'var(--shadow-s)'}}>
+                    <Card className="bg-zinc-950 border-0 w-full" style={{ boxShadow: 'var(--shadow-m)'}}>
                         <CardHeader>
                             <h3 className="text-xl font-semibold text-zinc-200">Transaction Volume</h3>
                             <p className="text-sm opacity-70 text-zinc-200">Hourly transactions over the last 90 days</p>
@@ -273,13 +279,13 @@ export default function DashboardPage() {
                                             color: "#ef4444",
                                         },
                                     } satisfies ChartConfig}
-                                    className="h-90 w-90">
+                                    className="h-60 w-70">
                                     <RadialBarChart
                                         data={chartData_Devices}
                                         startAngle={-90}
                                         endAngle={250}
                                         innerRadius={30}
-                                        outerRadius={170}
+                                        outerRadius={130}
                                     >
                                         <ChartTooltip
                                             cursor={false}
@@ -291,7 +297,7 @@ export default function DashboardPage() {
                                                 position="insideStart"
                                                 dataKey="device"
                                                 className="fill-white capitalize mix-blend-luminosity"
-                                                fontSize={16}
+                                                fontSize={11}
                                             />
                                         </RadialBar>
                                     </RadialBarChart>
@@ -315,13 +321,13 @@ export default function DashboardPage() {
                                             color: "#ef4444",
                                         },
                                     } satisfies ChartConfig}
-                                    className="h-90 w-90">
+                                    className="h-60 w-60">
                                     <RadialBarChart
                                         data={chartData_Channel}
                                         startAngle={-90}
                                         endAngle={250}
                                         innerRadius={30}
-                                        outerRadius={170}
+                                        outerRadius={130}
                                     >
                                         <ChartTooltip
                                             cursor={false}
@@ -333,7 +339,7 @@ export default function DashboardPage() {
                                                 position="insideStart"
                                                 dataKey="channel"
                                                 className="fill-white capitalize mix-blend-luminosity"
-                                                fontSize={16}
+                                                fontSize={14}
                                             />
                                         </RadialBar>
                                     </RadialBarChart>
@@ -356,7 +362,7 @@ export default function DashboardPage() {
                                         color: "#ef4444",
                                     },
                                 } satisfies ChartConfig}
-                                className="h-90 w-full">
+                                className="h-60 w-full">
                                 <BarChart accessibilityLayer data={chartData_Country}>
                                     <CartesianGrid vertical={false} />
                                     <XAxis

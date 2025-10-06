@@ -65,7 +65,9 @@ export default function Navbar(){
             }}>
 
             <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform  transition duration-300 ease-in-out opacity-100 hover:shadow-2xl hover:shadow-zinc-800 w-6 h-6 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-[1rem] border-[#2A2A2A] shadow-r-lg items-center justify-center">
-                <img src={isCollapsed ? "/right-chevron-svgrepo-com.svg":"/left-arrow-backup-2-svgrepo-com.svg"} alt="Toggle sidebar" className={`w-2 h-2 transform transition duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
+                <svg className="w-3 h-3 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
             </button>
             {/* Mobile close button (only under 500px when sidebar is open at full width) */}
             <button onClick={() => setIsMobileOpen(false)} className="hidden max-[500px]:flex absolute top-[2rem] right-3 w-9 h-9 rounded-full bg-[#0F0F11] border border-[#2A2A2A] shadow-md shadow-zinc-800 items-center justify-center">
