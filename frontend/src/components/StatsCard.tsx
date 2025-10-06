@@ -19,7 +19,7 @@ export default function StatsCard( { typeStat, statValue , colour } : StatsCardP
         }
 
         // Default formatting with currency
-        return `${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+        return `${value.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     };
 
     return (

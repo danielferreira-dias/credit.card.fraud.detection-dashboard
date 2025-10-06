@@ -286,9 +286,9 @@ class TransactionService:
             distance_from_home=transaction_request.distance_from_home,
         )
 
-
-
-
+    async def get_hourly_transaction_stats(self, days: int = 90) -> List[dict]:
+        """Get hourly transaction statistics for the last N days."""
+        return await self.repo.get_hourly_transaction_stats(days=days)
 
 
     

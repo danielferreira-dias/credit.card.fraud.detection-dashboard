@@ -1,6 +1,6 @@
 # repositories/transaction_repo.py
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, Integer, cast, text
 from app.models.transaction_model import Transaction
 from typing import List, Optional
 from app.infra.logger import setup_logger
@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import delete
 from app.schemas.transaction_schema import TransactionCreate
 from app.schemas.filter_schema import TransactionFilter
+from datetime import datetime, timedelta
 
 logger = setup_logger(__name__)
 
@@ -300,8 +301,43 @@ class TransactionRepository:
         except SQLAlchemyError as e:
             logger.error(f"Erro ao obter valores distintos para {field}: {e}")
             raise DatabaseException("Error accessing the database") from e
-        
-        
-        
-    
-    
+
+    async def get_hourly_transaction_stats(self, days: int = 90) -> List[dict]:
+        """
+        Get transaction counts aggregated by hour of day (0-23).
+        Returns list of dicts with: hour (0-23), total_transactions, fraud_transactions
+        """
+        try:
+            # Use transaction_hour column to group by hour of day (0-23)
+            stmt = (
+                select(
+                    Transaction.transaction_hour.label('hour'),
+                    func.count(Transaction.transaction_id).label('total'),
+                    func.sum(cast(Transaction.is_fraud, Integer)).label('frauds')
+                )
+                .where(Transaction.transaction_hour.isnot(None))
+                .group_by(Transaction.transaction_hour)
+                .order_by(Transaction.transaction_hour)
+            )
+
+            result = await self.db.execute(stmt)
+            rows = result.all()
+
+            # Ensure we have all 24 hours (0-23), fill with 0 if no data
+            hour_data = {row.hour: {
+                "total_transactions": int(row.total or 0),
+                "fraud_transactions": int(row.frauds or 0)
+            } for row in rows}
+
+            return [
+                {
+                    "hour": hour,
+                    "total_transactions": hour_data.get(hour, {}).get("total_transactions", 0),
+                    "fraud_transactions": hour_data.get(hour, {}).get("fraud_transactions", 0)
+                }
+                for hour in range(24)
+            ]
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting hourly transaction stats: {e}")
+            raise DatabaseException("Error accessing the database") from e
+

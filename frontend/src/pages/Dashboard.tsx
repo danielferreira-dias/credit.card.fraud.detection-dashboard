@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react"
-import { Bar, BarChart, XAxis, YAxis, Pie, PieChart, Cell } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList, RadialBar, RadialBarChart, BarChart, Bar } from "recharts"
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { ChartLegend, ChartLegendContent } from "@/components/ui/chart"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
-import StatsLoadingCard from "@/components/StatsLoadingCard"
 import StatsCard from "@/components/StatsCard"
+
 
 interface StatsResponse {
     countries: Record<string, { total_transactions: number; fraud_transactions: number }>;
@@ -22,67 +20,11 @@ interface StatsResponse {
     distance_from_home: Record<string, { total_transactions: number; fraud_transactions: number }>;
     card_present: Record<string, { total_transactions: number; fraud_transactions: number }>;
     weekend_transaction: Record<string, { total_transactions: number; fraud_transactions: number }>;
-}
-
-// Mockup data matching backend response format
-const mockupStats: StatsResponse = {
-    countries: {
-        "USA": { total_transactions: 4532, fraud_transactions: 287 },
-        "UK": { total_transactions: 3421, fraud_transactions: 198 },
-        "Germany": { total_transactions: 2987, fraud_transactions: 154 },
-        "France": { total_transactions: 2654, fraud_transactions: 176 },
-        "Canada": { total_transactions: 2341, fraud_transactions: 132 },
-        "Australia": { total_transactions: 2103, fraud_transactions: 98 },
-        "Japan": { total_transactions: 1876, fraud_transactions: 67 },
-        "Brazil": { total_transactions: 1654, fraud_transactions: 245 },
-        "Mexico": { total_transactions: 1432, fraud_transactions: 189 },
-        "Nigeria": { total_transactions: 987, fraud_transactions: 156 },
-    },
-    merchant_category: {
-        "Retail": { total_transactions: 5432, fraud_transactions: 321 },
-        "Online Shopping": { total_transactions: 4876, fraud_transactions: 412 },
-        "Food & Dining": { total_transactions: 3987, fraud_transactions: 187 },
-        "Travel": { total_transactions: 3456, fraud_transactions: 234 },
-        "Entertainment": { total_transactions: 2987, fraud_transactions: 156 },
-        "Gas Stations": { total_transactions: 2654, fraud_transactions: 98 },
-        "Healthcare": { total_transactions: 2341, fraud_transactions: 76 },
-        "Utilities": { total_transactions: 1987, fraud_transactions: 54 },
-        "Insurance": { total_transactions: 1654, fraud_transactions: 43 },
-        "Education": { total_transactions: 1432, fraud_transactions: 32 },
-    },
-    device: {
-        "Chrome": { total_transactions: 6543, fraud_transactions: 387 },
-        "Safari": { total_transactions: 5432, fraud_transactions: 298 },
-        "Android App": { total_transactions: 4321, fraud_transactions: 321 },
-        "iOS App": { total_transactions: 3987, fraud_transactions: 254 },
-        "Firefox": { total_transactions: 2876, fraud_transactions: 176 },
-        "Edge": { total_transactions: 2134, fraud_transactions: 143 },
-        "Chip Reader": { total_transactions: 1876, fraud_transactions: 234 },
-        "NFC Payment": { total_transactions: 1543, fraud_transactions: 198 },
-        "Magnetic Stripe": { total_transactions: 987, fraud_transactions: 156 },
-    },
-    channel: {
-        "web": { total_transactions: 12543, fraud_transactions: 765 },
-        "mobile": { total_transactions: 9876, fraud_transactions: 654 },
-        "pos": { total_transactions: 6432, fraud_transactions: 432 },
-        "medium": { total_transactions: 2341, fraud_transactions: 187 },
-    },
-    high_risk_merchant: {
-        "false": { total_transactions: 24567, fraud_transactions: 1234 },
-        "true": { total_transactions: 6625, fraud_transactions: 804 },
-    },
-    distance_from_home: {
-        "0": { total_transactions: 18765, fraud_transactions: 876 },
-        "1": { total_transactions: 12427, fraud_transactions: 1162 },
-    },
-    card_present: {
-        "true": { total_transactions: 14532, fraud_transactions: 654 },
-        "false": { total_transactions: 16660, fraud_transactions: 1384 },
-    },
-    weekend_transaction: {
-        "false": { total_transactions: 21543, fraud_transactions: 1345 },
-        "true": { total_transactions: 9649, fraud_transactions: 693 },
-    },
+    hourly_stats: Array<{
+        hour: number;
+        total_transactions: number;
+        fraud_transactions: number;
+    }>;
 }
 
 // Skeleton Loader Components
@@ -108,8 +50,8 @@ const BarChartSkeleton = ({ height = 300 }: { height?: number }) => (
 const PieChartSkeleton = () => (
     <div className="w-full h-[250px] animate-pulse flex items-center justify-center">
         <div className="relative">
-            <div className="w-40 h-40 rounded-full border-[16px] border-0" style={{ boxShadow: 'var(--shadow-s)'}}></div>
-            <div className="w-40 h-40 rounded-full border-[16px] border-zinc-700/50 absolute top-0 left-0"
+            <div className="w-40 h-40 rounded-full border-0" style={{ boxShadow: 'var(--shadow-s)'}}></div>
+            <div className="w-40 h-40 rounded-full border-zinc-700/50 absolute top-0 left-0"
                  style={{
                      clipPath: 'polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 50% 100%)',
                      transform: 'rotate(45deg)'
@@ -136,19 +78,12 @@ const CardSkeleton = ({ isPie = false, className = "" }: { isPie?: boolean; clas
 )
 
 export default function DashboardPage() {
-    const [stats, setStats] = useState<StatsResponse | null>(null)
+    const [cacheStats, setStats] = useState<StatsResponse | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // Simulate loading delay to see skeleton loaders
-                await new Promise(resolve => setTimeout(resolve, 2000))
-
-                // Use mockup data instead of fetching from backend
-                setStats(mockupStats)
-
-                // Uncomment below to use real backend when available
                 const response = await fetch('http://localhost:80/stats/overview')
                 const data = await response.json()
                 console.log('Data to Dashboard -> ', data)
@@ -162,35 +97,76 @@ export default function DashboardPage() {
         fetchStats()
     }, [])
 
+    const chartData = cacheStats?.hourly_stats?.map(item => ({
+        hour: `${item.hour}:00`,
+        total: item.total_transactions,
+        fraud: item.fraud_transactions
+    })) || [];
+
+    const chartData_Devices = cacheStats?.device
+        ? Object.entries(cacheStats.device).map(([device, data], index) => ({
+            device: device,
+            total: data.total_transactions,
+            fraud: data.fraud_transactions,
+            fill: `hsl(var(--chart-${(index % 5) + 1}))`
+        }))
+        : [];
+
+    const chartData_Channel = cacheStats?.channel
+        ? Object.entries(cacheStats.channel).map(([channel, data], index) => ({
+            channel: channel,
+            total: data.total_transactions,
+            fraud: data.fraud_transactions,
+            fill: `hsl(var(--chart-${(index % 5) + 1}))`
+        }))
+        : [];
+
+    const chartData_Country = cacheStats?.countries
+        ? Object.entries(cacheStats.countries).map(([countries, data], index) => ({
+            countries: countries,
+            total: data.total_transactions,
+            fraud: data.fraud_transactions,
+            fill: `hsl(var(--chart-${(index % 5) + 1}))`
+        }))
+        : [];
+
     if (loading) {
         return (
-            <div className="flex h-full w-full text-white p-4 bg-zinc-950 min-h-screen max-h-[fit] flex-col" style={{
-                    border: 'double 1px transparent',
-                    borderRadius: '0.75rem',
-                    backgroundImage: `
-                        linear-gradient(#0a0a0a, #0a0a0a),
-                        linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 5%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
-                        linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
-                    `,
-                    backgroundOrigin: 'border-box',
-                    backgroundClip: 'padding-box, border-box, border-box'
-                }}>
-                    <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
-                    <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
+        <div className="flex h-full w-full text-white p-4 bg-zinc-950 min-h-screen max-h-[fit] flex-col" style={{
+            border: 'double 1px transparent',
+            borderRadius: '0.75rem',
+            backgroundImage: `
+                linear-gradient(#0a0a0a, #0a0a0a),
+                linear-gradient(135deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 5%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%),
+                linear-gradient(225deg, rgba(75, 75, 75, 1) 0%, rgba(10, 10, 10, 1) 15%, rgba(10, 10, 10, 1) 85%, rgba(75, 75, 75, 1) 100%)
+            `,
+            backgroundOrigin: 'border-box',
+            backgroundClip: 'padding-box, border-box, border-box'
+        }}>
+            <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
+            <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <CardSkeleton isPie className="" />
-                        <CardSkeleton isPie className="" />
-                        <CardSkeleton isPie className="" />
-                        <CardSkeleton isPie className="" />
-                        <CardSkeleton className="md:col-span-2" />
-                        <CardSkeleton className="md:col-span-2" />
-                        <CardSkeleton className="" />
-                        <CardSkeleton className="md:col-span-2" />
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <CardSkeleton isPie className="" />
+                <CardSkeleton isPie className="" />
+                <CardSkeleton isPie className="" />
+                <CardSkeleton isPie className="" />
+                <CardSkeleton className="md:col-span-2" />
+                <CardSkeleton className="md:col-span-2" />
+                <CardSkeleton className="" />
+                <CardSkeleton className="md:col-span-2" />
+            </div>
+        </div>
         )
     }
+
+     const stats = [
+        { id: 1, typeStat: "Countries", statValue: cacheStats ? Object.keys(cacheStats.countries).length : 0, cardColour: "card-1" },
+        { id: 2, typeStat: "Channels", statValue: cacheStats ? Object.keys(cacheStats.channel).length : 0, cardColour: "card-2" },
+        { id: 3, typeStat: "Devices", statValue: cacheStats ? Object.keys(cacheStats.device).length : 0, cardColour: "card-3" },
+        { id: 4, typeStat: "Merchants Category", statValue: cacheStats ? Object.keys(cacheStats.merchant_category).length : 0, cardColour: "card-4" },
+    ];
+
 
 
     return (
@@ -205,8 +181,205 @@ export default function DashboardPage() {
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
-                
-        </div>
+                <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
+                <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
+                <div className="flex flex-col">
+                    <Card className="bg-zinc-950 border-0 w-full" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <CardHeader>
+                            <h3 className="text-xl font-semibold text-zinc-200">Transaction Volume</h3>
+                            <p className="text-sm opacity-70 text-zinc-200">Hourly transactions over the last 90 days</p>
+                        </CardHeader>
+                        <CardContent className="w-full text-zinc-200">
+                            <ChartContainer
+                                config={{
+                                    total: {
+                                        label: "Total Transactions",
+                                        color: "#ffffff",
+                                    },
+                                    fraud: {
+                                        label: "Fraud Transactions",
+                                        color: "#ef4444",
+                                    },
+                                } satisfies ChartConfig}
+                                className="h-[500px] w-full"
+                            >
+                                <LineChart
+                                    data={chartData}
+                                    margin={{
+                                        left: 12,
+                                        right: 12,
+                                    }}
+                                >
+                                    <CartesianGrid strokeDasharray="2 2" stroke="#27272a" />
+                                    <XAxis
+                                        dataKey="hour"
+                                        stroke="#a1a1aa"
+                                        tick={{ fill: '#a1a1aa' }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
+                                    />
+                                    <YAxis
+                                        stroke="#a1a1aa"
+                                        tick={{ fill: '#a1a1aa' }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <ChartLegend content={<ChartLegendContent />} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="total"
+                                        stroke="#ffffff"
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="fraud"
+                                        stroke="#ef4444"
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                </LineChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full items-center mt-6">
+                    {stats.map((stat) => (
+                        <StatsCard
+                            key={stat.id}
+                            typeStat={stat.typeStat}
+                            statValue={stat.statValue}
+                            colour={stat.cardColour}
+                        />
+                    ))}
+                    </div>
+                    <div className="w-full flex flex-col sm:flex-row flex-wrap gap-x-4">
+                        <Card className="bg-zinc-950 border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
+                            <CardHeader>
+                                <h3 className="text-xl font-semibold text-zinc-200">Device Fraud Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by device type</p>
+                            </CardHeader>
+                            <CardContent className="flex items-center justify-start pb-0 w-fit h-fit">
+                                <ChartContainer
+                                    config={{
+                                        total: {
+                                            label: "Total Transactions",
+                                            color: "#ffffff",
+                                        },
+                                        fraud: {
+                                            label: "Fraud Transactions",
+                                            color: "#ef4444",
+                                        },
+                                    } satisfies ChartConfig}
+                                    className="h-90 w-90">
+                                    <RadialBarChart
+                                        data={chartData_Devices}
+                                        startAngle={-90}
+                                        endAngle={250}
+                                        innerRadius={30}
+                                        outerRadius={170}
+                                    >
+                                        <ChartTooltip
+                                            cursor={false}
+                                            content={<ChartTooltipContent hideLabel nameKey="device" />}
+                                        />
+                                        <ChartLegend content={<ChartLegendContent />} />
+                                        <RadialBar dataKey="fraud" background>
+                                            <LabelList
+                                                position="insideStart"
+                                                dataKey="device"
+                                                className="fill-white capitalize mix-blend-luminosity"
+                                                fontSize={16}
+                                            />
+                                        </RadialBar>
+                                    </RadialBarChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-zinc-950 border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
+                            <CardHeader>
+                                <h3 className="text-xl font-semibold text-zinc-200">Channel Fraud Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by Channel type</p>
+                            </CardHeader>
+                            <CardContent className="flex items-center justify-start pb-0 w-fit h-fit">
+                                <ChartContainer
+                                    config={{
+                                        total: {
+                                            label: "Total Transactions",
+                                            color: "#ffffff",
+                                        },
+                                        fraud: {
+                                            label: "Fraud Transactions",
+                                            color: "#ef4444",
+                                        },
+                                    } satisfies ChartConfig}
+                                    className="h-90 w-90">
+                                    <RadialBarChart
+                                        data={chartData_Channel}
+                                        startAngle={-90}
+                                        endAngle={250}
+                                        innerRadius={30}
+                                        outerRadius={170}
+                                    >
+                                        <ChartTooltip
+                                            cursor={false}
+                                            content={<ChartTooltipContent hideLabel nameKey="device" />}
+                                        />
+                                        <ChartLegend content={<ChartLegendContent />} />
+                                        <RadialBar dataKey="fraud" background>
+                                            <LabelList
+                                                position="insideStart"
+                                                dataKey="channel"
+                                                className="fill-white capitalize mix-blend-luminosity"
+                                                fontSize={16}
+                                            />
+                                        </RadialBar>
+                                    </RadialBarChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-zinc-950 border-0 flex-1 mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
+                            <CardHeader>
+                                <h3 className="text-xl font-semibold text-zinc-200">Countries Fraud Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by Countries</p>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={{
+                                    total: {
+                                        label: "Total Transactions",
+                                        color: "#ffffff",
+                                    },
+                                    fraud: {
+                                        label: "Fraud Transactions",
+                                        color: "#ef4444",
+                                    },
+                                } satisfies ChartConfig}
+                                className="h-90 w-full">
+                                <BarChart accessibilityLayer data={chartData_Country}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                    dataKey="countries"
+                                    tickLine={false}
+                                    tickMargin={10}
+                                    axisLine={false}
+                                    tickFormatter={(value) => value.slice(0, 3)}
+                                    />
+                                    <ChartTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent indicator="dashed" />}
+                                    />
+                                    <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
+                                    <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+                                </BarChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
+            </div>
     )
 }
 

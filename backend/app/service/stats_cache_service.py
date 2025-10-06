@@ -9,7 +9,7 @@ logger = setup_logger(__name__)
 
 class StatsCacheService:
     # Cache TTL in minutes (adjust as needed)
-    CACHE_TTL_MINUTES = 1000000
+    CACHE_TTL_MINUTES = 10000000
     STATS_OVERVIEW_KEY = "stats_overview"
 
     def __init__(self, db: AsyncSession):
@@ -118,6 +118,11 @@ class StatsCacheService:
 
         for (category, key), result in zip(filter_keys, results):
             response[category][key] = result
+
+        # Step 5: Add hourly time-series data for charts
+        logger.info("Fetching hourly transaction stats for time-series chart...")
+        hourly_stats = await self.transaction_service.get_hourly_transaction_stats(days=90)
+        response["hourly_stats"] = hourly_stats
 
         return response
 

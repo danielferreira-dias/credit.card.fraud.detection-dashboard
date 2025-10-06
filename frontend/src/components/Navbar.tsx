@@ -74,8 +74,8 @@ export default function Navbar(){
                 </svg>
             </button>
 
-            <div className="w-[90%] h-fit  xs:flex flex-col justify-left items-center mt-6">
-                <div className={`w-full h-fit flex flex-row justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} gap-4 text-zinc-200 items-center`}>
+            <div className="w-[90%] h-fit  xs:flex flex-col justify-left items-center mt-2">
+                <div className={`w-full h-fit flex flex-row justify-center border-b-[1px] rounded-md border-zinc-700 py-7 max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} gap-4 text-zinc-200 items-center`}>
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                         <img src="/profile.png" className="w-full h-full object-cover " />
                     </div>
@@ -84,7 +84,6 @@ export default function Navbar(){
                         <span className="text-xs">Analyst</span>
                     </div>
                 </div>
-                <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>
             </div>
 
             <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 gap-y-5 text-sm mt-6">
@@ -99,8 +98,7 @@ export default function Navbar(){
                 </div>
             </div>
 
-            <div className="w-[90%] h-fit flex flex-col justify-center text-zinc-300 opacity-90 gap-y-5 text-sm mt-auto mb-6">
-                <div className="w-full h-[0.04rem] bg-[#3E3E3E] opacity-90 mt-6"></div>
+            <div className="w-[90%] h-fit flex border-t-[1px] rounded-md border-zinc-700 py-7 flex-col justify-center text-zinc-300 opacity-90 gap-y-5 text-sm mt-auto mb-2">
                 <span className={`text-xs opacity-80 hidden max-[500px]:block ${isCollapsed ? "lg:hidden" : "lg:block"}`}>More</span>
                 <div className="flex flex-col gap-y-5">
                     {navBarSettings.map(({ element, symbol, onClick }) => (
