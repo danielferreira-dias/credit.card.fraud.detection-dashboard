@@ -102,7 +102,6 @@ export default function TransactionPage(){
                         />
                     ))
                 )}
-               
             </div>
             <TransactionList totalTransactions={totalTransactions} itemsPerPage={itemsPerPage} />
         </div>
