@@ -85,7 +85,9 @@ export default function TransactionPage(){
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
-            <h2 className="text-2xl font-semibold opacity-90 mt-4">Transactions Analytics</h2>
+            <div className="flex items-center gap-3 mt-4">
+                <h2 className="text-2xl font-semibold opacity-90">Transactions Analytics</h2>
+            </div>
             <h3 className="text-sm opacity-70">Monitor your transactions in real-time</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full gap-4 items-center mt-6">
                 {loading ? (

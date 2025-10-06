@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList, RadialBar, RadialBarChart, BarChart, Bar } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList, RadialBar, RadialBarChart, BarChart, Bar, PolarRadiusAxis, Label } from "recharts"
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { ChartLegend, ChartLegendContent } from "@/components/ui/chart"
@@ -143,7 +143,14 @@ export default function DashboardPage() {
             backgroundOrigin: 'border-box',
             backgroundClip: 'padding-box, border-box, border-box'
         }}>
-            <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
+            <div className="flex items-center gap-3 mt-4">
+                <button className="lg:hidden flex items-center justify-center w-8 h-8 bg-[#0F0F11] border border-[#2A2A2A] rounded-full shadow-lg shadow-zinc-800 transition-all duration-300 hover:shadow-2xl">
+                    <svg className="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
+            </div>
             <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -183,7 +190,9 @@ export default function DashboardPage() {
             }}>
                 <div className="flex flex-col md:flex-row justify-between items-center">
                     <div className="flex flex-col">
-                        <h2 className="text-2xl font-semibold opacity-90 mt-4">Insight Dashboard Analytics</h2>
+                        <div className="flex items-center gap-3 mt-4">
+                            <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
+                        </div>
                         <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                     </div>
                     <button className="w-40 h-10 p-2 rounded-xl text-sm" style={{ boxShadow: 'var(--shadow-s)'}}> Generate Report </button>
@@ -261,6 +270,95 @@ export default function DashboardPage() {
                         />
                     ))}
                     </div>
+                    <Card className="bg-zinc-950 border-0 w-70 h-40 mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <CardContent className="flex flex-1 items-center pb-0">
+                            <ChartContainer
+                            config={{
+                                total: {
+                                    label: "Total Transactions",
+                                    color: "#ffffff",
+                                },
+                                fraud: {
+                                    label: "Fraud Transactions",
+                                    color: "#ef4444",
+                                },
+                            } satisfies ChartConfig}
+                            className="h-[400px] w-full"
+                            >
+                            <RadialBarChart
+                                data={[{
+                                    name: "transactions",
+                                    total: cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0,
+                                    fraud: cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0
+                                }]}
+                                endAngle={180}
+                                innerRadius={80}
+                                outerRadius={130}
+                            >
+                                <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent hideLabel />}
+                                />
+                                <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                                <Label
+                                    content={({ viewBox }: { viewBox?: any }) => {
+                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                        const totalTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0;
+                                        const fraudTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0;
+                                        return (
+                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
+                                            <tspan
+                                            x={viewBox.cx}
+                                            y={(viewBox.cy || 0) - 20}
+                                            className="fill-zinc-200 text-xl font-bold"
+                                            >
+                                            {totalTransactions.toLocaleString()}
+                                            </tspan>
+                                            <tspan
+                                            x={viewBox.cx}
+                                            y={(viewBox.cy || 0) - 2}
+                                            className="fill-zinc-400 text-sm"
+                                            >
+                                            Total Transactions
+                                            </tspan>
+                                            <tspan
+                                            x={viewBox.cx}
+                                            y={(viewBox.cy || 0) + 16}
+                                            className="fill-red-400 text-lg font-semibold"
+                                            >
+                                            {fraudTransactions.toLocaleString()}
+                                            </tspan>
+                                            <tspan
+                                            x={viewBox.cx}
+                                            y={(viewBox.cy || 0) + 32}
+                                            className="fill-red-300 text-xs"
+                                            >
+                                            Fraudulent
+                                            </tspan>
+                                        </text>
+                                        )
+                                    }
+                                    }}
+                                />
+                                </PolarRadiusAxis>
+                                <RadialBar
+                                dataKey="total"
+                                stackId="a"
+                                cornerRadius={5}
+                                fill="#ffffff"
+                                className="stroke-transparent stroke-2"
+                                />
+                                <RadialBar
+                                dataKey="fraud"
+                                fill="#ef4444"
+                                stackId="a"
+                                cornerRadius={5}
+                                className="stroke-transparent stroke-2"
+                                />
+                            </RadialBarChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
                     <div className="w-full flex flex-col sm:flex-row flex-wrap gap-x-4">
                         <Card className="bg-zinc-950 border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader>
