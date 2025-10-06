@@ -122,11 +122,11 @@ export default function DashboardPage() {
         : [];
 
     const chartData_HighRisk_Merchant = cacheStats?.high_risk_merchant
-        ? Object.entries(cacheStats.high_risk_merchant).map(([high_risk_merchant, data], index) => ({
-            high_risk_merchant: high_risk_merchant,
-            total: data.total_transactions,
+        ? Object.entries(cacheStats.high_risk_merchant).map(([risk_level, data], index) => ({
+            risk_level: risk_level === "true" ? "High Risk" : "Low Risk",
+            transactions: data.total_transactions,
             fraud: data.fraud_transactions,
-            fill: `hsl(var(--chart-${(index % 5) + 1}))`
+            fill: risk_level === "true" ? "#ef4444" : "#ffffffff"
         }))
         : [];
 
@@ -474,49 +474,146 @@ export default function DashboardPage() {
                                 } satisfies ChartConfig}
                                 className="h-60 w-full">
                                 <BarChart accessibilityLayer data={chartData_Country}>
-                                    <CartesianGrid vertical={false} />
+                                    <CartesianGrid vertical={false} stroke="#27272a" />
                                     <XAxis
                                     dataKey="countries"
                                     tickLine={false}
                                     tickMargin={10}
                                     axisLine={false}
+                                    tick={{ fill: '#a1a1aa' }}
                                     tickFormatter={(value) => value.slice(0, 3)}
+                                    />
+                                    <YAxis
+                                    stroke="#a1a1aa"
+                                    tick={{ fill: '#a1a1aa' }}
+                                    tickLine={false}
+                                    axisLine={false}
                                     />
                                     <ChartTooltip
                                     cursor={false}
                                     content={<ChartTooltipContent indicator="dashed" />}
                                     />
-                                    <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-                                    <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+                                    <ChartLegend content={<ChartLegendContent />} />
+                                    <Bar dataKey="total" fill="#ffffff" radius={4} />
+                                    <Bar dataKey="fraud" fill="#ef4444" radius={4} />
                                 </BarChart>
                                 </ChartContainer>
                             </CardContent>
                         </Card>
                     </div>
-                    <div className="flex flex-col sm:flex-row flex-wrap w-full mt-6">
-                        <Card className="flex flex-col w-[30%] bg-transparent border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                    <div className="flex flex-col sm:flex-row flex-wrap w-full mt-6 justify-evenly">
+                        <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader className="items-center pb-0">
-                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Fraud Analysis</h3>
-                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by High Risk Merchants</p>
+                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
                             </CardHeader>
                             <CardContent className="flex-1 pb-0">
                                 <ChartContainer config={{
-                                    total: {
-                                        label: "false",
-                                        color: "#ffffff",
+                                    transactions: {
+                                        label: "Transactions",
                                     },
-                                    fraud: {
-                                        label: "true",
-                                        color: "#ef4444",
+                                    "High Risk": {
+                                        label: "High Risk",
+                                        color: "#736262ff",
+                                    },
+                                    "Low Risk": {
+                                        label: "Low Risk",
+                                        color: "#fafafaff",
                                     },
                                 } satisfies ChartConfig}
-                                className="h-60 w-full"
+                                className="mx-auto aspect-square max-h-[250px] text-white"
                                 >
                                 <PieChart>
-                                    <Pie data={chartData_HighRisk_Merchant} dataKey="true" />
+                                    <Pie
+                                        data={chartData_HighRisk_Merchant}
+                                        dataKey="transactions"
+                                        nameKey="risk_level"
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel />}
+                                    />
                                     <ChartLegend
-                                    content={<ChartLegendContent nameKey="true" />}
-                                    className="w-14 h-14"
+                                        content={<ChartLegendContent nameKey="risk_level" />}
+                                        className="-translate-y-2 gap-2 *:basis-1/2 *:justify-center *flex-row"
+                                    />
+                                </PieChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                            <CardHeader className="items-center pb-0">
+                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
+                            </CardHeader>
+                            <CardContent className="flex-1 pb-0">
+                                <ChartContainer config={{
+                                    transactions: {
+                                        label: "Transactions",
+                                    },
+                                    "High Risk": {
+                                        label: "High Risk",
+                                        color: "#736262ff",
+                                    },
+                                    "Low Risk": {
+                                        label: "Low Risk",
+                                        color: "#fafafaff",
+                                    },
+                                } satisfies ChartConfig}
+                                className="mx-auto aspect-square max-h-[250px] text-white"
+                                >
+                                <PieChart>
+                                    <Pie
+                                        data={chartData_HighRisk_Merchant}
+                                        dataKey="transactions"
+                                        nameKey="risk_level"
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel />}
+                                    />
+                                    <ChartLegend
+                                        content={<ChartLegendContent nameKey="risk_level" />}
+                                        className="-translate-y-2 gap-2 *:basis-1/2 *:justify-center *flex-row"
+                                    />
+                                </PieChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                            <CardHeader className="items-center pb-0">
+                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
+                            </CardHeader>
+                            <CardContent className="flex-1 pb-0">
+                                <ChartContainer config={{
+                                    transactions: {
+                                        label: "Transactions",
+                                    },
+                                    "High Risk": {
+                                        label: "High Risk",
+                                        color: "#736262ff",
+                                    },
+                                    "Low Risk": {
+                                        label: "Low Risk",
+                                        color: "#fafafaff",
+                                    },
+                                } satisfies ChartConfig}
+                                className="mx-auto aspect-square max-h-[250px] text-white"
+                                >
+                                <PieChart>
+                                    <Pie
+                                        data={chartData_HighRisk_Merchant}
+                                        dataKey="transactions"
+                                        nameKey="risk_level"
+                                    />
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel />}
+                                    />
+                                    <ChartLegend
+                                        content={<ChartLegendContent nameKey="risk_level" />}
+                                        className="-translate-y-2 gap-2 *:basis-1/2 *:justify-center *flex-row"
                                     />
                                 </PieChart>
                                 </ChartContainer>
