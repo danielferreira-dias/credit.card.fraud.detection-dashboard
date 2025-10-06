@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList, RadialBar, RadialBarChart, BarChart, Bar, PolarRadiusAxis, Label } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList, RadialBar, RadialBarChart, BarChart, Bar, PolarRadiusAxis, Label, PieChart, Pie } from "recharts"
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { ChartLegend, ChartLegendContent } from "@/components/ui/chart"
@@ -8,7 +8,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card"
-import StatsCard from "@/components/StatsCard"
+import StatsCard, { StatsCardDashboard } from "@/components/StatsCard"
 
 
 interface StatsResponse {
@@ -115,6 +115,15 @@ export default function DashboardPage() {
     const chartData_Channel = cacheStats?.channel
         ? Object.entries(cacheStats.channel).map(([channel, data], index) => ({
             channel: channel,
+            total: data.total_transactions,
+            fraud: data.fraud_transactions,
+            fill: `hsl(var(--chart-${(index % 5) + 1}))`
+        }))
+        : [];
+
+    const chartData_HighRisk_Merchant = cacheStats?.high_risk_merchant
+        ? Object.entries(cacheStats.high_risk_merchant).map(([high_risk_merchant, data], index) => ({
+            high_risk_merchant: high_risk_merchant,
             total: data.total_transactions,
             fraud: data.fraud_transactions,
             fill: `hsl(var(--chart-${(index % 5) + 1}))`
@@ -260,18 +269,17 @@ export default function DashboardPage() {
                             </ChartContainer>
                         </CardContent>
                     </Card>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full items-center mt-6">
+                    <div className="flex flex-col sm:flex-row justify-evenly items-start flex-wrap gap-2 w-full mt-2">
                     {stats.map((stat) => (
-                        <StatsCard
+                        <StatsCardDashboard
                             key={stat.id}
                             typeStat={stat.typeStat}
                             statValue={stat.statValue}
                             colour={stat.cardColour}
                         />
                     ))}
-                    </div>
-                    <Card className="bg-zinc-950 border-0 w-70 h-40 mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
-                        <CardContent className="flex flex-1 items-center pb-0">
+                    <Card className="bg-zinc-950 border-0 w-70 h-30 p-4" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <CardContent className="flex flex-1 pb-0">
                             <ChartContainer
                             config={{
                                 total: {
@@ -283,7 +291,7 @@ export default function DashboardPage() {
                                     color: "#ef4444",
                                 },
                             } satisfies ChartConfig}
-                            className="h-[400px] w-full"
+                            className=" w-full h-full"
                             >
                             <RadialBarChart
                                 data={[{
@@ -294,6 +302,7 @@ export default function DashboardPage() {
                                 endAngle={180}
                                 innerRadius={80}
                                 outerRadius={130}
+                                className=""
                             >
                                 <ChartTooltip
                                 cursor={false}
@@ -305,32 +314,34 @@ export default function DashboardPage() {
                                     if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                         const totalTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0;
                                         const fraudTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0;
+                                        const centerX = viewBox.cx;
+                                        const centerY = viewBox.cy;
                                         return (
-                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
+                                        <text x={centerX} y={centerY} textAnchor="middle" dominantBaseline="middle">
                                             <tspan
-                                            x={viewBox.cx}
-                                            y={(viewBox.cy || 0) - 20}
-                                            className="fill-zinc-200 text-xl font-bold"
+                                            x={centerX}
+                                            y={centerY - 24}
+                                            className="fill-zinc-200 text-lg font-bold"
                                             >
                                             {totalTransactions.toLocaleString()}
                                             </tspan>
                                             <tspan
-                                            x={viewBox.cx}
-                                            y={(viewBox.cy || 0) - 2}
-                                            className="fill-zinc-400 text-sm"
+                                            x={centerX}
+                                            y={centerY - 8}
+                                            className="fill-zinc-400 text-xs"
                                             >
                                             Total Transactions
                                             </tspan>
                                             <tspan
-                                            x={viewBox.cx}
-                                            y={(viewBox.cy || 0) + 16}
-                                            className="fill-red-400 text-lg font-semibold"
+                                            x={centerX}
+                                            y={centerY + 12}
+                                            className="fill-red-400 text-md font-semibold"
                                             >
                                             {fraudTransactions.toLocaleString()}
                                             </tspan>
                                             <tspan
-                                            x={viewBox.cx}
-                                            y={(viewBox.cy || 0) + 32}
+                                            x={centerX}
+                                            y={centerY + 26}
                                             className="fill-red-300 text-xs"
                                             >
                                             Fraudulent
@@ -359,6 +370,7 @@ export default function DashboardPage() {
                             </ChartContainer>
                         </CardContent>
                     </Card>
+                    </div>
                     <div className="w-full flex flex-col sm:flex-row flex-wrap gap-x-4">
                         <Card className="bg-zinc-950 border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader>
@@ -477,6 +489,36 @@ export default function DashboardPage() {
                                     <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
                                     <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
                                 </BarChart>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="flex flex-col sm:flex-row flex-wrap w-full mt-6">
+                        <Card className="flex flex-col w-[30%] bg-transparent border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                            <CardHeader className="items-center pb-0">
+                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Fraud Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by High Risk Merchants</p>
+                            </CardHeader>
+                            <CardContent className="flex-1 pb-0">
+                                <ChartContainer config={{
+                                    total: {
+                                        label: "false",
+                                        color: "#ffffff",
+                                    },
+                                    fraud: {
+                                        label: "true",
+                                        color: "#ef4444",
+                                    },
+                                } satisfies ChartConfig}
+                                className="h-60 w-full"
+                                >
+                                <PieChart>
+                                    <Pie data={chartData_HighRisk_Merchant} dataKey="true" />
+                                    <ChartLegend
+                                    content={<ChartLegendContent nameKey="true" />}
+                                    className="w-14 h-14"
+                                    />
+                                </PieChart>
                                 </ChartContainer>
                             </CardContent>
                         </Card>
