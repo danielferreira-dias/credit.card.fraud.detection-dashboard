@@ -18,20 +18,25 @@ export default function PersonalPage(){
     const [selectedReport, setSelectedReport] = useState<ReportOutput | null>(null);
     const { user, loading } = useUser();
 
+
     useEffect(() => {
         const fetchReports = async () => {
+            if (!user?.id) return; // Don't fetch if user is not loaded yet
+
             try {
-                // Replace with your actual user ID
-                const response = await fetch(`http://localhost:80/users/${user?.id}/reports`);
+                const response = await fetch(`http://localhost:80/users/reports/${user.id}`);
                 if (!response.ok) throw new Error('Failed to fetch reports');
                 const data = await response.json();
                 setReports(data);
             } catch (error) {
                 console.error('Error fetching reports:', error);
-            } 
+            }
         };
-        fetchReports();
-    }, [user]);
+
+        if (!loading && user) {
+            fetchReports();
+        }
+    }, [user, loading]);
 
     const { isCollapsed, toggleCollapsed } = useNavbar();
     return (
@@ -57,50 +62,15 @@ export default function PersonalPage(){
                 </div>
 
                 {/* Reports Section */}
-                <div className="flex flex-col w-full border-b-[1px] border-b-zinc-600 border-t-[1px] border-t-zinc-600 py-4 px-2 mt-6">
+                <div className="flex flex-col w-full border-b-[1px] border-b-zinc-700 border-t-[1px] border-t-zinc-700 py-4 px-2 mt-6">
                     <h3 className="text-md opacity-100 ">Documents</h3>
                 </div>
 
-                {loading ? (
-                    <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-900">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-zinc-900 bg-zinc-900">
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Date</th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Patterns</th>
-                                    <th className="text-right py-3 px-4 text-md font-medium text-zinc-200">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[...Array(3)].map((_, index) => (
-                                    <tr key={index} className="border-b border-zinc-800 animate-pulse">
-                                        <td className="py-3 px-4">
-                                            <div className="h-4 bg-zinc-800 rounded w-3/4"></div>
-                                        </td>
-                                        <td className="py-3 px-4">
-                                            <div className="h-4 bg-zinc-800 rounded w-24"></div>
-                                        </td>
-                                        <td className="py-3 px-4">
-                                            <div className="h-6 bg-zinc-800 rounded w-20"></div>
-                                        </td>
-                                        <td className="py-3 px-4">
-                                            <div className="h-4 bg-zinc-800 rounded w-16"></div>
-                                        </td>
-                                        <td className="py-3 px-4 text-right">
-                                            <div className="h-7 bg-zinc-800 rounded w-24 ml-auto"></div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : reports.length === 0 ? (
+                { reports.length === 0 ? (
                     <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-800"> 
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-zinc-800 bg-zinc-900">
+                                <tr className="border-b border-zinc-800 bg-zinc-950">
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
                                     <th className="py-3 px-4 text-md font-medium text-zinc-200">Date</th>
                                     <th className="py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
@@ -114,10 +84,10 @@ export default function PersonalPage(){
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-900">
+                    <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-800">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-zinc-900 bg-zinc-900">
+                                <tr className="border-b border-zinc-900 bg-zinc-950">
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Date</th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
