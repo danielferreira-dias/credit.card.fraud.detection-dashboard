@@ -8,6 +8,7 @@ import { UserProvider } from "./context/UserContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { NavbarProvider } from "./context/NavbarContext";
 import { NotificationContainer } from "./components/Modal";
+import PersonalPage from "./pages/Personal";
 
 function App() {
   return (
@@ -25,6 +26,8 @@ function App() {
 
             {/* Public Route (bypasses AuthRouter in Layout) */}
             <Route path="auth" element={<AuthenticationPage />} /> {/* /auth */}
+
+            <Route path="personal" element={<PersonalPage />} /> {/* /auth */}
 
             {/* Fallback: redirect any unknown route to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

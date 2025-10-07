@@ -69,8 +69,8 @@ class ReportService:
     def __init__(self, report_repo: ReportRepository):
         self.report_repo = report_repo
     
-    async def create_report(self, user_id: int, report_content: dict) -> Report:
         """Create report from structured response"""
+    async def create_report(self, user_id: int, report_content: dict) -> Report:
         # report_content is already a dict/JSON from the agent service
         return await self.report_repo.create(
             user_id=user_id,

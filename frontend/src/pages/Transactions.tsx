@@ -36,14 +36,16 @@ export default function TransactionPage(){
                 const age = Date.now() - parseInt(cacheTime);
                 if (age < 2 * 60 * 1000) { // 2 minutes cache
                     const parsedData = JSON.parse(cachedData);
+                    // Handle both possible structures
+                    const statsData = parsedData.data || parsedData;
                     const cachedStats = [
-                        { id: 1, typeStat: "Number of Transactions", statValue: parsedData.data.total_transactions, cardColour: "card-1" },
-                        { id: 2, typeStat: "Valid Transactions", statValue: (parsedData.data.total_transactions - parsedData.data.fraudulent_transactions), cardColour: "card-2" },
-                        { id: 3, typeStat: "Fraudulent Transactions", statValue: parsedData.data.fraudulent_transactions, cardColour: "card-3" },
-                        { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parsedData.data.fraud_rate , cardColour: "card-4" },
+                        { id: 1, typeStat: "Number of Transactions", statValue: statsData.total_transactions, cardColour: "card-1" },
+                        { id: 2, typeStat: "Valid Transactions", statValue: (statsData.total_transactions - statsData.fraudulent_transactions), cardColour: "card-2" },
+                        { id: 3, typeStat: "Fraudulent Transactions", statValue: statsData.fraudulent_transactions, cardColour: "card-3" },
+                        { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: statsData.fraud_rate , cardColour: "card-4" },
                     ];
                     setStats(cachedStats);
-                    setTotalTransactions(parsedData.data.total_transactions);
+                    setTotalTransactions(statsData.total_transactions);
                     setLoading(false);
                     return;
                 }

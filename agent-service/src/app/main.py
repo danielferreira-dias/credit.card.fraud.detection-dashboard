@@ -178,6 +178,7 @@ class StreamException(Exception):
 async def get_agent_report(report_text: str, analyst_agent: AnalystAgent = Depends(get_analyst_agent)):
     if report_text is None:
         return "Report was not generated due to empty Report Text"
+    
     return await analyst_agent.get_agent_report(backend_report=report_text)
 
 @app.post("/user_message/stream")

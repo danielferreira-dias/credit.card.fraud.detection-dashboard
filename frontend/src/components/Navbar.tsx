@@ -36,10 +36,10 @@ export default function Navbar(){
         { element: "Agent", path: "/agent", symbol: <AgentIcon /> },
     ]
 
-    const navBarSettings : { element : string , symbol: ReactNode, onClick?: () => void}[] = [
-        { element: "Settings", symbol: <SettingsIcon /> },
-        { element: "About", symbol: <AboutIcon /> },
-        { element: "Logout", symbol: <LogoutIcon />, onClick: () => { googleLogout(); window.location.href = "/auth";} },
+    const navBarSettings : { element : string , path?: string,  symbol: ReactNode, onClick?: () => void}[] = [
+        { element: "Personal", path: "/personal" , symbol: <SettingsIcon /> },
+        { element: "About",  path: "/about" ,symbol: <AboutIcon /> },
+        { element: "Logout", path: "/auth" , symbol: <LogoutIcon />, onClick: () => { googleLogout(); window.location.href = "/auth";} },
     ]
 
     const [isMobileOpen, setIsMobileOpen] = useState(true)
@@ -53,7 +53,7 @@ export default function Navbar(){
         />
 
         <div
-            className={`${isCollapsed ? "lg:w-20 " : "lg:w-[17.5%]"} } w-20 h-svh  top-0  max-[500px]:w-full max-[500px]:rounded-none max-[500px]:border-0  max-[500px]:fixed max-[500px]:z-50 ${!isMobileOpen ? "max-[500px]:hidden" : ""} h-[98vh] flex flex-col rounded-xl p-2 items-center sticky transition-all duration-300 ease-in-out relative`}
+            className={`${isCollapsed ? "lg:w-20 " : "lg:w-[15%]"} } w-20 h-svh  top-0  max-[500px]:w-full max-[500px]:rounded-none max-[500px]:border-0  max-[500px]:fixed max-[500px]:z-50 ${!isMobileOpen ? "max-[500px]:hidden" : ""} h-[98vh] flex flex-col rounded-xl p-2 items-center sticky transition-all duration-300 ease-in-out relative`}
             style={{
                 border: 'double 1px transparent',
                 borderRadius: '0.75rem',
@@ -100,15 +100,17 @@ export default function Navbar(){
             <div className="w-[90%] h-fit flex border-t-[1px] rounded-md border-zinc-700 py-7 flex-col justify-center text-zinc-300 opacity-90 gap-y-5 text-sm mt-auto mb-2">
                 <span className={`text-xs opacity-80 hidden max-[500px]:block ${isCollapsed ? "lg:hidden" : "lg:block"}`}>More</span>
                 <div className="flex flex-col gap-y-5">
-                    {navBarSettings.map(({ element, symbol, onClick }) => (
-                        <div key={element} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
-                            <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                            <button
-                                onClick={onClick}
-                                className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? " opacity-100 hover:text-zinc-300" : "text-zinc-300 hover:text-white"}`}>
-                                {element}
-                            </button>
-                        </div>
+                    {navBarSettings.map(({ element, path, symbol, onClick }) => (
+                        <Link key={element} to={path ?? "#"} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
+                            <div key={element} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
+                                <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
+                                <button
+                                    onClick={onClick}
+                                    className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? " opacity-100 hover:text-zinc-300" : "text-zinc-300 hover:text-white"}`}>
+                                    {element}
+                                </button>
+                            </div>
+                        </Link>
                     ))}
                 </div>
             </div>

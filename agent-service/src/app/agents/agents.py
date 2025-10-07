@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import sys
 from pathlib import Path
-from typing import Literal
+from typing import List, Literal
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
@@ -642,8 +642,11 @@ class ReportOutput(BaseModel):
     """Contact information for a person."""
     title: str = Field(description="The title of the Document")
     date: datetime = Field(description="The date of the time of the report")
-    analysis: str = Field(description="The analysis of the Agent")
     sentiment: Literal["Urgent", "Non Urgent"] = Field(description="The sentiment of the report")
+    key_findings: List[dict] = Field(description="Key findings of the Report")
+    critical_patterns: List[str] = Field(description="Critical Patterns found")
+    recommendations: List[str] = Field(description="Recommendations")
+    analysis: str = Field(description="The analysis of the Agent")
 
 class AnalystAgent:
     def __init__(self, model_name : str , vector_database : AzureVectorService | PGVectorService):
@@ -659,7 +662,7 @@ class AnalystAgent:
         )
 
         self.vector_database = vector_database
-        self.tools = self._create_tools()
+        self.tools = self.create_tools()
 
         self.agent = create_agent(
             model=self.model,
@@ -669,40 +672,35 @@ class AnalystAgent:
         )
     
     def create_tools(self):
-        @tool("search_knowledge_base", description="This gives you access to a knowledge vector database that can help you provide a better report analysis, it has access to fraud patterns, how the model was trained, etc.")
-        async def search_knowledge_base( query: str, limit: int = 5) -> str:
-            """Search the knowledge base using semantic similarity."""
+        @tool("search_knowledge_base", description=("Search the fraud detection knowledge base for relevant information. ""Use this to find: fraud detection patterns, model training details, ""statistical analy methods, transaction anomaly indicators, ""risk assessment criteria, or any domain knowledge about fraud detection. ""Input should be a specific question or topic related fraud analysis."))
+        async def search_knowledge_base(query: str, limit: int = 5) -> str:
             try:
                 response = await self.vector_database.hybrid_search_documents(user_query=query, k=limit)
 
-                # Format context for LLM
-                context_text = "\n\n".join([
-                    f"Source: {doc['Source']}\n{doc['Content']}" 
-                    for doc in response
-                ])
+                if not response:
+                    return "No relevant information found in the knowledge base for this query."
+
+                # Format context cleanly without confusing prompts
+                context_sections = []
+                for i, doc in enumerate(response, 1):
+                    context_sections.append(
+                        f"[Knowledge Source {i}]\n"
+                        f"From: {doc.get('Source', 'Unknown')}\n"
+                        f"{doc.get('Content', '')}\n"
+                    )
                 
-                # Generate response with context
-                output = f"""Use the following context to answer create your document report.
-    
-                Context:
-                {context_text}
-
-                Question: 
-                {query}
-
-                Answer:
-                """
-
-                return output
-            except AgentException as e:
-                raise AgentException(message=f'Something went wrong on knowledge retrievel tool -> {e}')
+                return "\n".join(context_sections)
+                
+            except Exception as e:
+                self.logger.error(f"Knowledge base search failed: {str(e)}")
+                return f"Error accessing knowledge base: {str(e)}"
         
-        return search_knowledge_base
-
+        return [search_knowledge_base]
+    
     async def get_agent_report(self, backend_report : str):
-        result = self.agent.ainvoke({
+        result = await self.agent.ainvoke({
         "messages": [{
-            "role": "user", 
+            "role": "user",
             "content": f"Report: {backend_report}"}]
         })
         return result["structured_response"]

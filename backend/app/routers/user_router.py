@@ -128,16 +128,15 @@ async def create_report(user_id: int , report_service: ReportService = Depends(g
         report['geral'] = await cache_service.get_geral_stats(force_refresh=False)
         report['overview'] = await cache_service.get_stats_overview(force_refresh=False)
 
-        logger.info(f'CURRENT REPORT DATA -> {report}')
         final_report = report_service._format_stats_to_text(report)
-        logger.info(f'REPORT DATA CLEANED -> {final_report}')
 
-        return final_report
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{AGENT_SERVICE_URL}/user_report?report_text={final_report}") as response:
+                response.raise_for_status()
+                data = await response.json()
 
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.get(f"{AGENT_SERVICE_URL}/user_report?report_text={report}") as response:
-        #         data = await response
-        
-        # return await report_service.create_report(user_id=user_id, report_content=data)
+        logger.info(f'REPORT DATA -> {data}')
+        return await report_service.create_report(user_id=user_id, report_content=data)
+    
     except HTTPException as e:
         raise HTTPException(status_code=500, detail="Something happened with the Agent Service") from e
