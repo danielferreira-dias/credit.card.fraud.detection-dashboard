@@ -131,7 +131,7 @@ export default function DashboardPage() {
     : [];
 
     const chartData_HighRisk_Merchant = cacheStats?.high_risk_merchant
-        ? Object.entries(cacheStats.high_risk_merchant).map(([risk_level, data], index) => ({
+        ? Object.entries(cacheStats.high_risk_merchant).map(([risk_level, data]) => ({
             risk_level: risk_level === "true" ? "High Risk" : "Low Risk",
             transactions: data.total_transactions,
             fraud: data.fraud_transactions,
@@ -139,17 +139,26 @@ export default function DashboardPage() {
         }))
         : [];
 
-    const chartData_Distance_From_Home = cacheStats?.distance_from_home
-        ? Object.entries(cacheStats.distance_from_home).map(([distance_key, data], index) => ({
-            risk_level: distance_key === "1" ? "Away from Home" : "Home",
+    const chartData_Weekend_Transaction = cacheStats?.weekend_transaction
+        ? Object.entries(cacheStats.weekend_transaction).map(([weekend_key, data]) => ({
+            risk_level: weekend_key === "true" ? "Weekend" : "Weekday",
             transactions: data.total_transactions,
             fraud: data.fraud_transactions,
-            fill: distance_key === "1" ? "#ef4444" : "#ffffffff"
+            fill: weekend_key === "true" ? "#ef4444" : "#fafafaff"
+        }))
+        : [];
+
+    const chartData_Distance_From_Home = cacheStats?.distance_from_home
+        ? Object.entries(cacheStats.distance_from_home).map(([distance_key, data]) => ({
+            risk_level: distance_key === "1.0" ? "Away from Home" : "Home",
+            transactions: data.total_transactions,
+            fraud: data.fraud_transactions,
+            fill: distance_key === "1.0" ? "#ef4444" : "#ffffff"
         }))
         : [];
 
     const chartData_Country = cacheStats?.countries
-        ? Object.entries(cacheStats.countries).map(([countries, data], index) => ({
+        ? Object.entries(cacheStats.countries).map(([countries, data]) => ({
             countries: countries,
             total: data.total_transactions,
             fraud: data.fraud_transactions,
@@ -602,6 +611,7 @@ export default function DashboardPage() {
                                 >
                                 <PieChart>
                                     <Pie
+                                        key="high-risk-pie"
                                         data={chartData_HighRisk_Merchant}
                                         dataKey="transactions"
                                         nameKey="risk_level"
@@ -641,6 +651,7 @@ export default function DashboardPage() {
                                 >
                                 <PieChart>
                                     <Pie
+                                        key="distance-pie"
                                         data={chartData_Distance_From_Home}
                                         dataKey="transactions"
                                         nameKey="risk_level"
@@ -659,20 +670,20 @@ export default function DashboardPage() {
                         </Card>
                         <Card className="flex flex-col w-[32%] bg-[#0a0a0a] border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader className="items-center pb-0">
-                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
-                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
+                                <h3 className="text-xl font-semibold text-zinc-200">Weekend Transaction Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by day type</p>
                             </CardHeader>
                             <CardContent className="flex-1 pb-0">
                                 <ChartContainer config={{
                                     transactions: {
                                         label: "Transactions",
                                     },
-                                    "High Risk": {
-                                        label: "High Risk",
-                                        color: "#736262ff",
+                                    "Weekend": {
+                                        label: "Weekend",
+                                        color: "#ef4444",
                                     },
-                                    "Low Risk": {
-                                        label: "Low Risk",
+                                    "Weekday": {
+                                        label: "Weekday",
                                         color: "#fafafaff",
                                     },
                                 } satisfies ChartConfig}
@@ -680,7 +691,8 @@ export default function DashboardPage() {
                                 >
                                 <PieChart>
                                     <Pie
-                                        data={chartData_HighRisk_Merchant}
+                                        key="weekend-pie"
+                                        data={chartData_Weekend_Transaction}
                                         dataKey="transactions"
                                         nameKey="risk_level"
                                     />
