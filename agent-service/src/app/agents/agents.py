@@ -638,6 +638,10 @@ class TitleNLP:
             return "New Conversation" 
         return final_title
 
+class ToolOutput(BaseModel):
+    tools_used: List[str] = Field(description="Name of the tools used to help writing the document")
+    queries_used : List[str] = Field(description="Queries used in the Tool parameter")
+
 class ReportOutput(BaseModel):
     """Contact information for a person."""
     title: str = Field(description="The title of the Document")
@@ -647,6 +651,7 @@ class ReportOutput(BaseModel):
     critical_patterns: List[str] = Field(description="Critical Patterns found")
     recommendations: List[str] = Field(description="Recommendations")
     analysis: str = Field(description="The analysis of the Agent")
+    tools_used: ToolOutput = Field(description="The tool logic of the Agent")
 
 class AnalystAgent:
     def __init__(self, model_name : str , vector_database : AzureVectorService | PGVectorService):

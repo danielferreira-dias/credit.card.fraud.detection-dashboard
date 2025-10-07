@@ -11,7 +11,7 @@ interface ReportContent{
     title: string;
     date: string;
     sentiment: "Urgent" | "Non Urgent";
-    key_findings: Array<{ category: string; finding: string }>;
+    key_findings: Array<{ category: string; finding: string; detail:string ;observation: string}>;
     critical_patterns: string[];
     recommendations: string[];
     analysis: string;
@@ -137,6 +137,11 @@ export default function PersonalPage(){
                     </div>
                 )}
 
+                {/* Reports Section */}
+                <div className="flex flex-col w-full border-b-[1px] border-b-zinc-700 border-t-[1px] border-t-zinc-700 py-4 px-2 mt-6">
+                    <h3 className="text-md opacity-100 ">Transactions</h3>
+                </div>
+
                 {/* Report Detail Modal/Section */}
                 {selectedReport && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReport(null)}>
@@ -176,7 +181,9 @@ export default function PersonalPage(){
                                         {selectedReport.report_content.key_findings.map((finding, idx) => (
                                             <div key={idx} className="bg-zinc-900 p-3 rounded border border-zinc-800">
                                                 <p className="text-sm font-medium text-zinc-300">{finding.category}</p>
+                                                <p className="text-sm font-medium text-zinc-300">{finding.observation}</p>
                                                 <p className="text-sm text-zinc-400 mt-1">{finding.finding}</p>
+                                                <p className="text-sm text-zinc-400 mt-1">{finding.detail}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -211,7 +218,7 @@ export default function PersonalPage(){
                                 {/* Analysis */}
                                 <section>
                                     <h3 className="text-lg font-semibold mb-3 text-zinc-200">Detailed Analysis</h3>
-                                    <div className="bg-zinc-900 p-4 rounded border border-zinc-800">
+                                    <div className="bg-zinc-950 p-4 rounded border border-zinc-800">
                                         <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
                                             {selectedReport.report_content.analysis}
                                         </p>

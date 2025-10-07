@@ -9,11 +9,27 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import StatsCard, { StatsCardDashboard } from "@/components/StatsCard"
-import { PanelLeft, PanelRight } from "lucide-react"
+import { PanelLeft, PanelRight, Loader2 } from "lucide-react"
 import { useNavbar } from "@/context/NavbarContext"
 import { useUser } from "@/context/UserContext"
 import { useNotification } from "@/hooks/useNotification"
 
+const AIIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z"
+            fill="currentColor"
+        />
+        <path
+            d="M19 11L19.8 14.6L23 15L19.8 15.4L19 19L18.2 15.4L15 15L18.2 14.6L19 11Z"
+            fill="currentColor"
+        />
+        <path
+            d="M5 5L5.5 7.5L8 8L5.5 8.5L5 11L4.5 8.5L2 8L4.5 7.5L5 5Z"
+            fill="currentColor"
+        />
+    </svg>
+)
 
 interface StatsResponse {
     countries: Record<string, { total_transactions: number; fraud_transactions: number }>;
@@ -85,6 +101,7 @@ export default function DashboardPage() {
     const { isCollapsed, toggleCollapsed } = useNavbar()
     const [cacheStats, setStats] = useState<StatsResponse | null>(null)
     const [loading, setLoading] = useState(true)
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false)
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -169,7 +186,7 @@ export default function DashboardPage() {
 
     const { user } = useUser();
 
-    const { showSuccess, showError } = useNotification();
+    const { showSuccess, showError, showInfo } = useNotification();
 
     if (loading) {
         return (
@@ -219,7 +236,11 @@ export default function DashboardPage() {
     ];
 
     const handleButton = async () => {
+        if (isGeneratingReport) return;
+
         try {
+            setIsGeneratingReport(true)
+            showInfo('The Agent is generating the Report...', 3000)
             const response = await fetch(`http://localhost:80/users/reports/${user?.id}`, {
             method: 'POST',
             headers: {
@@ -237,9 +258,11 @@ export default function DashboardPage() {
 
             const data = await response.json();
             console.log('✅ Success:', data);
-            showSuccess('Report added to your Personal Page')
+            showSuccess('Report added to your Personal Page', 5000)
         } catch (error) {
             console.error('❌ Error:', error);
+        } finally {
+            setIsGeneratingReport(false)
         }
     }
 
@@ -265,7 +288,33 @@ export default function DashboardPage() {
                             <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                         </div>
                     </div>
-                    <button className="w-40 h-10 bg-zinc-950 hover:bg-zinc-900 text-white rounded-lg" onClick={handleButton} style={{ boxShadow: 'var(--shadow-s)'}}>Generate Report</button>
+                    <button
+                        className={`relative w-34 h-8 text-white rounded-lg transition-all duration-200 overflow-hidden group ${
+                            isGeneratingReport
+                                ? 'cursor-not-allowed opacity-90'
+                                : 'hover:shadow-lg hover:shadow-zinc-700/50 hover:scale-105 active:scale-100'
+                        }`}
+                        onClick={handleButton}
+                        disabled={isGeneratingReport}
+                        style={{
+                            boxShadow: isGeneratingReport ? 'none' : 'var(--shadow-s)'
+                        }}
+                    >
+                        <div className="flex items-center justify-center gap-2">
+                            {isGeneratingReport ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-xs">Generate Report</span>
+                                </>
+                            )}
+                        </div>
+                        {!isGeneratingReport && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        )}
+                    </button>
                 </div>
 
                 <div className="flex flex-col">
