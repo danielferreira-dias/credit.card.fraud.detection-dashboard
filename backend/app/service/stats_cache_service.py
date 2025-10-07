@@ -11,6 +11,7 @@ class StatsCacheService:
     # Cache TTL in minutes (adjust as needed)
     CACHE_TTL_MINUTES = 10000000
     STATS_OVERVIEW_KEY = "stats_overview"
+    GERAL_STATS_KEY="geral_stats_overview"
 
     def __init__(self, db: AsyncSession):
         self.cache_repo = StatsCacheRepository(db)
@@ -45,6 +46,38 @@ class StatsCacheService:
 
         # Cache the results
         await self.cache_repo.upsert_cached_stats(self.STATS_OVERVIEW_KEY, stats_data)
+
+        return stats_data
+    
+    async def get_geral_stats(self, force_refresh: bool = False) -> dict:
+        """
+        Get stats overview from cache or compute and cache if stale/missing.
+
+        Args:
+            force_refresh: If True, bypass cache and recompute stats
+
+        Returns:
+            Dictionary with categorized stats
+        """
+        # Check cache unless force refresh
+        if not force_refresh:
+            cached = await self.cache_repo.get_cached_stats(self.GERAL_STATS_KEY)
+
+            if cached:
+                # Check if cache is still valid
+                cache_age = datetime.now() - cached.updated_at
+                if cache_age < timedelta(minutes=self.CACHE_TTL_MINUTES):
+                    logger.info(f"Returning cached stats (age: {cache_age})")
+                    return cached.data
+                else:
+                    logger.info(f"Cache expired (age: {cache_age}), refreshing...")
+
+        # Compute fresh stats
+        logger.info("Computing fresh stats overview...")
+        stats_data = await self._compute_geral_stats()
+
+        # Cache the results
+        await self.cache_repo.upsert_cached_stats(self.GERAL_STATS_KEY, stats_data)
 
         return stats_data
 
@@ -126,6 +159,11 @@ class StatsCacheService:
 
         return response
 
+    async def _compute_geral_stats(self) -> dict:
+        return await self.transaction_service.get_transaction_stats()
+
     async def refresh_cache(self) -> dict:
         """Force refresh the stats cache and return the new data."""
-        return await self.get_stats_overview(force_refresh=True)
+        overview = await self.get_stats_overview(force_refresh=True)
+        geral = await self.get_geral_stats(force_refresh=True)
+        return {'overview': overview, 'geral': geral}

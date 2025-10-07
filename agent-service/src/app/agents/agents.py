@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
 import sys
 from pathlib import Path
-from typing import List
+from typing import Literal
+from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
@@ -32,6 +34,11 @@ class UserContext:
     user_id: int
 
 class TransactionAgent:
+    """
+        This Agent is responsible to fetch knowledge vector database and database information
+        providing it to a user through a chatbot
+    """
+
     def __init__(self, model_name : str , backend_client: BackendAPIClient , vector_database : AzureVectorService | PGVectorService):
         """
             model = Initializes the Agent Model also known as the LLM
@@ -487,7 +494,6 @@ class TransactionAgent:
 
         return [search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
-
     @traceable(name="query_stream_query_agent")
     async def _stream_query(self, agent_input, thread_id: str):
         """
@@ -605,7 +611,6 @@ class TransactionAgent:
                                     "tool_name": message.name,
                                     "message": f"✅ Tool {message.name} completed"
                                 }
-
 @dataclass
 class NPLOutput:
     title: str
@@ -633,4 +638,71 @@ class TitleNLP:
             return "New Conversation" 
         return final_title
 
+class ReportOutput(BaseModel):
+    """Contact information for a person."""
+    title: str = Field(description="The title of the Document")
+    date: datetime = Field(description="The date of the time of the report")
+    analysis: str = Field(description="The analysis of the Agent")
+    sentiment: Literal["Urgent", "Non Urgent"] = Field(description="The sentiment of the report")
 
+class AnalystAgent:
+    def __init__(self, model_name : str , vector_database : AzureVectorService | PGVectorService):
+        self.logger = get_agent_logger("TransactionAgent", "INFO")
+        self.logger.info(f"Initializing TransactionAgent with model: {model_name}")
+
+        self.model = AzureChatOpenAI(
+            azure_deployment=model_name,
+            api_version=os.getenv("OPENAI_API_VERSION"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            temperature=1,
+        )
+
+        self.vector_database = vector_database
+        self.tools = self._create_tools()
+
+        self.agent = create_agent(
+            model=self.model,
+            tools=self.tools,
+            prompt="You're a Transaction Analyst, your mission is to develop reports off a data you recieve and give your DETAILED feedback of any patterns you see. You may and I suggest you to consult your knowledge vector database to help you make your report.",
+            response_format=ReportOutput
+        )
+    
+    def create_tools(self):
+        @tool("search_knowledge_base", description="This gives you access to a knowledge vector database that can help you provide a better report analysis, it has access to fraud patterns, how the model was trained, etc.")
+        async def search_knowledge_base( query: str, limit: int = 5) -> str:
+            """Search the knowledge base using semantic similarity."""
+            try:
+                response = await self.vector_database.hybrid_search_documents(user_query=query, k=limit)
+
+                # Format context for LLM
+                context_text = "\n\n".join([
+                    f"Source: {doc['Source']}\n{doc['Content']}" 
+                    for doc in response
+                ])
+                
+                # Generate response with context
+                output = f"""Use the following context to answer create your document report.
+    
+                Context:
+                {context_text}
+
+                Question: 
+                {query}
+
+                Answer:
+                """
+
+                return output
+            except AgentException as e:
+                raise AgentException(message=f'Something went wrong on knowledge retrievel tool -> {e}')
+        
+        return search_knowledge_base
+
+    async def get_agent_report(self, backend_report : str):
+        result = self.agent.ainvoke({
+        "messages": [{
+            "role": "user", 
+            "content": f"Report: {backend_report}"}]
+        })
+        return result["structured_response"]

@@ -38,9 +38,9 @@ export default function TransactionPage(){
                     const parsedData = JSON.parse(cachedData);
                     const cachedStats = [
                         { id: 1, typeStat: "Number of Transactions", statValue: parsedData.data.total_transactions, cardColour: "card-1" },
-                        { id: 2, typeStat: "Valid Transactions", statValue: (parsedData.data.total_transactions - parsedData.data.fraud_transactions), cardColour: "card-2" },
-                        { id: 3, typeStat: "Fraudulent Transactions", statValue: parsedData.data.fraud_transactions, cardColour: "card-3" },
-                        { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((parsedData.data.fraud_transactions/parsedData.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
+                        { id: 2, typeStat: "Valid Transactions", statValue: (parsedData.data.total_transactions - parsedData.data.fraudulent_transactions), cardColour: "card-2" },
+                        { id: 3, typeStat: "Fraudulent Transactions", statValue: parsedData.data.fraudulent_transactions, cardColour: "card-3" },
+                        { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parsedData.data.fraud_rate , cardColour: "card-4" },
                     ];
                     setStats(cachedStats);
                     setTotalTransactions(parsedData.data.total_transactions);
@@ -50,7 +50,7 @@ export default function TransactionPage(){
             }
 
             try {
-                const res = await fetch("http://localhost:80/transactions/count");
+                const res = await fetch("http://localhost:80/stats/geral_stats");
                 if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
                 const data = await res.json();
 
@@ -58,13 +58,15 @@ export default function TransactionPage(){
                 sessionStorage.setItem(`transactions_count`,JSON.stringify(data));
                 sessionStorage.setItem(`transactions_count_timestamp`,Date.now().toString());
 
+                console.log('data -> ', data)
+
                 const updatedStats = [
-                    { id: 1, typeStat: "Number of Transactions", statValue: data.data.total_transactions, cardColour: "card-1" },
-                    { id: 2, typeStat: "Valid Transactions", statValue: (data.data.total_transactions - data.data.fraud_transactions), cardColour: "card-2" },
-                    { id: 3, typeStat: "Fraudulent Transactions", statValue: data.data.fraud_transactions, cardColour: "card-3" },
-                    { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: parseFloat(((data.data.fraud_transactions/data.data.total_transactions) * 100).toFixed(2)), cardColour: "card-4" },
+                    { id: 1, typeStat: "Number of Transactions", statValue: data.total_transactions, cardColour: "card-1" },
+                    { id: 2, typeStat: "Valid Transactions", statValue: (data.total_transactions - data.fraudulent_transactions), cardColour: "card-2" },
+                    { id: 3, typeStat: "Fraudulent Transactions", statValue: data.fraudulent_transactions, cardColour: "card-3" },
+                    { id: 4, typeStat: "Fraudulent Detection Percentage", statValue: data.fraud_rate , cardColour: "card-4" },
                 ];
-                setTotalTransactions(data.data.total_transactions);
+                setTotalTransactions(data.total_transactions);
                 setStats(updatedStats);
                 setLoading(false);
             } catch (err) {

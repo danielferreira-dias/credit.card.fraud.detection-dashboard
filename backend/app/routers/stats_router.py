@@ -175,6 +175,14 @@ async def get_stats_overview( force_refresh: bool = Query(False, description="Fo
     """
     return await stats_cache_service.get_stats_overview(force_refresh=force_refresh)
 
+@router.get('/geral_stats')
+async def get_geral_stats( force_refresh: bool = Query(False, description="Force refresh the cache"), stats_cache_service: StatsCacheService = Depends(get_stats_cache_service)):
+    """
+        Get stats overview. Returns cached data if available and not stale.
+        Use force_refresh=true to bypass cache and recompute.
+    """
+    return await stats_cache_service.get_geral_stats(force_refresh=force_refresh)
+
 @router.post('/refresh-cache')
 async def refresh_stats_cache(stats_cache_service: StatsCacheService = Depends(get_stats_cache_service)):
     """

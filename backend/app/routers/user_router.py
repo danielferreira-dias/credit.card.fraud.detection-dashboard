@@ -1,21 +1,37 @@
+import aiohttp
 from app.infra.logger import setup_logger
-from app.schemas.user_schema import UserCreate, UserRegisterSchema, UserResponse
-from app.service.user_service import UserService
+from app.schemas.user_schema import UserRegisterSchema, UserResponse
+from app.service.user_service import ReportService, UserService
 from app.settings.database import get_db
+from app.service.stats_cache_service import StatsCacheService
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
 
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
+
 logger = setup_logger(__name__)
 
 def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
     """ Dependency to get the UserService with a database session. """
     return UserService(db)
+
+def get_report_service(db: AsyncSession = Depends(get_db)) -> ReportService:
+    """ Dependency to get the UserService with a database session. """
+    return ReportService(db)
+
+def get_cache_service(db: AsyncSession = Depends(get_db)) -> StatsCacheService:
+    """ Dependency to get the UserService with a database session. """
+    return StatsCacheService(db)
 
 @router.post("/", response_model=UserResponse)
 async def create_user( user: UserRegisterSchema, user_service: UserService = Depends(get_user_service)):
@@ -104,3 +120,24 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for client: {client_id}")
 
+@router.post("/reports/{user_id}")
+async def create_report(user_id: int , report_service: ReportService = Depends(get_report_service), cache_service: StatsCacheService = Depends(get_cache_service)):
+    report = {}
+    try:
+        # Add await here!
+        report['geral'] = await cache_service.get_geral_stats(force_refresh=False)
+        report['overview'] = await cache_service.get_stats_overview(force_refresh=False)
+
+        logger.info(f'CURRENT REPORT DATA -> {report}')
+        final_report = report_service._format_stats_to_text(report)
+        logger.info(f'REPORT DATA CLEANED -> {final_report}')
+
+        return final_report
+
+        # async with aiohttp.ClientSession() as session:
+        #     async with session.get(f"{AGENT_SERVICE_URL}/user_report?report_text={report}") as response:
+        #         data = await response
+        
+        # return await report_service.create_report(user_id=user_id, report_content=data)
+    except HTTPException as e:
+        raise HTTPException(status_code=500, detail="Something happened with the Agent Service") from e

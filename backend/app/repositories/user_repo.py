@@ -6,9 +6,9 @@ from app.exception.user_exceptions import UserException, UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
-from app.models.user_model import User
+from app.models.user_model import Report, User
 from app.schemas.user_schema import UserCreate
-from typing import List
+from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = setup_logger(__name__)
@@ -80,6 +80,33 @@ class UserRepository:
             await self.db.rollback()
             logger.error(f"Erro ao remover user com ID {user_id}: {e}")
             raise UserException("Erro ao remover o utilizador da base de dados") from e
+class ReportRepository:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+    
+    async def create(self, user_id: int, report_content: dict) -> Report:
+        """Create a new report with JSON content"""
+        db_report = Report(
+            user_id=user_id,
+            report_content=report_content  # SQLAlchemy handles dict -> JSON automatically
+        )
+        self.db.add(db_report)
+        await self.db.commit()
+        await self.db.refresh(db_report)
+        return db_report
+    
+    async def get_by_user_id(self, user_id: int) -> List[Report]:
+        """Get all reports for a user"""
+        result = await self.db.execute(
+            select(Report).where(Report.user_id == user_id)
+        )
+        return result.scalars().all()
+    
+    async def get_by_id(self, report_id: int) -> Optional[Report]:
+        """Get specific report by ID"""
+        result = await self.db.execute(
+            select(Report).where(Report.id == report_id)
+        )
+        return result.scalar_one_or_none()
 
 
-        

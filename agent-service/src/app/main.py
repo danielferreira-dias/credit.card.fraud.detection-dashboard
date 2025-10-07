@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Optional
-from app.agents.agents import TitleNLP, TransactionAgent
+from app.agents.agents import AnalystAgent, TitleNLP, TransactionAgent
 from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
 from app.services.vector_service import AzureVectorService, PGVectorService, EmbeddingModel
@@ -28,6 +28,7 @@ class AgentState:
     def __init__(self):
         self.agent : Optional[TransactionAgent] = None
         self.agent_nlp : Optional[TitleNLP] = None
+        self.agent_analyst : Optional[AnalystAgent] = None
 
 agent_state = AgentState()
 
@@ -114,9 +115,14 @@ async def lifespan(app: FastAPI):
     agent_instance_nlp = TitleNLP(
         model_name=model_name_nlp,
     )
+    agent_analyst_instance = AnalystAgent(
+        model_name=model_name,
+        vector_database=azure_vector_database
+    )
     await agent_instance.setup() 
     agent_state.agent = agent_instance
     agent_state.agent_nlp = agent_instance_nlp
+    agent_state.agent_analyst = agent_analyst_instance
     
     logger.info("✅ Ready to handle requests")
     
@@ -150,6 +156,12 @@ def get_nlp_agent() -> TitleNLP:
         raise RuntimeError("Agent not initialized")
     return agent_state.agent_nlp
 
+def get_analyst_agent() -> AnalystAgent:
+    """Dependency to provide TransactionAgent instance"""
+    if agent_state.agent_analyst is None:
+        raise RuntimeError("Agent not initialized")
+    return agent_state.agent_analyst 
+
 #---------------------------------------
 
 @app.get("/")
@@ -162,6 +174,11 @@ class StreamException(Exception):
     def __init__(self, message="An exception in Streaming has happened"):
         super().__init__(message)
 
+@app.get("/user_report")
+async def get_agent_report(report_text: str, analyst_agent: AnalystAgent = Depends(get_analyst_agent)):
+    if report_text is None:
+        return "Report was not generated due to empty Report Text"
+    return await analyst_agent.get_agent_report(backend_report=report_text)
 
 @app.post("/user_message/stream")
 async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent = Depends(get_transaction_agent), nlp_agent : TitleNLP = Depends(get_nlp_agent)):

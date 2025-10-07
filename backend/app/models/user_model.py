@@ -14,6 +14,7 @@ class User(Base):
     confirmed = Column(Boolean, nullable=False)
 
     conversations = relationship("Conversation", back_populates="user")
+    reports = relationship("Report", back_populates="user")
 
     def __repr__(self):
         return f"<User(username={self.name}, email={self.email})>"
@@ -45,3 +46,13 @@ class Message(Base):
     reasoning_steps = Column(JSON, nullable=True)  # Store agent reasoning steps as JSON array
 
     conversation = relationship("Conversation", back_populates="messages")
+
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    report_content = Column(JSON, nullable=True)  
+
+    user = relationship("User", back_populates="reports")
