@@ -11,6 +11,8 @@ import {
 import StatsCard, { StatsCardDashboard } from "@/components/StatsCard"
 import { PanelLeft, PanelRight } from "lucide-react"
 import { useNavbar } from "@/context/NavbarContext"
+import { useUser } from "@/context/UserContext"
+import { useNotification } from "@/hooks/useNotification"
 
 
 interface StatsResponse {
@@ -165,6 +167,10 @@ export default function DashboardPage() {
         }))
         : [];
 
+    const { user } = useUser();
+
+    const { showSuccess, showError } = useNotification();
+
     if (loading) {
         return (
         <div className="flex h-full w-full text-white p-4 bg-zinc-950 min-h-screen max-h-[fit] flex-col" style={{
@@ -212,7 +218,30 @@ export default function DashboardPage() {
         { id: 4, typeStat: "Merchants Category", statValue: cacheStats ? Object.keys(cacheStats.merchant_category).length : 0, cardColour: "card-4" },
     ];
 
+    const handleButton = async () => {
+        try {
+            const response = await fetch(`http://localhost:80/users/reports/${user?.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: user?.id,
+            }),
+            });
 
+            if (!response.ok) {
+                showError('There was an error with the Agent Report')
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ Success:', data);
+            showSuccess('Report added to your Personal Page')
+        } catch (error) {
+            console.error('❌ Error:', error);
+        }
+    }
 
     return (
         <div className="flex h-full w-full text-white p-4 bg-zinc-950 min-h-screen max-h-[fit] flex-col " style={{
@@ -236,7 +265,7 @@ export default function DashboardPage() {
                             <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                         </div>
                     </div>
-                    <button className="w-40 h-10 bg-zinc-950 hover:bg-zinc-900 text-white rounded-lg" style={{ boxShadow: 'var(--shadow-s)'}}>Generate Report</button>
+                    <button className="w-40 h-10 bg-zinc-950 hover:bg-zinc-900 text-white rounded-lg" onClick={handleButton} style={{ boxShadow: 'var(--shadow-s)'}}>Generate Report</button>
                 </div>
 
                 <div className="flex flex-col">

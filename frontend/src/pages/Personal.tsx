@@ -4,6 +4,10 @@ import { PanelLeft, PanelRight, AlertCircle, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ReportOutput {
+    report_content: ReportContent
+}
+
+interface ReportContent{
     title: string;
     date: string;
     sentiment: "Urgent" | "Non Urgent";
@@ -12,6 +16,7 @@ interface ReportOutput {
     recommendations: string[];
     analysis: string;
 }
+
 
 export default function PersonalPage(){
     const [reports, setReports] = useState<ReportOutput[]>([]);
@@ -27,6 +32,8 @@ export default function PersonalPage(){
                 const response = await fetch(`http://localhost:80/users/reports/${user.id}`);
                 if (!response.ok) throw new Error('Failed to fetch reports');
                 const data = await response.json();
+
+                console.log('Current User reports -> ', data)
                 setReports(data);
             } catch (error) {
                 console.error('Error fetching reports:', error);
@@ -91,38 +98,34 @@ export default function PersonalPage(){
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Date</th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Patterns</th>
                                     <th className="text-right py-3 px-4 text-md font-medium text-zinc-200">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {reports.map((report, index) => (
                                     <tr key={index} className="border-b border-zinc-800 hover:bg-zinc-900 transition-colors">
-                                        <td className="py-3 px-4 text-sm">{report.title}</td>
+                                        <td className="py-3 px-4 text-sm">{report.report_content.title}</td>
                                         <td className="py-3 px-4 text-sm text-zinc-300">
-                                            {new Date(report.date).toLocaleDateString()}
+                                            {new Date(report.report_content.date).toLocaleDateString()}
                                         </td>
                                         <td className="py-3 px-4 text-sm">
                                             <span className={`px-2 py-1 rounded text-xs flex items-center gap-1 w-fit ${
-                                                report.sentiment === "Urgent"
+                                                report.report_content.sentiment === "Urgent"
                                                     ? "bg-red-900/30 text-red-400"
                                                     : "bg-blue-900/30 text-blue-400"
                                             }`}>
-                                                {report.sentiment === "Urgent" ? (
+                                                {report.report_content.sentiment === "Urgent" ? (
                                                     <AlertCircle className="w-3 h-3" />
                                                 ) : (
                                                     <CheckCircle className="w-3 h-3" />
                                                 )}
-                                                {report.sentiment}
+                                                {report.report_content.sentiment}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 text-sm text-zinc-300">
-                                            {report.critical_patterns.length} patterns
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-right">
+                                        <td className="py-3  text-sm text-right">
                                             <button
                                                 onClick={() => setSelectedReport(report)}
-                                                className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded text-xs transition-colors"
+                                                className="px-3 py-1 hover:text-white text-zinc-200 rounded text-sm transition-colors"
                                             >
                                                 View Details
                                             </button>
@@ -136,25 +139,25 @@ export default function PersonalPage(){
 
                 {/* Report Detail Modal/Section */}
                 {selectedReport && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReport(null)}>
-                        <div className="bg-zinc-950 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-zinc-800" onClick={(e) => e.stopPropagation()}>
-                            <div className="sticky top-0 bg-zinc-950 border-b border-zinc-800 p-6 flex justify-between items-start">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReport(null)}>
+                        <div className=" rounded-lg bg-black max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-zinc-800" onClick={(e) => e.stopPropagation()}>
+                            <div className="sticky top-0 bg-black border-b border-zinc-800 p-6 flex justify-between items-start">
                                 <div>
-                                    <h2 className="text-2xl font-semibold">{selectedReport.title}</h2>
+                                    <h2 className="text-2xl font-semibold">{selectedReport.report_content.title}</h2>
                                     <p className="text-sm text-zinc-400 mt-1">
-                                        Generated on {new Date(selectedReport.date).toLocaleString()}
+                                        Generated on {new Date(selectedReport.report_content.date).toLocaleString()}
                                     </p>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs mt-2 ${
-                                        selectedReport.sentiment === "Urgent"
+                                        selectedReport.report_content.sentiment === "Urgent"
                                             ? "bg-red-900/30 text-red-400"
                                             : "bg-blue-900/30 text-blue-400"
                                     }`}>
-                                        {selectedReport.sentiment === "Urgent" ? (
+                                        {selectedReport.report_content.sentiment === "Urgent" ? (
                                             <AlertCircle className="w-3 h-3" />
                                         ) : (
                                             <CheckCircle className="w-3 h-3" />
                                         )}
-                                        {selectedReport.sentiment}
+                                        {selectedReport.report_content.sentiment}
                                     </span>
                                 </div>
                                 <button
@@ -170,7 +173,7 @@ export default function PersonalPage(){
                                 <section>
                                     <h3 className="text-lg font-semibold mb-3 text-zinc-200">Key Findings</h3>
                                     <div className="space-y-2">
-                                        {selectedReport.key_findings.map((finding, idx) => (
+                                        {selectedReport.report_content.key_findings.map((finding, idx) => (
                                             <div key={idx} className="bg-zinc-900 p-3 rounded border border-zinc-800">
                                                 <p className="text-sm font-medium text-zinc-300">{finding.category}</p>
                                                 <p className="text-sm text-zinc-400 mt-1">{finding.finding}</p>
@@ -183,7 +186,7 @@ export default function PersonalPage(){
                                 <section>
                                     <h3 className="text-lg font-semibold mb-3 text-zinc-200">Critical Patterns</h3>
                                     <ul className="space-y-2">
-                                        {selectedReport.critical_patterns.map((pattern, idx) => (
+                                        {selectedReport.report_content.critical_patterns.map((pattern, idx) => (
                                             <li key={idx} className="flex items-start gap-2 text-sm text-zinc-300">
                                                 <span className="text-red-400 mt-1">•</span>
                                                 <span>{pattern}</span>
@@ -196,7 +199,7 @@ export default function PersonalPage(){
                                 <section>
                                     <h3 className="text-lg font-semibold mb-3 text-zinc-200">Recommendations</h3>
                                     <ul className="space-y-2">
-                                        {selectedReport.recommendations.map((rec, idx) => (
+                                        {selectedReport.report_content.recommendations.map((rec, idx) => (
                                             <li key={idx} className="flex items-start gap-2 text-sm text-zinc-300">
                                                 <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                                                 <span>{rec}</span>
@@ -210,7 +213,7 @@ export default function PersonalPage(){
                                     <h3 className="text-lg font-semibold mb-3 text-zinc-200">Detailed Analysis</h3>
                                     <div className="bg-zinc-900 p-4 rounded border border-zinc-800">
                                         <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
-                                            {selectedReport.analysis}
+                                            {selectedReport.report_content.analysis}
                                         </p>
                                     </div>
                                 </section>

@@ -126,7 +126,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
 async def create_report(user_id: int , report_service: ReportService = Depends(get_report_service), cache_service: StatsCacheService = Depends(get_cache_service)):
     report = {}
     try:
-        # Add await here!
         report['geral'] = await cache_service.get_geral_stats(force_refresh=False)
         report['overview'] = await cache_service.get_stats_overview(force_refresh=False)
 

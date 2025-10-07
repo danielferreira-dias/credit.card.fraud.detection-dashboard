@@ -130,32 +130,32 @@ export default function TransactionList({ totalTransactions, itemsPerPage }: Tra
                     <button
                         onClick={() => setCurrentPage(1)}
                         disabled={currentPage === 1}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {"<<"}
                     </button>
                     <button
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {"<"}
                     </button>
-                    <div className="flex items-center justify-center px-4 py-2 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 bg-zinc-900 text-sm font-medium min-w-[60px]">
-                        {currentPage}
+                    <div className="flex items-center justify-center px-4 py-2 rounded-lg border border-zinc-900  bg-zinc-900 text-sm font-medium min-w-[60px]">
+                        {currentPage} 
                     </div>
                     <button
                         onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {">"}
                     </button>
                     <button
                         onClick={() => setCurrentPage(totalPages)}
                         disabled={currentPage === totalPages}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {">>"}
                     </button>
                 </div>
@@ -167,32 +167,32 @@ export default function TransactionList({ totalTransactions, itemsPerPage }: Tra
                     <button
                         onClick={() => setCurrentPage(1)}
                         disabled={currentPage === 1}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {"<<"}
                     </button>
                     <button
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {"<"}
                     </button>
-                    <div className="flex items-center justify-center px-4 py-2 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 bg-zinc-900 text-sm font-medium min-w-[60px]">
-                        {currentPage}
+                    <div className="flex items-center justify-center px-4 py-2 rounded-lg border border-zinc-900  bg-zinc-900 text-sm font-medium min-w-[60px]">
+                        {currentPage} 
                     </div>
                     <button
                         onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {">"}
                     </button>
                     <button
                         onClick={() => setCurrentPage(totalPages)}
                         disabled={currentPage === totalPages}
-                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900 shadow-[0_0_8px_rgba(0,0,0,0.5)] shadow-zinc-700 hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
-                    >
+                        className="transform transition duration-100 ease-in flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-900  hover:bg-zinc-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent text-sm font-medium"
+                    > 
                         {">>"}
                     </button>
                 </div>
