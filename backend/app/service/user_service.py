@@ -25,7 +25,8 @@ class UserService:
         user_data_with_hash = UserCreate(
             email=user_data.email,
             name=user_data.name,
-            password=hashed_password
+            password=hashed_password,
+            confirmed=True  # Users are confirmed upon creation
         )
         user = await self.repo.create_user(user_data_with_hash)
         return self._to_response_model(user)

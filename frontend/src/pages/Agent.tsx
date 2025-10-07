@@ -82,6 +82,8 @@ export default function AgentPage(){
                 const conversationMessages = await response.json();
                 console.log('Loaded conversation history:', conversationMessages);
 
+                
+
                 // Transform backend messages to frontend Message format
                 const formattedMessages = conversationMessages.map((msg: any) => ({
                     type: msg.role === 'user' ? 'User' : 'Agent',

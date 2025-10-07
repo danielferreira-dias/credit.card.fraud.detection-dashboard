@@ -20,7 +20,7 @@ function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boole
 }
 
 export default function Navbar(){
-    const { user } = useUser();
+    const { user, logout } = useUser();
     const { isCollapsed, toggleCollapsed } = useNavbar();
 
     const TransactionIcon = () => <img src="/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
@@ -39,7 +39,10 @@ export default function Navbar(){
     const navBarSettings : { element : string , path?: string,  symbol: ReactNode, onClick?: () => void}[] = [
         { element: "Personal", path: "/personal" , symbol: <SettingsIcon /> },
         { element: "About",  path: "/about" ,symbol: <AboutIcon /> },
-        { element: "Logout", path: "/auth" , symbol: <LogoutIcon />, onClick: () => { googleLogout(); window.location.href = "/auth";} },
+        { element: "Logout", symbol: <LogoutIcon />, onClick: () => {
+            googleLogout();
+            logout();
+        }},
     ]
 
     const [isMobileOpen, setIsMobileOpen] = useState(true)
@@ -101,16 +104,25 @@ export default function Navbar(){
                 <span className={`text-xs opacity-80 hidden max-[500px]:block ${isCollapsed ? "lg:hidden" : "lg:block"}`}>More</span>
                 <div className="flex flex-col gap-y-5">
                     {navBarSettings.map(({ element, path, symbol, onClick }) => (
-                        <Link key={element} to={path ?? "#"} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
-                            <div key={element} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
+                        onClick ? (
+                            <div
+                                key={element}
+                                onClick={onClick}
+                                className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2 cursor-pointer`}
+                            >
                                 <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
-                                <button
-                                    onClick={onClick}
-                                    className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs ${element === "Logout" ? " opacity-100 hover:text-zinc-300" : "text-zinc-300 hover:text-white"}`}>
+                                <span className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs opacity-100 hover:text-zinc-300`}>
                                     {element}
-                                </button>
+                                </span>
                             </div>
-                        </Link>
+                        ) : (
+                            <Link key={element} to={path ?? "#"} className={`flex items-center justify-center max-[500px]:justify-start ${isCollapsed ? "lg:justify-center" : "lg:justify-start"} space-x-2`}>
+                                <span className="w-4 h-4 inline-flex items-center justify-center">{symbol}</span>
+                                <span className={`hidden max-[500px]:inline ${isCollapsed ? "lg:hidden" : "lg:inline"} transform transition duration-300 ease-in-out text-xs text-zinc-300 hover:text-white`}>
+                                    {element}
+                                </span>
+                            </Link>
+                        )
                     ))}
                 </div>
             </div>

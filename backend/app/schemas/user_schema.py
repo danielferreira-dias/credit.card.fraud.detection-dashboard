@@ -5,6 +5,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
+    confirmed: bool = True  # Default to True for OAuth users
 
     def __repr__(self):
         return f"<UserCreate(email={self.email}, name={self.name})>"

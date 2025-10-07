@@ -4,6 +4,7 @@ from app.schemas.user_schema import UserRegisterSchema, UserResponse
 from app.service.user_service import ReportService, UserService
 from app.settings.database import get_db
 from app.service.stats_cache_service import StatsCacheService
+from app.repositories.user_repo import ReportRepository
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -26,8 +27,9 @@ def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
     return UserService(db)
 
 def get_report_service(db: AsyncSession = Depends(get_db)) -> ReportService:
-    """ Dependency to get the UserService with a database session. """
-    return ReportService(db)
+    """ Dependency to get the ReportService with a ReportRepository. """
+    report_repo = ReportRepository(db)
+    return ReportService(report_repo)
 
 def get_cache_service(db: AsyncSession = Depends(get_db)) -> StatsCacheService:
     """ Dependency to get the UserService with a database session. """
@@ -140,3 +142,7 @@ async def create_report(user_id: int , report_service: ReportService = Depends(g
     
     except HTTPException as e:
         raise HTTPException(status_code=500, detail="Something happened with the Agent Service") from e
+
+@router.get("/reports/{user_id}")
+async def get_user_reports(user_id: int , report_service: ReportService = Depends(get_report_service)):
+    return await report_service.get_user_reports(user_id=user_id)

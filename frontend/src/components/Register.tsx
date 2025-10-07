@@ -2,19 +2,8 @@ import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle,} from "@/components/ui/card";
+import { Field, FieldDescription, FieldGroup, FieldLabel, } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 async function RegisterUser(email: string): Promise<void> {
@@ -128,7 +117,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen h-full bg-[#161719] flex w-full items-center justify-center p-4">
+    <div className="min-h-screen h-full bg-zinc-950 flex w-full items-center justify-center p-4">
       <div className="flex flex-col gap-6 w-full max-w-md">
         <Card>
           <CardHeader>
