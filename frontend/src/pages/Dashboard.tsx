@@ -107,22 +107,28 @@ export default function DashboardPage() {
     })) || [];
 
     const chartData_Devices = cacheStats?.device
-        ? Object.entries(cacheStats.device).map(([device, data], index) => ({
-            device: device,
-            total: data.total_transactions,
-            fraud: data.fraud_transactions,
-            fill: `hsl(var(--chart-${(index % 5) + 1}))`
-        }))
+        ? Object.entries(cacheStats.device).map(([device, data]) => {
+            const total = data.total_transactions;
+            const fraud = data.fraud_transactions;
+            return {
+                device,
+                total,
+                fraud,
+            };
+            })
         : [];
 
     const chartData_Channel = cacheStats?.channel
-        ? Object.entries(cacheStats.channel).map(([channel, data], index) => ({
-            channel: channel,
-            total: data.total_transactions,
-            fraud: data.fraud_transactions,
-            fill: `hsl(var(--chart-${(index % 5) + 1}))`
-        }))
-        : [];
+        ? Object.entries(cacheStats.channel).map(([channel, data]) => {
+            const total = data.total_transactions;
+            const fraud = data.fraud_transactions;
+            return {
+                channel,
+                fraud,
+                total,
+            };
+            })
+    : [];
 
     const chartData_HighRisk_Merchant = cacheStats?.high_risk_merchant
         ? Object.entries(cacheStats.high_risk_merchant).map(([risk_level, data], index) => ({
@@ -225,7 +231,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex flex-col">
-                    <Card className="bg-zinc-950 border-0 w-full" style={{ boxShadow: 'var(--shadow-m)'}}>
+                    <Card className="bg-[#0a0a0a] border-0 w-full" style={{ boxShadow: 'var(--shadow-m)'}}>
                         <CardHeader>
                             <h3 className="text-xl font-semibold text-zinc-200">Transaction Volume</h3>
                             <p className="text-sm opacity-70 text-zinc-200">Hourly transactions over the last 90 days</p>
@@ -258,13 +264,14 @@ export default function DashboardPage() {
                                         tick={{ fill: '#a1a1aa' }}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickMargin={8}
+                                        tickMargin={20}
                                     />
                                     <YAxis
                                         stroke="#a1a1aa"
                                         tick={{ fill: '#a1a1aa' }}
                                         tickLine={false}
                                         axisLine={false}
+                                        domain={[0, 500000]}
                                     />
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                     <ChartLegend content={<ChartLegendContent />} />
@@ -286,251 +293,293 @@ export default function DashboardPage() {
                             </ChartContainer>
                         </CardContent>
                     </Card>
-                    <div className="flex flex-col sm:flex-row justify-evenly items-start flex-wrap gap-2 w-full mt-2">
-                    {stats.map((stat) => (
-                        <StatsCardDashboard
-                            key={stat.id}
-                            typeStat={stat.typeStat}
-                            statValue={stat.statValue}
-                            colour={stat.cardColour}
-                        />
-                    ))}
-                    <Card className="bg-zinc-950 border-0 w-70 h-30 p-4" style={{ boxShadow: 'var(--shadow-s)'}}>
-                        <CardContent className="flex flex-1 pb-0">
-                            <ChartContainer
-                            config={{
-                                total: {
-                                    label: "Total Transactions",
-                                    color: "#ffffff",
-                                },
-                                fraud: {
-                                    label: "Fraud Transactions",
-                                    color: "#ef4444",
-                                },
-                            } satisfies ChartConfig}
-                            className=" w-full h-full"
-                            >
-                            <RadialBarChart
-                                data={[{
-                                    name: "transactions",
-                                    total: cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0,
-                                    fraud: cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0
-                                }]}
-                                endAngle={180}
-                                innerRadius={80}
-                                outerRadius={130}
-                                className=""
-                            >
-                                <ChartTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent hideLabel />}
-                                />
-                                <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-                                <Label
-                                    content={({ viewBox }: { viewBox?: any }) => {
-                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                        const totalTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0;
-                                        const fraudTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0;
-                                        const centerX = viewBox.cx;
-                                        const centerY = viewBox.cy;
-                                        return (
-                                        <text x={centerX} y={centerY} textAnchor="middle" dominantBaseline="middle">
-                                            <tspan
-                                            x={centerX}
-                                            y={centerY - 24}
-                                            className="fill-zinc-200 text-lg font-bold"
-                                            >
-                                            {totalTransactions.toLocaleString()}
-                                            </tspan>
-                                            <tspan
-                                            x={centerX}
-                                            y={centerY - 8}
-                                            className="fill-zinc-400 text-xs"
-                                            >
-                                            Total Transactions
-                                            </tspan>
-                                            <tspan
-                                            x={centerX}
-                                            y={centerY + 12}
-                                            className="fill-red-400 text-md font-semibold"
-                                            >
-                                            {fraudTransactions.toLocaleString()}
-                                            </tspan>
-                                            <tspan
-                                            x={centerX}
-                                            y={centerY + 26}
-                                            className="fill-red-300 text-xs"
-                                            >
-                                            Fraudulent
-                                            </tspan>
-                                        </text>
-                                        )
-                                    }
-                                    }}
-                                />
-                                </PolarRadiusAxis>
-                                <RadialBar
-                                dataKey="total"
-                                stackId="a"
-                                cornerRadius={5}
-                                fill="#ffffff"
-                                className="stroke-transparent stroke-2"
-                                />
-                                <RadialBar
-                                dataKey="fraud"
-                                fill="#ef4444"
-                                stackId="a"
-                                cornerRadius={5}
-                                className="stroke-transparent stroke-2"
-                                />
-                            </RadialBarChart>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-                    </div>
+                    
                     <div className="w-full flex flex-col sm:flex-row flex-wrap gap-x-4">
-                        <Card className="bg-zinc-950 border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <Card className="bg-[#0a0a0a] border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader>
                                 <h3 className="text-xl font-semibold text-zinc-200">Device Fraud Analysis</h3>
                                 <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by device type</p>
                             </CardHeader>
-                            <CardContent className="flex items-center justify-start pb-0 w-fit h-fit">
+                            <CardContent className="flex items-center justify-start pb-0 w-80 h-fit">
                                 <ChartContainer
                                     config={{
                                         total: {
-                                            label: "Total Transactions",
-                                            color: "#ffffff",
+                                        label: "Total Transactions",
+                                        color: "#ffffff",
                                         },
                                         fraud: {
-                                            label: "Fraud Transactions",
-                                            color: "#ef4444",
+                                        label: "Fraud Transactions",
+                                        color: "#736262ff",
                                         },
-                                    } satisfies ChartConfig}
-                                    className="h-60 w-70">
+                                    }}
+                                    className="h-80 w-70"
+                                    >
                                     <RadialBarChart
                                         data={chartData_Devices}
                                         startAngle={-90}
                                         endAngle={250}
                                         innerRadius={30}
-                                        outerRadius={130}
+                                        outerRadius={145}
                                     >
                                         <ChartTooltip
-                                            cursor={false}
-                                            content={<ChartTooltipContent hideLabel nameKey="device" />}
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel nameKey="device" />}
                                         />
                                         <ChartLegend content={<ChartLegendContent />} />
-                                        <RadialBar dataKey="fraud" background>
-                                            <LabelList
-                                                position="insideStart"
-                                                dataKey="device"
-                                                className="fill-white capitalize mix-blend-luminosity"
-                                                fontSize={11}
-                                            />
+
+                                        {/* Base layer: total (white) */}
+                                        <RadialBar
+                                        dataKey="transactions"
+                                        stackId="a"
+                                        fill="#ffffff"
+                                        background={true}
+                                        cornerRadius={10}
+                                        />
+
+                                        {/* Overlay: fraud (#736262ff) */}
+                                        <RadialBar
+                                        dataKey="fraud"
+                                        stackId="a"
+                                        fill="#ef4444"
+                                        cornerRadius={10}
+                                        >
+                                        <LabelList
+                                            position="insideStart"
+                                            dataKey="device"
+                                            className="fill-white capitalize mix-blend-luminosity"
+                                            fontSize={14}
+                                        />
                                         </RadialBar>
                                     </RadialBarChart>
                                 </ChartContainer>
                             </CardContent>
                         </Card>
-                        <Card className="bg-zinc-950 border-0 w-fit mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
-                            <CardHeader>
-                                <h3 className="text-xl font-semibold text-zinc-200">Channel Fraud Analysis</h3>
-                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by Channel type</p>
-                            </CardHeader>
-                            <CardContent className="flex items-center justify-start pb-0 w-fit h-fit">
-                                <ChartContainer
-                                    config={{
-                                        total: {
+                        <div className="flex flex-col gap-y-2 justify-between">
+                            <Card className="bg-[#0a0a0a] border-0 w-fit mt-6 flex-1" style={{ boxShadow: 'var(--shadow-s)'}}>
+                                <CardHeader>
+                                    <h3 className="text-xl font-semibold text-zinc-200">Channel Fraud Analysis</h3>
+                                    <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by Channel type</p>
+                                </CardHeader>
+                                <CardContent className="flex items-center justify-start pb-0 w-fit h-50">
+                                    <ChartContainer
+                                        config={{
+                                            total: {
                                             label: "Total Transactions",
                                             color: "#ffffff",
-                                        },
-                                        fraud: {
+                                            },
+                                            fraud: {
                                             label: "Fraud Transactions",
-                                            color: "#ef4444",
-                                        },
-                                    } satisfies ChartConfig}
-                                    className="h-60 w-60">
-                                    <RadialBarChart
-                                        data={chartData_Channel}
-                                        startAngle={-90}
-                                        endAngle={250}
-                                        innerRadius={30}
-                                        outerRadius={130}
-                                    >
-                                        <ChartTooltip
+                                            color: "#736262ff",
+                                            },
+                                        }}
+                                        className="h-60 w-60"
+                                        >
+                                        <RadialBarChart
+                                            data={chartData_Channel}
+                                            startAngle={-90}
+                                            endAngle={250}
+                                            innerRadius={30}
+                                            outerRadius={110}
+                                        >
+                                            <ChartTooltip
                                             cursor={false}
-                                            content={<ChartTooltipContent hideLabel nameKey="device" />}
-                                        />
-                                        <ChartLegend content={<ChartLegendContent />} />
-                                        <RadialBar dataKey="fraud" background>
+                                            content={<ChartTooltipContent hideLabel nameKey="channel" />}
+                                            />
+                                            <ChartLegend content={<ChartLegendContent />} />
+
+                                            {/* Base layer: total (white) */}
+                                            <RadialBar
+                                            dataKey="transactions"
+                                            stackId="a"
+                                            fill="#ffffff"
+                                            background={true}
+                                            cornerRadius={10}
+                                            />
+
+                                            {/* Overlay: fraud (#736262ff) */}
+                                            <RadialBar
+                                            dataKey="fraud"
+                                            stackId="a"
+                                            fill="#ef4444"
+                                            cornerRadius={10}
+                                            >
                                             <LabelList
                                                 position="insideStart"
                                                 dataKey="channel"
                                                 className="fill-white capitalize mix-blend-luminosity"
                                                 fontSize={14}
                                             />
-                                        </RadialBar>
-                                    </RadialBarChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-zinc-950 border-0 flex-1 mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
-                            <CardHeader>
-                                <h3 className="text-xl font-semibold text-zinc-200">Countries Fraud Analysis</h3>
-                                <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by Countries</p>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={{
-                                    transactions: {
-                                        label: "Transactions",
-                                    },
-                                    "Total Transactions": {
-                                        label: "Total Transactions",
-                                        color: "#736262ff",
-                                    },
-                                    "Fraud Transactions": {
-                                        label: "Fraud Transactions",
-                                        color: "#fafafaff",
-                                    },
-                                    total: {
-                                        label: "Total Transactions",
-                                        color: "#ffffff",
-                                    },
-                                    fraud: {
-                                        label: "Fraud Transactions",
-                                        color: "#ef4444",
-                                    },
-                                } satisfies ChartConfig}
-                                className="h-60 w-full text-white">
-                                <BarChart accessibilityLayer data={chartData_Country}>
-                                    <CartesianGrid vertical={false} stroke="#27272a" />
-                                    <XAxis
-                                    dataKey="countries"
-                                    tickLine={false}
-                                    tickMargin={10}
-                                    axisLine={false}
-                                    tick={{ fill: '#a1a1aa' }}
-                                    tickFormatter={(value) => value.slice(0, 3)}
-                                    />
-                                    <YAxis
-                                    stroke="#a1a1aa"
-                                    tick={{ fill: '#a1a1aa' }}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    />
-                                    <ChartTooltip
-                                    cursor={false}
-                                    content={<ChartTooltipContent indicator="dashed" />}
-                                    />
-                                    <ChartLegend content={<ChartLegendContent />} />
-                                    <Bar dataKey="total" fill="#ffffff" radius={4} />
-                                    <Bar dataKey="fraud" fill="#ef4444" radius={4} />
-                                </BarChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
+                                            </RadialBar>
+                                        </RadialBarChart>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-[#0a0a0a] border-0 w-70 h-30 p-4" style={{ boxShadow: 'var(--shadow-s)'}}>
+                                <CardContent className="flex flex-1 pb-0">
+                                    <ChartContainer
+                                        config={{
+                                            total: {
+                                                label: "Total Transactions",
+                                                color: "#ffffff",
+                                            },
+                                            fraud: {
+                                                label: "Fraud Transactions",
+                                                color: "#ef4444",
+                                            },
+                                        } satisfies ChartConfig}
+                                        className=" w-full h-full"
+                                        >
+                                        <RadialBarChart
+                                            data={[{
+                                                name: "transactions",
+                                                total: cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0,
+                                                fraud: cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0
+                                            }]}
+                                            startAngle={0}
+                                            endAngle={180}
+                                            innerRadius={80}
+                                            outerRadius={130}
+                                            className=""
+                                            cy="80%"
+                                        >
+                                            <ChartTooltip
+                                            cursor={false}
+                                            content={<ChartTooltipContent hideLabel />}
+                                            />
+                                            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                                            <Label
+                                                content={({ viewBox }: { viewBox?: any }) => {
+                                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                                    const totalTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.total_transactions, 0) : 0;
+                                                    const fraudTransactions = cacheStats ? Object.values(cacheStats.countries).reduce((sum, country) => sum + country.fraud_transactions, 0) : 0;
+                                                    const centerX = viewBox.cx;
+                                                    const centerY = viewBox.cy - 15;
+                                                    return (
+                                                    <text x={centerX} y={centerY} textAnchor="middle" dominantBaseline="middle">
+                                                        <tspan
+                                                        x={centerX}
+                                                        y={centerY - 24}
+                                                        className="fill-zinc-200 text-lg font-bold"
+                                                        >
+                                                        {totalTransactions.toLocaleString()}
+                                                        </tspan>
+                                                        <tspan
+                                                        x={centerX}
+                                                        y={centerY - 8}
+                                                        className="fill-zinc-400 text-xs"
+                                                        >
+                                                        Total Transactions
+                                                        </tspan>
+                                                        <tspan
+                                                        x={centerX}
+                                                        y={centerY + 12}
+                                                        className="fill-red-400 text-md font-semibold"
+                                                        >
+                                                        {fraudTransactions.toLocaleString()}
+                                                        </tspan>
+                                                        <tspan
+                                                        x={centerX}
+                                                        y={centerY + 26}
+                                                        className="fill-red-300 text-xs"
+                                                        >
+                                                        Fraudulent
+                                                        </tspan>
+                                                    </text>
+                                                    )
+                                                }
+                                                }}
+                                            />
+                                            </PolarRadiusAxis>
+                                            <RadialBar
+                                            dataKey="total"
+                                            stackId="a"
+                                            cornerRadius={5}
+                                            fill="#ffffff"
+                                            className="stroke-transparent stroke-2"
+                                            />
+                                            <RadialBar
+                                            dataKey="fraud"
+                                            fill="#ef4444"
+                                            stackId="a"
+                                            cornerRadius={5}
+                                            className="stroke-transparent stroke-2"
+                                            />
+                                        </RadialBarChart>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="flex flex-col gap-y-2 flex-1">
+                            <Card className="bg-[#0a0a0a] border-0 flex-1 mt-6" style={{ boxShadow: 'var(--shadow-s)'}}>
+                                <CardHeader>
+                                    <h3 className="text-xl font-semibold text-zinc-200">Countries Fraud Analysis</h3>
+                                    <p className="text-sm opacity-70 text-zinc-200">Fraud transactions by Countries</p>
+                                </CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={{
+                                        transactions: {
+                                            label: "Transactions",
+                                        },
+                                        "Total Transactions": {
+                                            label: "Total Transactions",
+                                            color: "#736262ff",
+                                        },
+                                        "Fraud Transactions": {
+                                            label: "Fraud Transactions",
+                                            color: "#fafafaff",
+                                        },
+                                        total: {
+                                            label: "Total Transactions",
+                                            color: "#ffffff",
+                                        },
+                                        fraud: {
+                                            label: "Fraud Transactions",
+                                            color: "#ef4444",
+                                        },
+                                    } satisfies ChartConfig}
+                                    className="h-60 w-full text-white">
+                                    <BarChart accessibilityLayer data={chartData_Country}>
+                                        <CartesianGrid vertical={false} stroke="#27272a" />
+                                        <XAxis
+                                        dataKey="countries"
+                                        tickLine={false}
+                                        tickMargin={10}
+                                        axisLine={false}
+                                        tick={{ fill: '#a1a1aa' }}
+                                        tickFormatter={(value) => value.slice(0, 3)}
+                                        />
+                                        <YAxis
+                                        stroke="#a1a1aa"
+                                        tick={{ fill: '#a1a1aa' }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        />
+                                        <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent indicator="dashed" />}
+                                        />
+                                        <ChartLegend content={<ChartLegendContent />} />
+                                        <Bar dataKey="total" fill="#ffffff" radius={4} />
+                                        <Bar dataKey="fraud" fill="#ef4444" radius={4} />
+                                    </BarChart>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                            <div className="flex flex-col sm:flex-row justify-evenly items-start flex-wrap gap-2 w-full mt-2">
+                            {stats.map((stat) => (
+                                <StatsCardDashboard
+                                    key={stat.id}
+                                    typeStat={stat.typeStat}
+                                    statValue={stat.statValue}
+                                    colour={stat.cardColour}
+                                />
+                            ))}
+                            
+                            </div>
+                        </div>
                     </div>
                     <div className="flex flex-col sm:flex-row flex-wrap w-full mt-6 justify-evenly">
-                        <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <Card className="flex flex-col w-[32%] bg-[#0a0a0a] border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader className="items-center pb-0">
                                 <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
                                 <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
@@ -569,7 +618,7 @@ export default function DashboardPage() {
                                 </ChartContainer>
                             </CardContent>
                         </Card>
-                        <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <Card className="flex flex-col w-[32%] bg-[#0a0a0a] border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader className="items-center pb-0">
                                 <h3 className="text-xl font-semibold text-zinc-200">Distance from Home Analysis</h3>
                                 <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by distance from home</p>
@@ -608,7 +657,7 @@ export default function DashboardPage() {
                                 </ChartContainer>
                             </CardContent>
                         </Card>
-                        <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
+                        <Card className="flex flex-col w-[32%] bg-[#0a0a0a] border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader className="items-center pb-0">
                                 <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
                                 <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
