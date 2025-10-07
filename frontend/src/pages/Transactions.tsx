@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import StatsCard from "../components/StatsCard";
 import TransactionList from "../components/TransactionsList";
 import StatsLoadingCard from "../components/StatsLoadingCard";
+import { PanelLeft } from "lucide-react";
 
 type StatInfo = {
     id: number; 
@@ -85,10 +86,17 @@ export default function TransactionPage(){
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
-            <div className="flex items-center gap-3 mt-4">
-                <h2 className="text-2xl font-semibold opacity-90">Transactions Analytics</h2>
+            <div className="flex flex-col gap-3 mt-4">
+                <div className="flex flex-row gap-x-1">
+                    <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                        <PanelLeft color="white" size={18} />
+                    </button>
+                    <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
+                        <h2 className="text-2xl font-semibold opacity-90">Transactions Analytics</h2>
+                        <h3 className="text-sm opacity-70">Monitor your transactions in real-time</h3>
+                    </div>
+                </div>
             </div>
-            <h3 className="text-sm opacity-70">Monitor your transactions in real-time</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full gap-4 items-center mt-6">
                 {loading ? (
                     stats.map((stat) => (

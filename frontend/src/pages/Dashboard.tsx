@@ -9,6 +9,7 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import StatsCard, { StatsCardDashboard } from "@/components/StatsCard"
+import { PanelLeft } from "lucide-react"
 
 
 interface StatsResponse {
@@ -152,15 +153,17 @@ export default function DashboardPage() {
             backgroundOrigin: 'border-box',
             backgroundClip: 'padding-box, border-box, border-box'
         }}>
-            <div className="flex items-center gap-3 mt-4">
-                <button className="lg:hidden flex items-center justify-center w-8 h-8 bg-[#0F0F11] border border-[#2A2A2A] rounded-full shadow-lg shadow-zinc-800 transition-all duration-300 hover:shadow-2xl">
-                    <svg className="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
-                <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
+            <div className="flex flex-col gap-3 mt-4">
+                <div className="flex flex-row gap-x-1">
+                    <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                        <PanelLeft color="white" size={18} />
+                    </button>
+                    <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
+                        <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
+                        <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
+                    </div>
+                </div>
             </div>
-            <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <CardSkeleton isPie className="" />
@@ -197,14 +200,16 @@ export default function DashboardPage() {
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-3 mt-4">
+                <div className="flex flex-col gap-3 mt-4">
+                    <div className="flex flex-row gap-x-1">
+                        <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                            <PanelLeft color="white" size={18} />
+                        </button>
+                        <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
                             <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
+                            <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                         </div>
-                        <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                     </div>
-                    <button className="w-40 h-10 p-2 rounded-xl text-sm" style={{ boxShadow: 'var(--shadow-s)'}}> Generate Report </button>
                 </div>
                 
                 <div className="flex flex-col">
