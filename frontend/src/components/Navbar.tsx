@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useUser } from "../context/UserContext"
+import { useNavbar } from "../context/NavbarContext"
 import { googleLogout } from "@react-oauth/google";
+import { PanelLeft, PanelRight } from 'lucide-react';
 
 function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boolean, setIsMobileOpen : (setIsMobileOpen:boolean) => void  }){
     return(
@@ -19,6 +21,7 @@ function MobileButton({ isMobileOpen, setIsMobileOpen } : { isMobileOpen : boole
 
 export default function Navbar(){
     const { user } = useUser();
+    const { isCollapsed, toggleCollapsed } = useNavbar();
 
     const TransactionIcon = () => <img src="/transaction-svgrepo-com.svg" alt="Transactions" className="w-4 h-4" />;
     const DashboardIcon = () => <img src="/dashboard-svgrepo-com.svg" alt="Dashboard" className="w-4 h-4" />;
@@ -39,7 +42,6 @@ export default function Navbar(){
         { element: "Logout", symbol: <LogoutIcon />, onClick: () => { googleLogout(); window.location.href = "/auth";} },
     ]
 
-    const [isCollapsed, setIsCollapsed] = useState(false)
     const [isMobileOpen, setIsMobileOpen] = useState(true)
 
     return (
@@ -64,11 +66,6 @@ export default function Navbar(){
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
 
-            <button onClick={() => setIsCollapsed(v => !v)} className="hidden lg:flex transform  transition duration-300 ease-in-out opacity-100 hover:shadow-2xl hover:shadow-zinc-800 w-6 h-6 bg-[#0F0F11] border rounded-full lg:absolute max-w-none top-1/2 -translate-y-1/2 -right-[1rem] border-[#2A2A2A] shadow-r-lg items-center justify-center">
-                <svg className="w-3 h-3 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
             {/* Mobile close button (only under 500px when sidebar is open at full width) */}
             <button onClick={() => setIsMobileOpen(false)} className="hidden max-[500px]:flex absolute top-[2rem] right-3 w-9 h-9 rounded-full bg-[#0F0F11] border border-[#2A2A2A] shadow-md shadow-zinc-800 items-center justify-center">
                 <svg viewBox="0 0 24 24" className="w-5 h-5 text-zinc-300" fill="none" stroke="currentColor" strokeWidth="2">

@@ -6,7 +6,8 @@ import { useUser } from '../context/UserContext';
 import { useNotification } from '../hooks/useNotification';
 import { formatMessageContent } from '../components/TextFormat';
 import ChatHistory from '../components/ChatHistory';
-import { PanelLeft } from 'lucide-react';
+import { PanelLeft, PanelRight } from 'lucide-react';
+import { useNavbar } from '../context/NavbarContext';
 
 interface ReasoningStep {
     type: 'thinking' | 'tool_call' | 'tool_result' | 'tool_progress' | 'final_response' | 'agent_thinking';
@@ -26,6 +27,7 @@ interface Message {
 
 export default function AgentPage(){
     const { user, loading } = useUser();
+    const { isCollapsed, toggleCollapsed } = useNavbar();
     const { showSuccess, showError, showWarning, showInfo, showAgentNotification, showAuthSuccess } = useNotification();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -340,8 +342,8 @@ export default function AgentPage(){
                     {/* Connection status and mock toggle */}
                     <div className="flex flex-row flex-wrap items-center justify-between mb-4">
                         <div className='flex flex-row gap-x-4'>
-                            <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
-                                <PanelLeft color="white" size={18} />
+                            <button onClick={toggleCollapsed} className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                                {isCollapsed ? <PanelRight color="white" size={18} /> : <PanelLeft color="white" size={18} />}
                             </button>
                             <div className={`text-xs px-3 py-2 rounded-lg w-fit ${
                                 isConnected

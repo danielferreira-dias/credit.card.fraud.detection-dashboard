@@ -9,7 +9,8 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import StatsCard, { StatsCardDashboard } from "@/components/StatsCard"
-import { PanelLeft } from "lucide-react"
+import { PanelLeft, PanelRight } from "lucide-react"
+import { useNavbar } from "@/context/NavbarContext"
 
 
 interface StatsResponse {
@@ -79,6 +80,7 @@ const CardSkeleton = ({ isPie = false, className = "" }: { isPie?: boolean; clas
 )
 
 export default function DashboardPage() {
+    const { isCollapsed, toggleCollapsed } = useNavbar()
     const [cacheStats, setStats] = useState<StatsResponse | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -127,7 +129,16 @@ export default function DashboardPage() {
             risk_level: risk_level === "true" ? "High Risk" : "Low Risk",
             transactions: data.total_transactions,
             fraud: data.fraud_transactions,
-            fill: risk_level === "true" ? "#ef4444" : "#ffffffff"
+            fill: risk_level === "true" ? "#ef4444" : "#fafafaff"
+        }))
+        : [];
+
+    const chartData_Distance_From_Home = cacheStats?.distance_from_home
+        ? Object.entries(cacheStats.distance_from_home).map(([distance_key, data], index) => ({
+            risk_level: distance_key === "1" ? "Away from Home" : "Home",
+            transactions: data.total_transactions,
+            fraud: data.fraud_transactions,
+            fill: distance_key === "1" ? "#ef4444" : "#ffffffff"
         }))
         : [];
 
@@ -136,7 +147,6 @@ export default function DashboardPage() {
             countries: countries,
             total: data.total_transactions,
             fraud: data.fraud_transactions,
-            fill: `hsl(var(--chart-${(index % 5) + 1}))`
         }))
         : [];
 
@@ -154,15 +164,16 @@ export default function DashboardPage() {
             backgroundClip: 'padding-box, border-box, border-box'
         }}>
             <div className="flex flex-col gap-3 mt-4">
-                <div className="flex flex-row gap-x-1">
-                    <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
-                        <PanelLeft color="white" size={18} />
+                <div className="flex flex-row justify-evenly gap-x-1">
+                    <button onClick={toggleCollapsed} className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                        {isCollapsed ? <PanelRight color="white" size={18} /> : <PanelLeft color="white" size={18} />}
                     </button>
                     <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
                         <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
                         <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                     </div>
                 </div>
+                
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -200,18 +211,19 @@ export default function DashboardPage() {
                 backgroundOrigin: 'border-box',
                 backgroundClip: 'padding-box, border-box, border-box'
             }}>
-                <div className="flex flex-col gap-3 mt-4">
+                <div className="flex flex-row justify-between gap-3 mt-4 items-center">
                     <div className="flex flex-row gap-x-1">
-                        <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
-                            <PanelLeft color="white" size={18} />
+                        <button onClick={toggleCollapsed} className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                            {isCollapsed ? <PanelRight color="white" size={18} /> : <PanelLeft color="white" size={18} />}
                         </button>
                         <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
                             <h2 className="text-2xl font-semibold opacity-90">Insight Dashboard Analytics</h2>
                             <h3 className="text-sm opacity-70 mb-6">Real-time fraud detection analytics with AI-powered insights</h3>
                         </div>
                     </div>
+                    <button className="w-40 h-10 bg-zinc-950 hover:bg-zinc-900 text-white rounded-lg" style={{ boxShadow: 'var(--shadow-s)'}}>Generate Report</button>
                 </div>
-                
+
                 <div className="flex flex-col">
                     <Card className="bg-zinc-950 border-0 w-full" style={{ boxShadow: 'var(--shadow-m)'}}>
                         <CardHeader>
@@ -468,6 +480,17 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <ChartContainer config={{
+                                    transactions: {
+                                        label: "Transactions",
+                                    },
+                                    "Total Transactions": {
+                                        label: "Total Transactions",
+                                        color: "#736262ff",
+                                    },
+                                    "Fraud Transactions": {
+                                        label: "Fraud Transactions",
+                                        color: "#fafafaff",
+                                    },
                                     total: {
                                         label: "Total Transactions",
                                         color: "#ffffff",
@@ -477,7 +500,7 @@ export default function DashboardPage() {
                                         color: "#ef4444",
                                     },
                                 } satisfies ChartConfig}
-                                className="h-60 w-full">
+                                className="h-60 w-full text-white">
                                 <BarChart accessibilityLayer data={chartData_Country}>
                                     <CartesianGrid vertical={false} stroke="#27272a" />
                                     <XAxis
@@ -548,20 +571,20 @@ export default function DashboardPage() {
                         </Card>
                         <Card className="flex flex-col w-[32%] bg-zinc-950 border-0" style={{ boxShadow: 'var(--shadow-s)'}}>
                             <CardHeader className="items-center pb-0">
-                                <h3 className="text-xl font-semibold text-zinc-200">High Risk Merchants Analysis</h3>
-                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by risk level</p>
+                                <h3 className="text-xl font-semibold text-zinc-200">Distance from Home Analysis</h3>
+                                <p className="text-sm opacity-70 text-zinc-200">Transaction distribution by distance from home</p>
                             </CardHeader>
                             <CardContent className="flex-1 pb-0">
                                 <ChartContainer config={{
                                     transactions: {
                                         label: "Transactions",
                                     },
-                                    "High Risk": {
-                                        label: "High Risk",
+                                    "Away from Home": {
+                                        label: "Away from Home",
                                         color: "#736262ff",
                                     },
-                                    "Low Risk": {
-                                        label: "Low Risk",
+                                    "Home": {
+                                        label: "Home",
                                         color: "#fafafaff",
                                     },
                                 } satisfies ChartConfig}
@@ -569,7 +592,7 @@ export default function DashboardPage() {
                                 >
                                 <PieChart>
                                     <Pie
-                                        data={chartData_HighRisk_Merchant}
+                                        data={chartData_Distance_From_Home}
                                         dataKey="transactions"
                                         nameKey="risk_level"
                                     />

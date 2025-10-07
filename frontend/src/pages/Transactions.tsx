@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import StatsCard from "../components/StatsCard";
 import TransactionList from "../components/TransactionsList";
 import StatsLoadingCard from "../components/StatsLoadingCard";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, PanelRight } from "lucide-react";
+import { useNavbar } from "../context/NavbarContext";
 
 type StatInfo = {
     id: number; 
@@ -12,6 +13,7 @@ type StatInfo = {
   };
 
 export default function TransactionPage(){
+    const { isCollapsed, toggleCollapsed } = useNavbar();
     const [stats, setStats] = useState<StatInfo[]>([
         { id: 1, typeStat: "Number of Transactions", statValue: 0, cardColour: "card-1" },
         { id: 2, typeStat: "Valid Transactions", statValue: 0, cardColour: "card-2" },
@@ -88,8 +90,8 @@ export default function TransactionPage(){
             }}>
             <div className="flex flex-col gap-3 mt-4">
                 <div className="flex flex-row gap-x-1">
-                    <button className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
-                        <PanelLeft color="white" size={18} />
+                    <button onClick={toggleCollapsed} className="hover:shadow-2xl hover:shadow-zinc-800  w-8 h-8 bg-zinc-950 shadow-r-lg flex items-center justify-center">
+                        {isCollapsed ? <PanelRight color="white" size={18} /> : <PanelLeft color="white" size={18} />}
                     </button>
                     <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
                         <h2 className="text-2xl font-semibold opacity-90">Transactions Analytics</h2>

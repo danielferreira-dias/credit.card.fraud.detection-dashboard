@@ -6,6 +6,7 @@ import AgentPage from "./pages/Agent";
 import AuthenticationPage from "./pages/Authentication";
 import { UserProvider } from "./context/UserContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { NavbarProvider } from "./context/NavbarContext";
 import { NotificationContainer } from "./components/Modal";
 
 function App() {
@@ -14,7 +15,8 @@ function App() {
     // This is NOT for route protection - it's for sharing user state globally
     <NotificationProvider>
       <UserProvider>
-        <Routes>
+        <NavbarProvider>
+          <Routes>
           <Route element={<Layout />}>
             {/* Protected Routes (wrapped by AuthRouter in Layout) */}
             <Route index element={<Transactions />} />          {/* / */}
@@ -27,9 +29,10 @@ function App() {
             {/* Fallback: redirect any unknown route to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
-        </Routes>
-        {/* Global notification container - persists across all routes */}
-        <NotificationContainer />
+          </Routes>
+          {/* Global notification container - persists across all routes */}
+          <NotificationContainer />
+        </NavbarProvider>
       </UserProvider>
     </NotificationProvider>
   );
