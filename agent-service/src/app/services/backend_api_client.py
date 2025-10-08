@@ -21,6 +21,29 @@ class BackendAPIClient:
         self.logger = get_agent_logger("BackendAPIClient", "INFO")
         self.logger.info(f"BackendAPIClient initialized with base_url: {self.base_url}")
     
+    async def get_latest_report(self, user_id: int) -> Dict[str, Any]:
+        """
+        Get the total count of transactions from the backend.
+
+        Returns:
+            Dict containing transaction count information
+        """
+        endpoint = f"/reports/{user_id}/latest"
+        url = f"{self.base_url}{endpoint}"
+        self.logger.info("Requesting transaction count from backend")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()
+
+                data = response.json()
+                self.logger.info(f"Document retrieved: {data}")
+                return data
+
+        except httpx.HTTPError as e:
+            self.logger.error(f"Failed to retrieve Document: {str(e)}")
+            raise BackendClientException(f"Failed to retrieve Document: {str(e)}")
+        
     async def get_transaction_count(self) -> Dict[str, Any]:
         """
         Get the total count of transactions from the backend.

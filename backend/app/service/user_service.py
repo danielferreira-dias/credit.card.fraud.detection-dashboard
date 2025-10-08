@@ -81,7 +81,14 @@ class ReportService:
     async def get_user_reports(self, user_id: int) -> List[Report]:
         """Get all reports for a user"""
         return await self.report_repo.get_by_user_id(user_id)
-    
+
+    async def get_lastest_report(self, user_id) -> Report:
+        return await self.report_repo.get_latest_user_report(user_id=user_id)
+
+    async def delete_report(self, report_id: int) -> str:
+        """Delete a report by ID"""
+        return await self.report_repo.delete(report_id)
+
     def _format_stats_to_text(self, stats_data: dict) -> str:
         """Convert JSON stats to human-readable text for the agent"""
         overview = stats_data.get("overview", {})

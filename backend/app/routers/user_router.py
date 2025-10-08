@@ -135,8 +135,7 @@ async def create_report(user_id: int , report_service: ReportService = Depends(g
             async with session.get(f"{AGENT_SERVICE_URL}/user_report?report_text={final_report}") as response:
                 response.raise_for_status()
                 data = await response.json()
-
-        logger.info(f'REPORT DATA -> {data}')
+        
         return await report_service.create_report(user_id=user_id, report_content=data)
     
     except HTTPException as e:
@@ -145,3 +144,24 @@ async def create_report(user_id: int , report_service: ReportService = Depends(g
 @router.get("/reports/{user_id}")
 async def get_user_reports(user_id: int , report_service: ReportService = Depends(get_report_service)):
     return await report_service.get_user_reports(user_id=user_id)
+
+@router.get("/reports/{user_id}/latest")
+async def get_latest_user_report( user_id: int, report_service: ReportService = Depends(get_report_service)):
+    report = await report_service.get_lastest_report(user_id=user_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="No reports found for this user")
+    return report
+
+@router.delete("/reports/{report_id}")
+async def delete_report(report_id: int, report_service: ReportService = Depends(get_report_service)):
+    """
+    Delete a report by ID.
+
+    - **report_id**: The ID of the report to delete.
+
+    Returns a success message.
+    """
+    logger.info(f"Deleting report with ID: {report_id}")
+    result = await report_service.delete_report(report_id=report_id)
+    return {"message": result}
+

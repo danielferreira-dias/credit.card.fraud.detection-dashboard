@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Optional
-from app.agents.agents import AnalystAgent, TitleNLP, TransactionAgent
+from app.agents.agents import AnalystAgent, TitleNLP, TransactionAgent, UserContext
 from app.services.database_provider import ProviderService
 from app.services.backend_api_client import BackendAPIClient
 from app.services.vector_service import AzureVectorService, PGVectorService, EmbeddingModel
@@ -228,6 +228,8 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
     thread_id = user_query.thread_id if user_query.thread_id else "default"
     user_id = user_query.user_id if user_query.user_id else None
     user_name = user_query.user_name if user_query.user_name else 'Daniel Dias'
+    context = UserContext(user_id=user_id, user_name=user_name)
+    logger.info(f'CURRENT USER CONTEXT -> {context}')
     
     if user_id is None:
         raise StreamException(message="User ID is None")
@@ -250,7 +252,7 @@ async def stream_agent_query(user_query: QuerySchema , agent: TransactionAgent =
                 )
 
             agent_input = {"messages": [HumanMessage(content=f"{user_name}: " + user_query.query)]}
-            async for update in agent._stream_query(agent_input=agent_input, thread_id=thread_id):
+            async for update in agent._stream_query(agent_input=agent_input, thread_id=thread_id, context=context):
                 # Send each update as Server-Sent Event
                 yield (
                     "event: token\n"

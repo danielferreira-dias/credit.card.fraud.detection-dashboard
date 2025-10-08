@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from datetime import datetime
 import sys
 from pathlib import Path
 from typing import List, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
@@ -202,6 +201,55 @@ class TransactionAgent:
             return []
 
     def _create_tools(self):
+
+        @tool("get_user_data", description="Retrieve user Data")
+        def get_user_data(context: UserContext):
+            result = f"User Data: {context.user_name} , {context.user_id}"
+            writer = get_stream_writer()
+            writer(f"{result}")
+            return result
+
+        @tool("get_latest_report", description="Retrieve the latest report of the User when he asks to do an analysis on the latest report.")
+        async def get_latest_report(user_id: int):
+            try:
+                report = await self.backend_client.get_latest_report(user_id=user_id)
+
+                if not report:
+                    self.logger.warning(f"No Reports Found")
+                    return f"No Reports were found."
+
+                report_content = report.get('report_content', {})
+                key_findings = report_content.get('key_findings', {})
+
+                result = f"""Found the latest report:
+
+Title: {report_content.get('title')}
+Sentiment: {report_content.get('sentiment')}
+
+Key Findings:
+- Severity: {key_findings.get('severity')}
+- Finding: {key_findings.get('finding')}
+- Evidence: {key_findings.get('evidence')}
+
+Critical Patterns:
+{chr(10).join(f'- {pattern}' for pattern in report_content.get('critical_patterns', []))}
+
+Recommendations:
+{chr(10).join(f'- {rec}' for rec in report_content.get('recommendations', []))}
+
+Analysis:
+{report_content.get('analysis')}
+"""
+
+                writer = get_stream_writer()
+                writer(f"📄 Retrieved latest report: {report_content.get('title')}")
+
+                self.logger.info(f"Successfully retrieved Document")
+
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in get_latest_report: {str(e)}")
+                return f"Error retrieving report: {str(e)}"
 
         @tool("search_knowledge_base", description="Search the fraud detection knowledge base for detailed insights on fraud patterns, ML model details, and transaction analysis. Use when users ask about: fraud patterns by geography/device/amount, XGBoost model training and feature importance, transaction risk indicators and thresholds, EDA insights and statistical analysis, or theoretical fraud detection concepts. Contains expert knowledge on high-risk countries (Nigeria, Russia, Mexico, Brazil), suspicious devices, velocity patterns, and model interpretation.")
         async def search_knowledge_base( query: str, limit: int = 5) -> str:
@@ -492,10 +540,10 @@ class TransactionAgent:
                 self.logger.error(f"Error in check_backend_connection_tool: {str(e)}")
                 return f"❌ Error checking backend connection: {str(e)}"
 
-        return [search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
+        return [get_user_data, get_latest_report, search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
     @traceable(name="query_stream_query_agent")
-    async def _stream_query(self, agent_input, thread_id: str):
+    async def _stream_query(self, agent_input, thread_id: str, context: UserContext):
         """
             Stream the agent's response with progress updates
 
@@ -510,7 +558,6 @@ class TransactionAgent:
         try:
             checkpoint = await self.checkpointer.aget({"configurable": {"thread_id": thread_id}})
             is_new_conversation = checkpoint is None or not checkpoint.get("channel_values", {}).get("messages", [])
-            logger.info(f'{checkpoint}')
 
             # Add SystemMessage at the beginning for new conversations
             if is_new_conversation:
@@ -520,7 +567,7 @@ class TransactionAgent:
 
 
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
-            async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': f"{thread_id}"}} ,stream_mode=["updates", "custom"]):
+            async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': f"{thread_id}", "context": context.__dict__}} ,stream_mode=["updates", "custom"]):
                 # Process chunk using the extracted function
                 async for update in self._process_stream_chunk(stream_mode, chunk):
                     yield update
@@ -642,12 +689,16 @@ class ToolOutput(BaseModel):
     tools_used: List[str] = Field(description="Name of the tools used to help writing the document")
     queries_used : List[str] = Field(description="Queries used in the Tool parameter")
 
+class KeyFinding(BaseModel):
+    finding: str = Field(description="Short description of the finding")
+    evidence: str = Field(description="Evidence or data supporting the finding")
+    severity: Literal["High", "Medium", "Low"] = Field(description="Severity level of the finding")
+
 class ReportOutput(BaseModel):
     """Contact information for a person."""
     title: str = Field(description="The title of the Document")
-    date: datetime = Field(description="The date of the time of the report")
     sentiment: Literal["Urgent", "Non Urgent"] = Field(description="The sentiment of the report")
-    key_findings: List[dict] = Field(description="Key findings of the Report")
+    key_findings: KeyFinding = Field(description="Key findings of the Report")
     critical_patterns: List[str] = Field(description="Critical Patterns found")
     recommendations: List[str] = Field(description="Recommendations")
     analysis: str = Field(description="The analysis of the Agent")

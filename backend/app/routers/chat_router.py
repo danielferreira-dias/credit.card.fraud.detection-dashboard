@@ -37,7 +37,6 @@ def get_conversation_service(db: AsyncSession = Depends(get_db)):
 def get_conversation_repository(db: AsyncSession = Depends(get_db)):
     return ConversationRepository(db)
 
-
 def get_connection_manager():
     return ConnectionManager()
 

@@ -289,7 +289,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <button
-                        className={`relative w-34 h-8 text-white rounded-lg transition-all duration-200 overflow-hidden group ${
+                        className={`relative w-34 h-8 text-white rounded-lg transition-all duration-200 overflow-hidden group mr-2 ${
                             isGeneratingReport
                                 ? 'cursor-not-allowed opacity-90'
                                 : 'hover:shadow-lg hover:shadow-zinc-700/50 hover:scale-105 active:scale-100'
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                             boxShadow: isGeneratingReport ? 'none' : 'var(--shadow-s)'
                         }}
                     >
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-2 ">
                             {isGeneratingReport ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />

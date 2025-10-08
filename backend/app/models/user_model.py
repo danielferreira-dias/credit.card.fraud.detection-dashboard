@@ -53,5 +53,6 @@ class Report(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
     report_content = Column(JSON, nullable=True)  
     user = relationship("User", back_populates="reports")

@@ -72,7 +72,7 @@ export default function ChatHistory({ onSelectChat, refreshTrigger, currentConve
                 <button
                     key={chat.id}
                     onClick={() => onSelectChat(chat.id, chat.thread_id)}
-                    className={`w-[95%] h-12 text-xs border-zinc-800 hover:bg-zinc-900 rounded-lg justify-center items-center flex flex-col ${
+                    className={`w-[95%] h-12 text-sm border-zinc-800 hover:bg-zinc-900 rounded-lg justify-center items-center flex flex-col ${
                         currentConversationId === chat.id ? 'bg-zinc-900' : ''
                     }`}
                     style={{ boxShadow: 'var(--shadow-s)' }}

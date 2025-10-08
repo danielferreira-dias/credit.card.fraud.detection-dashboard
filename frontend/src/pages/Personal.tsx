@@ -1,17 +1,22 @@
 import { useNavbar } from "@/context/NavbarContext";
 import { useUser } from "@/context/UserContext";
-import { PanelLeft, PanelRight, AlertCircle, CheckCircle } from "lucide-react";
+import { PanelLeft, PanelRight, AlertCircle, CheckCircle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ReportOutput {
+    id: number;
     report_content: ReportContent
 }
 
 interface ReportContent{
     title: string;
-    date: string;
+    date?: string;
     sentiment: "Urgent" | "Non Urgent";
-    key_findings: Array<{ category: string; finding: string; detail:string ;observation: string}>;
+    key_findings: {
+        finding: string;
+        evidence: string;
+        severity: string;
+    };
     critical_patterns: string[];
     recommendations: string[];
     analysis: string;
@@ -21,29 +26,68 @@ interface ReportContent{
 export default function PersonalPage(){
     const [reports, setReports] = useState<ReportOutput[]>([]);
     const [selectedReport, setSelectedReport] = useState<ReportOutput | null>(null);
+    const [selectedReportIds, setSelectedReportIds] = useState<Set<number>>(new Set());
     const { user, loading } = useUser();
 
 
     useEffect(() => {
         const fetchReports = async () => {
             if (!user?.id) return; // Don't fetch if user is not loaded yet
-
             try {
                 const response = await fetch(`http://localhost:80/users/reports/${user.id}`);
                 if (!response.ok) throw new Error('Failed to fetch reports');
                 const data = await response.json();
-
-                console.log('Current User reports -> ', data)
                 setReports(data);
             } catch (error) {
                 console.error('Error fetching reports:', error);
+
             }
         };
 
         if (!loading && user) {
             fetchReports();
+            const interval = setInterval(fetchReports, 5000);
+            return () => clearInterval(interval);
         }
     }, [user, loading]);
+
+    const handleCheckboxChange = (reportId: number) => {
+        setSelectedReportIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(reportId)) {
+                newSet.delete(reportId);
+            } else {
+                newSet.add(reportId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleDeleteSelected = async () => {
+        if (selectedReportIds.size === 0) return;
+
+        try {
+            const deletePromises = Array.from(selectedReportIds).map(reportId =>
+                fetch(`http://localhost:80/users/reports/${reportId}`, {
+                    method: 'DELETE',
+                })
+            );
+
+            await Promise.all(deletePromises);
+
+            // Refresh reports after deletion
+            if (user?.id) {
+                const response = await fetch(`http://localhost:80/users/reports/${user.id}`);
+                const data = await response.json();
+                setReports(data);
+            }
+
+            // Clear selection
+            setSelectedReportIds(new Set());
+        } catch (error) {
+            console.error('Error deleting reports:', error);
+        }
+    };
 
     const { isCollapsed, toggleCollapsed } = useNavbar();
     return (
@@ -65,12 +109,26 @@ export default function PersonalPage(){
                     </button>
                     <div className="h-full flex flex-col border-zinc-900 px-4 gap-y-1">
                         <h2 className="text-2xl font-semibold opacity-90">Account</h2>
+                        
                     </div>
                 </div>
 
                 {/* Reports Section */}
-                <div className="flex flex-col w-full border-b-[1px] border-b-zinc-700 border-t-[1px] border-t-zinc-700 py-4 px-2 mt-6">
-                    <h3 className="text-md opacity-100 ">Documents</h3>
+                <div className="flex flex-col w-full border-b-[1px] border-b-zinc-700 border-t-[1px] border-t-zinc-700 mt-2">
+                    <div className="flex flex-col gap-y-2 sm:flex-row sm:justify-between sm:items-center">
+                        <div className="flex flex-row">
+                            <button className="text-md opacity-100 py-3 pr-4 text-lg text-zinc-400 hover:text-white">Documents</button>
+                            <button className="text-md opacity-100 px-4 py-3 text-lg text-zinc-400 hover:text-white">Transactions</button>
+                        </div>
+                        {selectedReportIds.size > 0 && (
+                            <button
+                                onClick={handleDeleteSelected}
+                                className="flex items-center gap-2 px-4 py-2 bg-zinc-950 rounded transition-colors"
+                            >
+                                Delete
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 { reports.length === 0 ? (
@@ -95,6 +153,7 @@ export default function PersonalPage(){
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-zinc-900 bg-zinc-950">
+                                    <th className="py-3 px-4 text-md font-medium text-zinc-200 w-12"></th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Date</th>
                                     <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
@@ -104,9 +163,17 @@ export default function PersonalPage(){
                             <tbody>
                                 {reports.map((report, index) => (
                                     <tr key={index} className="border-b border-zinc-800 hover:bg-zinc-900 transition-colors">
+                                        <td className="py-3 px-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedReportIds.has(report.id)}
+                                                onChange={() => handleCheckboxChange(report.id)}
+                                                className="w-4 h-4 cursor-pointer bg-zinc-950 accent-zinc-950"
+                                            />
+                                        </td>
                                         <td className="py-3 px-4 text-sm">{report.report_content.title}</td>
                                         <td className="py-3 px-4 text-sm text-zinc-300">
-                                            {new Date(report.report_content.date).toLocaleDateString()}
+                                            {report.report_content.date ? new Date(report.report_content.date).toLocaleDateString() : 'N/A'}
                                         </td>
                                         <td className="py-3 px-4 text-sm">
                                             <span className={`px-2 py-1 rounded text-xs flex items-center gap-1 w-fit ${
@@ -137,11 +204,6 @@ export default function PersonalPage(){
                     </div>
                 )}
 
-                {/* Reports Section */}
-                <div className="flex flex-col w-full border-b-[1px] border-b-zinc-700 border-t-[1px] border-t-zinc-700 py-4 px-2 mt-6">
-                    <h3 className="text-md opacity-100 ">Transactions</h3>
-                </div>
-
                 {/* Report Detail Modal/Section */}
                 {selectedReport && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedReport(null)}>
@@ -150,7 +212,7 @@ export default function PersonalPage(){
                                 <div>
                                     <h2 className="text-2xl font-semibold">{selectedReport.report_content.title}</h2>
                                     <p className="text-sm text-zinc-400 mt-1">
-                                        Generated on {new Date(selectedReport.report_content.date).toLocaleString()}
+                                        {selectedReport.report_content.date ? `Generated on ${new Date(selectedReport.report_content.date).toLocaleString()}` : 'Date not available'}
                                     </p>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs mt-2 ${
                                         selectedReport.report_content.sentiment === "Urgent"
@@ -177,15 +239,21 @@ export default function PersonalPage(){
                                 {/* Key Findings */}
                                 <section>
                                     <h3 className="text-lg font-semibold mb-3 text-zinc-200">Key Findings</h3>
-                                    <div className="space-y-2">
-                                        {selectedReport.report_content.key_findings.map((finding, idx) => (
-                                            <div key={idx} className="bg-zinc-900 p-3 rounded border border-zinc-800">
-                                                <p className="text-sm font-medium text-zinc-300">{finding.category}</p>
-                                                <p className="text-sm font-medium text-zinc-300">{finding.observation}</p>
-                                                <p className="text-sm text-zinc-400 mt-1">{finding.finding}</p>
-                                                <p className="text-sm text-zinc-400 mt-1">{finding.detail}</p>
+                                    <div className="bg-zinc-900 p-4 rounded border border-zinc-800 space-y-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-red-400 mb-2">
+                                                Severity: {selectedReport.report_content.key_findings.severity}
+                                            </p>
+                                            <p className="text-sm font-medium text-zinc-300 mb-3">
+                                                {selectedReport.report_content.key_findings.finding}
+                                            </p>
+                                            <div className="text-sm text-zinc-400 mt-2">
+                                                <p className="font-semibold text-zinc-300 mb-1">Evidence:</p>
+                                                <pre className="whitespace-pre-wrap font-sans">
+                                                    {selectedReport.report_content.key_findings.evidence}
+                                                </pre>
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
                                 </section>
 
