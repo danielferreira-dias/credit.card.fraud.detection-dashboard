@@ -7,7 +7,7 @@ from app.exception.user_exceptions import UserException, UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, desc
-from app.models.user_model import Report, User
+from app.models.user_model import Analysis, Report, User
 from app.schemas.user_schema import UserCreate
 from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
@@ -134,5 +134,27 @@ class ReportRepository:
             await self.db.rollback()
             logger.error(f"Error deleting report with ID {report_id}: {e}")
             raise DatabaseException("Error deleting report from database") from e
-
+class AnalysisRepository:
+    def __init__(self, db : AsyncSession):
+        self.db = db
+    
+    async def create(self, user_id: int, transaction_id: str, analysis_content: dict) -> Analysis:
+        """Create a new report with JSON content"""
+        db_analysis = Analysis(
+            user_id=user_id,
+            created_at=datetime.now(),
+            transaction_id=transaction_id,
+            analysis_content=analysis_content  # SQLAlchemy handles dict -> JSON automatically
+        )
+        self.db.add(db_analysis)
+        await self.db.commit()
+        await self.db.refresh(db_analysis)
+        return db_analysis
+    
+    async def get_transaction_id(self, transaction_id: str) -> Optional[Analysis]:
+        """Get analysis for a specific transaction"""
+        result = await self.db.execute(
+            select(Analysis).where(Analysis.transaction_id == transaction_id)
+        )
+        return result.scalar_one_or_none()
 

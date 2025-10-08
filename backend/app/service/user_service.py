@@ -1,8 +1,8 @@
 
 from pydantic import EmailStr
 from app.schemas.user_schema import UserCreate, UserRegisterSchema, UserResponse
-from app.models.user_model import Report, User
-from app.repositories.user_repo import ReportRepository, UserRepository
+from app.models.user_model import Analysis, Report, User
+from app.repositories.user_repo import AnalysisRepository, ReportRepository, UserRepository
 from app.exception.user_exceptions import UserCredentialInvalid, UserDuplicateException, UserNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -72,7 +72,6 @@ class ReportService:
     
         """Create report from structured response"""
     async def create_report(self, user_id: int, report_content: dict) -> Report:
-        # report_content is already a dict/JSON from the agent service
         return await self.report_repo.create(
             user_id=user_id,
             report_content=report_content
@@ -197,4 +196,83 @@ class ReportService:
                 f"{hour_data['fraud_transactions']:,} fraudulent ({fraud_rate:.2f}%)"
             )
         
+        return "\n".join(text_parts)
+class AnalysisService:
+    def __init__(self, repo: AnalysisRepository):
+        self.repo = repo
+    
+    async def create_analysis(self, user_id: int, transaction_id: str, analysis_content: dict) -> Analysis:
+        return await self.repo.create(user_id=user_id, transaction_id=transaction_id, analysis_content=analysis_content)
+    
+    async def get_analysis(self, transaction_id: str) -> Analysis:
+        return await self.repo.get_transaction_id(transaction_id)
+
+    def _format_stats_to_text(self, analysis: dict) -> str:
+        """Convert transaction data to human-readable text for the agent"""
+        transaction = analysis.get("transaction")
+
+        if not transaction:
+            return "No transaction data available for analysis."
+
+        text_parts = []
+
+        text_parts.append("=== TRANSACTION ANALYSIS REQUEST ===")
+        text_parts.append(f"Transaction ID: {getattr(transaction, 'transaction_id', 'N/A')}")
+        text_parts.append(f"Customer ID: {getattr(transaction, 'customer_id', 'N/A')}")
+        text_parts.append(f"Card Number: {getattr(transaction, 'card_number', 'N/A')}")
+        text_parts.append(f"Timestamp: {getattr(transaction, 'timestamp', 'N/A')}")
+        text_parts.append("")
+
+        text_parts.append("=== TRANSACTION DETAILS ===")
+        text_parts.append(f"Merchant: {getattr(transaction, 'merchant', 'N/A')}")
+        text_parts.append(f"Merchant Category: {getattr(transaction, 'merchant_category', 'N/A')}")
+        text_parts.append(f"Merchant Type: {getattr(transaction, 'merchant_type', 'N/A')}")
+        amount = getattr(transaction, 'amount', 0)
+        currency = getattr(transaction, 'currency', 'USD')
+        text_parts.append(f"Amount: {currency} {amount:,.2f}")
+        text_parts.append(f"Country: {getattr(transaction, 'country', 'N/A')}")
+        text_parts.append(f"City: {getattr(transaction, 'city', 'N/A')}")
+        text_parts.append(f"City Size: {getattr(transaction, 'city_size', 'N/A')}")
+        text_parts.append("")
+
+        text_parts.append("=== PAYMENT METHOD ===")
+        text_parts.append(f"Card Type: {getattr(transaction, 'card_type', 'N/A')}")
+        card_present = getattr(transaction, 'card_present', 0)
+        text_parts.append(f"Card Present: {'Yes' if card_present == 1 else 'No'}")
+        text_parts.append(f"Device: {getattr(transaction, 'device', 'N/A')}")
+        text_parts.append(f"Channel: {getattr(transaction, 'channel', 'N/A')}")
+        text_parts.append(f"Device Fingerprint: {getattr(transaction, 'device_fingerprint', 'N/A')}")
+        text_parts.append(f"IP Address: {getattr(transaction, 'ip_address', 'N/A')}")
+        text_parts.append("")
+
+        text_parts.append("=== RISK FACTORS ===")
+        distance_from_home = getattr(transaction, 'distance_from_home', 0)
+        text_parts.append(f"Distance from Home: {distance_from_home} units")
+        high_risk_merchant = getattr(transaction, 'high_risk_merchant', False)
+        text_parts.append(f"High Risk Merchant: {'Yes' if high_risk_merchant else 'No'}")
+        transaction_hour = getattr(transaction, 'transaction_hour', 0)
+        text_parts.append(f"Transaction Hour: {transaction_hour:02d}:00")
+        weekend_transaction = getattr(transaction, 'weekend_transaction', False)
+        text_parts.append(f"Weekend Transaction: {'Yes' if weekend_transaction else 'No'}")
+        text_parts.append("")
+
+        velocity = getattr(transaction, 'velocity_last_hour', None)
+        if velocity:
+            text_parts.append("=== VELOCITY ANALYSIS (LAST HOUR) ===")
+            text_parts.append(f"Number of Transactions: {getattr(velocity, 'num_transactions', 0):,}")
+            text_parts.append(f"Total Amount: {currency} {getattr(velocity, 'total_amount', 0):,.2f}")
+            text_parts.append(f"Unique Merchants: {getattr(velocity, 'unique_merchants', 0)}")
+            text_parts.append(f"Unique Countries: {getattr(velocity, 'unique_countries', 0)}")
+            text_parts.append(f"Maximum Single Amount: {currency} {getattr(velocity, 'max_single_amount', 0):,.2f}")
+            text_parts.append("")
+
+        text_parts.append("=== FRAUD ASSESSMENT ===")
+        is_fraud = getattr(transaction, 'is_fraud', False)
+        text_parts.append(f"Is Fraud: {'Yes' if is_fraud else 'No'}")
+        fraud_probability = getattr(transaction, 'fraud_probability', 0)
+        text_parts.append(f"Fraud Probability: {fraud_probability:.2%}")
+        text_parts.append("")
+
+        text_parts.append("Please analyze this transaction for potential fraud indicators and provide insights about the risk factors present.")
+
         return "\n".join(text_parts)

@@ -1,3 +1,4 @@
+import { useUser } from "@/context/UserContext";
 import type { Transaction } from "../types/transactions";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -21,6 +22,11 @@ function getTransactionStatus(probability: number): statusType {
 export default function TransactionInfo({ transaction }: TransactionCardProps) {
     const [showInsight, setShowInsight] = useState(false);
     const [loadingInsight, setLoadingInsight] = useState(false);
+    const [analysisData, setAnalysisData] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const { user } = useUser();
+
+    console.log('transaction -> ', transaction)
 
     const formatAmount = (amount: number, currency: string) => {
         return `${amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -50,12 +56,49 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
     const handleGetInsight = async () => {
         setLoadingInsight(true);
         setShowInsight(true);
+        setError(null);
 
-        // TODO: Call agent API here to get insights for this transaction
-        // For now, just simulate a delay
-        setTimeout(() => {
+        try {
+            // Call the backend analysis endpoint
+            // Note: Using user_id = 1 as a default. In a real app, this would come from authentication context
+            const userId = user?.id;
+            const response = await fetch(`http://localhost:80/transactions/analysis/${userId}?transaction_id=${transaction.transaction_id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            
+
+            if (!response.ok) {
+                throw new Error(`Analysis request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            console.log('data -> ', data)
+
+            // Extract the analysis content from the response
+            const analysisContent = data.analysis_content || data.report_content || data;
+
+            // If the analysis content is a string, use it directly, otherwise extract meaningful text
+            if (typeof analysisContent === 'string') {
+                setAnalysisData(analysisContent);
+            } else if (analysisContent && typeof analysisContent === 'object') {
+                // Try to extract text content from the object
+                const textContent = analysisContent.text || analysisContent.content || analysisContent.analysis || JSON.stringify(analysisContent, null, 2);
+                setAnalysisData(textContent);
+            } else {
+                setAnalysisData('Analysis completed successfully, but no detailed content was returned.');
+            }
+        } catch (err) {
+            console.error('Failed to get analysis:', err);
+            setError(err instanceof Error ? err.message : 'Failed to get analysis');
+            setAnalysisData(null);
+        } finally {
             setLoadingInsight(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -143,16 +186,27 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
                                 <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
                                 Analyzing transaction...
                             </div>
+                        ) : error ? (
+                            <div className="bg-red-950 border border-red-800 rounded p-3 text-sm text-red-300">
+                                <p className="font-semibold">Analysis Error</p>
+                                <p className="mt-1">{error}</p>
+                                <button
+                                    onClick={handleGetInsight}
+                                    className="mt-2 text-xs underline hover:text-red-200"
+                                >
+                                    Try again
+                                </button>
+                            </div>
+                        ) : analysisData ? (
+                            <div className="bg-zinc-900 rounded p-3 text-sm text-zinc-300">
+                                <div className="leading-relaxed whitespace-pre-wrap">
+                                    {analysisData}
+                                </div>
+                            </div>
                         ) : (
                             <div className="bg-zinc-900 rounded p-3 text-sm text-zinc-300">
                                 <p className="leading-relaxed">
-                                    This transaction shows a fraud probability of {(transaction.fraud_probability * 100).toFixed(1)}%.
-                                    The transaction originated from {transaction.city}, {transaction.country} using a {transaction.device} device
-                                    via {transaction.channel} channel. Based on the location and device fingerprint, this appears to be a
-                                    {transactionStatus === "Blocked" ? " high-risk" : transactionStatus === "Under Review" ? " medium-risk" : " low-risk"} transaction.
-                                </p>
-                                <p className="mt-2 text-xs text-zinc-500 italic">
-                                    Note: This is a placeholder. Real insights will be provided by the AI agent.
+                                    No analysis data available. Please try clicking the "AI Insight" button again.
                                 </p>
                             </div>
                         )}

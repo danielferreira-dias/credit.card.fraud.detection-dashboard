@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, Boolean, String, ForeignKey, DateTime, T
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.settings.base import Base
-from datetime import datetime
 
 class User(Base):
     __tablename__ = 'users'
@@ -15,6 +14,7 @@ class User(Base):
 
     conversations = relationship("Conversation", back_populates="user")
     reports = relationship("Report", back_populates="user")
+    analysis = relationship("Analysis", back_populates="user")
 
     def __repr__(self):
         return f"<User(username={self.name}, email={self.email})>"
@@ -56,3 +56,15 @@ class Report(Base):
     created_at = Column(DateTime, server_default=func.now())
     report_content = Column(JSON, nullable=True)  
     user = relationship("User", back_populates="reports")
+
+class Analysis(Base):
+    __tablename__ = "analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    transaction_id = Column(String, ForeignKey("transactions.transaction_id"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    analysis_content = Column(JSON, nullable=True)  
+
+    user = relationship("User", back_populates="analysis")
+    transaction = relationship("Transaction", back_populates="analysis")

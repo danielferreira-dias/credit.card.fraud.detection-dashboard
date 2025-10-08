@@ -1,5 +1,5 @@
 # app/routers/transactions.py
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.settings.database import get_db
@@ -7,6 +7,13 @@ from app.schemas.transaction_schema import ResponseWithMessage, TransactionCreat
 from app.service.transaction_service import TransactionService
 from app.infra.logger import setup_logger
 from app.schemas.filter_schema import TransactionFilter
+from app.service.user_service import AnalysisService
+from app.repositories.user_repo import AnalysisRepository
+import aiohttp
+import os 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter(
     prefix="/transactions",
@@ -15,10 +22,17 @@ router = APIRouter(
 
 logger = setup_logger(__name__)
 
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://agent-service:8001")
+
 # --- dependencies ------------------------
 def get_transaction_service(db: AsyncSession = Depends(get_db)) -> TransactionService:
     """ Dependency to get the TransactionService with a database session. """
     return TransactionService(db)
+
+def get_analysis_service(db: AsyncSession = Depends(get_db)) -> AnalysisService:
+    """ Dependency to get the ReportService with a ReportRepository. """
+    analysis_repo = AnalysisRepository(db)
+    return AnalysisService(analysis_repo)
 
 # --- router ------------------------
 
@@ -152,3 +166,47 @@ async def update_transaction(transaction_id: str, updated_transaction: Transacti
         message=f"Transaction with id {transaction_id} updated successfully",
         data=response
     )
+
+@router.post("/analysis/{user_id}")
+async def create_report(user_id: int, transaction_id: str, analysis_service: AnalysisService = Depends(get_analysis_service), service: TransactionService = Depends(get_transaction_service)):
+    try:
+        # Check if analysis already exists for this transaction
+        existent_analysis = await analysis_service.get_analysis(transaction_id=transaction_id)
+        if existent_analysis is not None:
+            logger.info(f"Returning existing analysis for transaction {transaction_id}")
+            return existent_analysis
+
+        # Get transaction data with fraud predictions - this will raise an exception if transaction doesn't exist
+        transaction_data = await service.get_transaction_id(transaction_id=transaction_id, include_predictions=True)
+        if not transaction_data:
+            raise HTTPException(status_code=404, detail=f"Transaction {transaction_id} not found")
+
+        # Format transaction data for agent analysis
+        analysis = {'transaction': transaction_data}
+        final_analysis = analysis_service._format_stats_to_text(analysis)
+
+        # Call agent service for analysis
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{AGENT_SERVICE_URL}/user_report?report_text={final_analysis}") as response:
+                response.raise_for_status()
+                agent_response = await response.json()
+
+        # Create and store new analysis
+        new_analysis = await analysis_service.create_analysis(
+            user_id=user_id,
+            transaction_id=transaction_id,
+            analysis_content=agent_response
+        )
+
+        logger.info(f"Created new analysis for transaction {transaction_id}")
+        return new_analysis
+
+    except aiohttp.ClientError as e:
+        logger.error(f"Agent service error for transaction {transaction_id}: {e}")
+        raise HTTPException(status_code=503, detail="Agent service is currently unavailable") from e
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404) as-is
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during analysis creation for transaction {transaction_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during analysis creation") from e

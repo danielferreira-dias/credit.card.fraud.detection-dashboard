@@ -73,8 +73,8 @@ class TransactionService:
         if not include_predictions:
             return self._to_response(transaction)
         else:
-            probability = self.predict_transaction(transaction.transaction_id)
-            return self._to_response(transaction, probability)
+            prediction = await self.predict_transaction(transaction.transaction_id)
+            return self._to_response(transaction, prediction.probability)
             
     async def predict_transaction(self, transaction_id: str) -> dict:
 

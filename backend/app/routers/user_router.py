@@ -1,10 +1,10 @@
 import aiohttp
 from app.infra.logger import setup_logger
 from app.schemas.user_schema import UserRegisterSchema, UserResponse
-from app.service.user_service import ReportService, UserService
+from app.service.user_service import AnalysisService, ReportService, UserService
 from app.settings.database import get_db
 from app.service.stats_cache_service import StatsCacheService
-from app.repositories.user_repo import ReportRepository
+from app.repositories.user_repo import AnalysisRepository, ReportRepository
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -140,6 +140,8 @@ async def create_report(user_id: int , report_service: ReportService = Depends(g
     
     except HTTPException as e:
         raise HTTPException(status_code=500, detail="Something happened with the Agent Service") from e
+
+
 
 @router.get("/reports/{user_id}")
 async def get_user_reports(user_id: int , report_service: ReportService = Depends(get_report_service)):
