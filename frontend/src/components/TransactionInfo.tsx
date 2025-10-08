@@ -59,7 +59,7 @@ export default function TransactionInfo({ transaction }: TransactionCardProps) {
     };
 
     return (
-        <div className="bg-zinc-950 rounded-lg px-6 py-4" style={{ boxShadow: 'var(--shadow-s)' }}>
+        <div className=" rounded-lg px-6 py-4" style={{ boxShadow: 'var(--shadow-m)' }}>
             <div className="flex flex-col space-y-2">
                 {/* Header with merchant and amount */}
                 <div className="flex justify-between items-start">
