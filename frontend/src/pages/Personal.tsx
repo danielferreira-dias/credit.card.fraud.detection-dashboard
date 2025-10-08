@@ -1,6 +1,7 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNavbar } from "@/context/NavbarContext";
 import { useUser } from "@/context/UserContext";
-import { PanelLeft, PanelRight, AlertCircle, CheckCircle, Trash2 } from "lucide-react";
+import { PanelLeft, PanelRight, AlertCircle, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ReportOutput {
@@ -28,6 +29,7 @@ export default function PersonalPage(){
     const [reports, setReports] = useState<ReportOutput[]>([]);
     const [selectedReport, setSelectedReport] = useState<ReportOutput | null>(null);
     const [selectedReportIds, setSelectedReportIds] = useState<Set<number>>(new Set());
+    const [activeTab, setActiveTab] = useState<"documents" | "transactions">("documents");
     const { user, loading } = useUser();
 
 
@@ -115,14 +117,32 @@ export default function PersonalPage(){
                     </div>
                 </div>
 
-                {/* Reports Section */}
+                {/* Tabs Section */}
                 <div className="flex flex-col w-full border-b-[1px] border-b-zinc-700 border-t-[1px] border-t-zinc-700 mt-2">
                     <div className="flex flex-col gap-y-2 sm:flex-row sm:justify-between sm:items-center">
                         <div className="flex flex-row">
-                            <button className="text-md opacity-100 py-3 pr-4 text-lg text-zinc-400 hover:text-white">Documents</button>
-                            <button className="text-md opacity-100 px-4 py-3 text-lg text-zinc-400 hover:text-white">Transactions</button>
+                            <button
+                                onClick={() => setActiveTab("documents")}
+                                className={`text-md py-3 pr-4 text-lg transition-colors ${
+                                    activeTab === "documents"
+                                        ? "text-white border-b-2 border-white"
+                                        : "text-zinc-400 hover:text-white"
+                                }`}
+                            >
+                                Documents
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("transactions")}
+                                className={`text-md px-4 py-3 text-lg transition-colors ${
+                                    activeTab === "transactions"
+                                        ? "text-white border-b-2 border-white"
+                                        : "text-zinc-400 hover:text-white"
+                                }`}
+                            >
+                                Transactions
+                            </button>
                         </div>
-                        {selectedReportIds.size > 0 && (
+                        {activeTab === "documents" && selectedReportIds.size > 0 && (
                             <button
                                 onClick={handleDeleteSelected}
                                 className="flex items-center gap-2 px-4 py-2 bg-zinc-950 rounded transition-colors"
@@ -133,76 +153,90 @@ export default function PersonalPage(){
                     </div>
                 </div>
 
-                { reports.length === 0 ? (
-                    <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-800"> 
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-zinc-800 bg-zinc-950">
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
-                                    <th className="py-3 px-4 text-md font-medium text-zinc-200">Date</th>
-                                    <th className="py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
-                                    <th className="py-3 px-4 text-md font-medium text-zinc-200">Patterns</th>
-                                    <th className="py-3 px-4 text-md font-medium text-zinc-200">Actions</th>
-                                </tr>
-                            </thead>
-                        </table>
-                        <div className="flex justify-center items-center py-8">
-                            <p className="text-zinc-200">No reports available</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-800">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-zinc-900 bg-zinc-950">
-                                    <th className="py-3 px-4 text-md font-medium text-zinc-200 w-12"></th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Date</th>
-                                    <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
-                                    <th className="text-right py-3 px-4 text-md font-medium text-zinc-200">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {reports.map((report, index) => (
-                                    <tr key={index} className="border-b border-zinc-800 hover:bg-zinc-900 transition-colors">
-                                        <td className="py-3 px-4">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedReportIds.has(report.id)}
-                                                onChange={() => handleCheckboxChange(report.id)}
-                                                className="w-4 h-4 cursor-pointer bg-zinc-950 accent-zinc-950"
-                                            />
-                                        </td>
-                                        <td className="py-3 px-4 text-sm">{report.report_content.title}</td>
-                                        <td className="py-3 px-4 text-sm text-zinc-300">
-                                            {report.created_at ? `${new Date(report.created_at).toLocaleString()}` : 'Date not available'}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm">
-                                            <span className={`px-2 py-1 rounded text-xs flex items-center gap-1 w-fit ${
-                                                report.report_content.sentiment === "Urgent"
-                                                    ? "bg-red-900/30 text-red-400"
-                                                    : "bg-blue-900/30 text-blue-400"
-                                            }`}>
-                                                {report.report_content.sentiment === "Urgent" ? (
-                                                    <AlertCircle className="w-3 h-3" />
-                                                ) : (
-                                                    <CheckCircle className="w-3 h-3" />
-                                                )}
-                                                {report.report_content.sentiment}
-                                            </span>
-                                        </td>
-                                        <td className="py-3  text-sm text-right">
-                                            <button
-                                                onClick={() => setSelectedReport(report)}
-                                                className="px-3 py-1 hover:text-white text-zinc-200 rounded text-sm transition-colors"
-                                            >
-                                                View Details
-                                            </button>
-                                        </td>
+                {/* Documents Tab Content */}
+                {activeTab === "documents" && (
+                    reports.length === 0 ? (
+                        <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-800">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-zinc-800 bg-zinc-950">
+                                        <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
+                                        <th className="py-3 px-4 text-md font-medium text-zinc-200">Date</th>
+                                        <th className="py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
+                                        <th className="py-3 px-4 text-md font-medium text-zinc-200">Patterns</th>
+                                        <th className="py-3 px-4 text-md font-medium text-zinc-200">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                            </table>
+                            <div className="flex justify-center items-center py-8">
+                                <p className="text-zinc-200">No reports available</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="w-full overflow-x-auto rounded-lg border-[1px] border-zinc-800">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-zinc-900 bg-zinc-950">
+                                        <th className="py-3 px-4 text-md font-medium text-zinc-200 w-12"></th>
+                                        <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Title</th>
+                                        <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Date</th>
+                                        <th className="text-left py-3 px-4 text-md font-medium text-zinc-200">Sentiment</th>
+                                        <th className="text-right py-3 px-4 text-md font-medium text-zinc-200">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reports.map((report, index) => (
+                                        <tr key={index} className="border-b border-zinc-800 hover:bg-zinc-900 transition-colors items-center">
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center justify-center">
+                                                    <Checkbox
+                                                    checked={selectedReportIds.has(report.id)}
+                                                    onCheckedChange={() => handleCheckboxChange(report.id)}
+                                                    aria-label="Select row"
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4 text-sm">{report.report_content.title}</td>
+                                            <td className="py-3 px-4 text-sm text-zinc-300">
+                                                {report.created_at ? `${new Date(report.created_at).toLocaleString()}` : 'Date not available'}
+                                            </td>
+                                            <td className="py-3 px-4 text-sm">
+                                                <span className={`px-2 py-1 rounded text-xs flex items-center gap-1 w-fit ${
+                                                    report.report_content.sentiment === "Urgent"
+                                                        ? "bg-red-900/30 text-red-400"
+                                                        : "bg-blue-900/30 text-blue-400"
+                                                }`}>
+                                                    {report.report_content.sentiment === "Urgent" ? (
+                                                        <AlertCircle className="w-3 h-3" />
+                                                    ) : (
+                                                        <CheckCircle className="w-3 h-3" />
+                                                    )}
+                                                    {report.report_content.sentiment}
+                                                </span>
+                                            </td>
+                                            <td className="py-3  text-sm text-right">
+                                                <button
+                                                    onClick={() => setSelectedReport(report)}
+                                                    className="px-3 py-1 hover:text-white text-zinc-200 rounded text-sm transition-colors"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )
+                )}
+
+                {/* Transactions Tab Content */}
+                {activeTab === "transactions" && (
+                    <div className="w-full rounded-lg border-[1px] border-zinc-800 p-8">
+                        <div className="flex flex-col items-center justify-center gap-4">
+                            <p className="text-zinc-400 text-lg">Transactions view coming soon</p>
+                            <p className="text-zinc-500 text-sm">This feature will display your transaction history</p>
+                        </div>
                     </div>
                 )}
 
