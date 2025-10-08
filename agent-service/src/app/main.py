@@ -349,6 +349,43 @@ async def get_thread_checkpoints( thread_id: str, agent: TransactionAgent = Depe
             "checkpoints": []
         }
 
+@app.delete("/thread_checkpoints/{thread_id}")
+async def delete_thread_checkpoint(thread_id: str, agent: TransactionAgent = Depends(get_transaction_agent)):
+    """
+    Delete all checkpoints for a specific thread.
+    Useful for clearing corrupted conversation state.
+
+    Args:
+        thread_id: The conversation thread identifier
+
+    Returns:
+        JSON response with success status
+    """
+    logger.info(f"Deleting checkpoints for thread: {thread_id}")
+
+    try:
+        success = await agent.delete_thread_checkpoint(thread_id)
+
+        if success:
+            return {
+                "thread_id": thread_id,
+                "status": "deleted",
+                "message": f"Successfully deleted checkpoints for thread {thread_id}"
+            }
+        else:
+            return {
+                "thread_id": thread_id,
+                "status": "failed",
+                "message": "Failed to delete checkpoints"
+            }
+    except Exception as e:
+        logger.error(f"Error deleting checkpoints: {str(e)}")
+        return {
+            "thread_id": thread_id,
+            "status": "error",
+            "error": str(e)
+        }
+
 @app.get( "/health", tags=["healthcheck"], summary="Perform a Health Check", response_description="Return HTTP Status Code 200 (OK)", status_code=status.HTTP_200_OK, response_model=HealthCheck)
 def get_health() -> HealthCheck:
     """

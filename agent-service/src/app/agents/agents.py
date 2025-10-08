@@ -201,6 +201,33 @@ class TransactionAgent:
             self.logger.error(f"Error listing checkpoints: {str(e)}")
             return []
 
+    async def delete_thread_checkpoint(self, thread_id: str):
+        """
+        Delete all checkpoints for a specific thread.
+        Useful when a conversation gets corrupted with incomplete tool calls.
+
+        Args:
+            thread_id: The thread identifier
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if self.checkpointer is None:
+            self.logger.warning("Checkpointer not initialized. Call setup() first.")
+            return False
+
+        try:
+            # Delete checkpoint by setting it to None
+            config = {"configurable": {"thread_id": thread_id}}
+            await self.checkpointer.aput(config, None, {}, {})
+
+            self.logger.info(f"Deleted checkpoints for thread {thread_id}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error deleting checkpoint: {str(e)}")
+            return False
+
     def _create_tools(self):
 
         @tool("get_user_data", description="Retrieve user Data")
