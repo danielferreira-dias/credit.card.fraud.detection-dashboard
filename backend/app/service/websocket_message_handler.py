@@ -36,7 +36,6 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
 
     # Stream agent response with real-time progress (pass thread_id and is_new_conversation)
     agent_message, chat_title = await query_agent_service_streaming(websocket=websocket, user_id=user_id, user_name='Daniel',user_message=user_message, thread_id=thread_id, is_new_conversation=is_new_conversation)
-    logger.info(f'This was the title generated -> {chat_title}')
 
     # Use default title if none was generated
     title = chat_title or "New Conversation"

@@ -28,7 +28,7 @@ class BackendAPIClient:
         Returns:
             Dict containing transaction count information
         """
-        endpoint = f"/reports/{user_id}/latest"
+        endpoint = f"/users/reports/{user_id}/latest"
         url = f"{self.base_url}{endpoint}"
         self.logger.info("Requesting transaction count from backend")
         try:

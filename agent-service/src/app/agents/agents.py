@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field, field_validator
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from langsmith import traceable
 from langchain.agents import create_agent
 from langgraph.config import get_stream_writer
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -61,6 +60,9 @@ class TransactionAgent:
         self.vector_database = vector_database
         self.system_prompt = system_prompt
 
+        # Store current user context (updated on each request)
+        self.current_context = UserContext(user_name="Unknown", user_id=0)
+
         # Checkpointer will be initialized in setup()
         self.checkpointer = None
         self.agent = None
@@ -91,12 +93,11 @@ class TransactionAgent:
                         self.logger.warning(f"Database tables already exist, skipping setup: {setup_error}")
                     else:
                         raise
-
+                
                 self.agent = create_agent(
                     model=self.model,
                     tools=self.tools,
                     checkpointer=self.checkpointer,
-                    context_schema=UserContext
                 )
 
                 self.logger.info("PostgresSaver setup completed successfully")
@@ -203,14 +204,16 @@ class TransactionAgent:
     def _create_tools(self):
 
         @tool("get_user_data", description="Retrieve user Data")
-        def get_user_data(context: UserContext):
-            result = f"User Data: {context.user_name} , {context.user_id}"
+        def get_user_data():
+            # Use the current context stored in the agent instance
+            result = f"User Data: {self.current_context.user_name} , {self.current_context.user_id}"
             writer = get_stream_writer()
             writer(f"{result}")
             return result
 
-        @tool("get_latest_report", description="Retrieve the latest report of the User when he asks to do an analysis on the latest report.")
+        @tool("get_latest_report", description="Retrieve the latest report of the User when he asks to do an analysis on the latest report. To use this, you may need to fetch the user's data to get the ID.")
         async def get_latest_report(user_id: int):
+            # Use the current context stored in the agent instance
             try:
                 report = await self.backend_client.get_latest_report(user_id=user_id)
 
@@ -335,19 +338,29 @@ Analysis:
                 result = f"Here are {len(transactions)} transactions (showing {skip+1}-{skip+len(transactions)}):\n\n"
                 writer = get_stream_writer()
 
-                if include_predictions:
-                    for i, transaction in enumerate(transactions, 1):
-                        fraud_prob = transaction.get('fraud_probability', 0.0)
-                        risk_level = 'Low Probability' if fraud_prob < 0.3 else 'Medium Probability' if fraud_prob < 0.7 else 'High Probability'
-                        result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}, with a probability of {fraud_prob} ({risk_level})\n"
-                else:
-                    for i, transaction in enumerate(transactions, 1):
-                        result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                for i, transaction in enumerate(transactions, 1):
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')}\n"
+                    result += f"   Customer: {transaction.get('customer_id')}\n"
+                    result += f"   Amount: ${transaction.get('amount'):.2f} {transaction.get('currency', 'USD')}\n"
+                    result += f"   Date: {transaction.get('timestamp')}\n"
+                    result += f"   Merchant: {transaction.get('merchant')} ({transaction.get('merchant_category')})\n"
+                    result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
+                    result += f"   Card: {transaction.get('card_type')}\n"
+                    result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
+                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   High Risk Merchant: {'Yes' if transaction.get('high_risk_merchant') else 'No'}\n"
+                    result += f"   Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}"
 
+                    if include_predictions:
+                        fraud_prob = transaction.get('fraud_probability', 0.0)
+                        risk_level = 'Low' if fraud_prob < 0.3 else 'Medium' if fraud_prob < 0.7 else 'High'
+                        result += f" (Fraud Probability: {fraud_prob:.2%} - {risk_level} Risk)"
+
+                    result += "\n\n"
 
                 writer(result)
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions")
-                
+
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_all_transactions_tool: {str(e)}")
@@ -366,13 +379,20 @@ Analysis:
                 result = f"Transaction history for customer {customer_id} ({len(transactions)} transactions):\n\n"
                 writer = get_stream_writer()
 
-                writer(f"Results \n")
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Amount: ${transaction.get('amount')} — Date: {transaction.get('timestamp')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')}\n"
+                    result += f"   Amount: ${transaction.get('amount'):.2f} {transaction.get('currency', 'USD')}\n"
+                    result += f"   Date: {transaction.get('timestamp')}\n"
+                    result += f"   Merchant: {transaction.get('merchant')} ({transaction.get('merchant_category')})\n"
+                    result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
+                    result += f"   Card: {transaction.get('card_type')}\n"
+                    result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
+                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n\n"
 
                 writer(f"{result}")
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for customer: {customer_id}")
-                
+
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_transactions_by_customer_tool: {str(e)}")
@@ -394,7 +414,16 @@ Analysis:
                 writer = get_stream_writer()
 
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Date: {transaction.get('timestamp')}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')}\n"
+                    result += f"   Customer: {transaction.get('customer_id')}\n"
+                    result += f"   Amount: ${transaction.get('amount'):.2f} {transaction.get('currency', 'USD')}\n"
+                    result += f"   Date: {transaction.get('timestamp')}\n"
+                    result += f"   Merchant: {transaction.get('merchant')} ({transaction.get('merchant_category')})\n"
+                    result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
+                    result += f"   Card: {transaction.get('card_type')}\n"
+                    result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
+                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   High Risk Merchant: {'Yes' if transaction.get('high_risk_merchant') else 'No'}\n\n"
 
                 writer(f"{result}")
                 self.logger.info(f"Successfully retrieved {len(transactions)} {fraud_type.lower()} transactions")
@@ -478,12 +507,22 @@ Analysis:
 
                 result = f"Found {len(transactions)} transactions where {column} = '{value}':\n\n"
                 writer = get_stream_writer()
+
                 for i, transaction in enumerate(transactions, 1):
-                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')} — Customer: {transaction.get('customer_id')} — Amount: ${transaction.get('amount')} — Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+                    result += f"{i}. Transaction ID: {transaction.get('transaction_id')}\n"
+                    result += f"   Customer: {transaction.get('customer_id')}\n"
+                    result += f"   Amount: ${transaction.get('amount'):.2f} {transaction.get('currency', 'USD')}\n"
+                    result += f"   Date: {transaction.get('timestamp')}\n"
+                    result += f"   Merchant: {transaction.get('merchant')} ({transaction.get('merchant_category')})\n"
+                    result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
+                    result += f"   Card: {transaction.get('card_type')}\n"
+                    result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
+                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n\n"
 
                 writer(f"{result}")
                 self.logger.info(f"Successfully retrieved {len(transactions)} transactions for {column} = {value}")
-                
+
                 return result
             except Exception as e:
                 self.logger.error(f"Error in search_transactions_by_params_tool: {str(e)}")
@@ -501,20 +540,51 @@ Analysis:
 
                 writer = get_stream_writer()
 
-                result = f"Transaction Details:\n"
-                result += f"ID: {transaction.get('transaction_id')}\n"
+                result = f"Transaction Details:\n\n"
+                result += f"Transaction ID: {transaction.get('transaction_id')}\n"
                 result += f"Customer ID: {transaction.get('customer_id')}\n"
-                result += f"Amount: ${transaction.get('amount')}\n"
-                result += f"Timestamp: {transaction.get('timestamp')}\n"
+                result += f"Card Number: {transaction.get('card_number')}\n"
+                result += f"Card Type: {transaction.get('card_type')}\n\n"
+
+                result += f"Amount: ${transaction.get('amount'):.2f} {transaction.get('currency', 'USD')}\n"
+                result += f"Timestamp: {transaction.get('timestamp')}\n\n"
+
+                result += f"Merchant: {transaction.get('merchant')}\n"
+                result += f"Category: {transaction.get('merchant_category')}\n"
+                result += f"Type: {transaction.get('merchant_type')}\n"
+                result += f"High Risk: {'Yes' if transaction.get('high_risk_merchant') else 'No'}\n\n"
+
+                result += f"Location: {transaction.get('city')} ({transaction.get('city_size')}), {transaction.get('country')}\n"
+                result += f"Distance from Home: {transaction.get('distance_from_home')}km\n\n"
+
+                result += f"Channel: {transaction.get('channel')}\n"
+                result += f"Device: {transaction.get('device')}\n"
+                result += f"Card Present: {'Yes' if transaction.get('card_present') else 'No'}\n"
+                result += f"Device Fingerprint: {transaction.get('device_fingerprint')}\n"
+                result += f"IP Address: {transaction.get('ip_address')}\n\n"
+
+                result += f"Transaction Hour: {transaction.get('transaction_hour')}:00\n"
+                result += f"Weekend Transaction: {'Yes' if transaction.get('weekend_transaction') else 'No'}\n\n"
+
+                velocity = transaction.get('velocity_last_hour', {})
+                result += f"Velocity (Last Hour):\n"
+                result += f"  - Transactions: {velocity.get('num_transactions', 0)}\n"
+                result += f"  - Total Amount: ${velocity.get('total_amount', 0):.2f}\n"
+                result += f"  - Unique Merchants: {velocity.get('unique_merchants', 0)}\n"
+                result += f"  - Unique Countries: {velocity.get('unique_countries', 0)}\n"
+                result += f"  - Max Single Amount: ${velocity.get('max_single_amount', 0):.2f}\n\n"
+
                 result += f"Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n"
+
                 if include_predictions:
                     fraud_prob = transaction.get('fraud_probability', 0.0)
-                    risk_level = 'Low Probability' if fraud_prob < 0.3 else 'Medium Probability' if fraud_prob < 0.7 else 'High Probability'
-                    result += f"Is Fraud: {'Yes' if transaction.get('fraud_probability') else '0.0'}, with a probability of {fraud_prob} ({risk_level}\n"
+                    risk_level = 'Low' if fraud_prob < 0.3 else 'Medium' if fraud_prob < 0.7 else 'High'
+                    result += f"Fraud Probability: {fraud_prob:.2%} ({risk_level} Risk)\n"
+
                 writer(f"{result}")
 
                 self.logger.info(f"Successfully retrieved transaction details for ID: {transaction_id}")
-                
+
                 return result
             except Exception as e:
                 self.logger.error(f"Error in get_transaction_by_id_tool: {str(e)}")
@@ -542,7 +612,6 @@ Analysis:
 
         return [get_user_data, get_latest_report, search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
-    @traceable(name="query_stream_query_agent")
     async def _stream_query(self, agent_input, thread_id: str, context: UserContext):
         """
             Stream the agent's response with progress updates
@@ -556,6 +625,11 @@ Analysis:
         final_result = None
 
         try:
+            # Update the current context before streaming
+            # This ensures tools always use the latest user context
+            self.current_context = context
+            self.logger.info(f"Updated current_context: user_id={self.current_context.user_id}, user_name={self.current_context.user_name}")
+
             checkpoint = await self.checkpointer.aget({"configurable": {"thread_id": thread_id}})
             is_new_conversation = checkpoint is None or not checkpoint.get("channel_values", {}).get("messages", [])
 
@@ -565,9 +639,15 @@ Analysis:
                 messages = [SystemMessage(content=self.system_prompt)] + messages
                 agent_input = {"messages": messages}
 
+            # Context is now stored in self.current_context and accessed by tools
+            config = {
+                'configurable': {
+                    'thread_id': f"{thread_id}"
+                }
+            }
 
             # Stream with "updates" and "custom" modes to get agent progress and custom messages
-            async for stream_mode, chunk in self.agent.astream(agent_input, {'configurable': {'thread_id': f"{thread_id}", "context": context.__dict__}} ,stream_mode=["updates", "custom"]):
+            async for stream_mode, chunk in self.agent.astream(agent_input, config, stream_mode=["updates", "custom"]):
                 # Process chunk using the extracted function
                 async for update in self._process_stream_chunk(stream_mode, chunk):
                     yield update

@@ -23,7 +23,6 @@ services:
       start_period: 40s
     depends_on:
       - postgres
-
   agent-service:
     build:
       context: ./agent-service
@@ -51,7 +50,6 @@ services:
     depends_on:
       - postgres
       - backend
-
   frontend:
     build:
       context: ./frontend
@@ -98,23 +96,9 @@ services:
       retries: 5
       start_period: 30s
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: fraud-detection-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-    restart: unless-stopped
 
 volumes:
   postgres_data:
-  pgadmin_data:
 
 networks:
   default:

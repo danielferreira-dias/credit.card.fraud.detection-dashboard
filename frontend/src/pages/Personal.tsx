@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 
 interface ReportOutput {
     id: number;
+    created_at: Date;
     report_content: ReportContent
 }
 
 interface ReportContent{
     title: string;
-    date?: string;
+    created_at?: string;
     sentiment: "Urgent" | "Non Urgent";
     key_findings: {
         finding: string;
@@ -37,6 +38,7 @@ export default function PersonalPage(){
                 const response = await fetch(`http://localhost:80/users/reports/${user.id}`);
                 if (!response.ok) throw new Error('Failed to fetch reports');
                 const data = await response.json();
+                console.log('data -> ', data)
                 setReports(data);
             } catch (error) {
                 console.error('Error fetching reports:', error);
@@ -173,7 +175,7 @@ export default function PersonalPage(){
                                         </td>
                                         <td className="py-3 px-4 text-sm">{report.report_content.title}</td>
                                         <td className="py-3 px-4 text-sm text-zinc-300">
-                                            {report.report_content.date ? new Date(report.report_content.date).toLocaleDateString() : 'N/A'}
+                                            {report.created_at ? `${new Date(report.created_at).toLocaleString()}` : 'Date not available'}
                                         </td>
                                         <td className="py-3 px-4 text-sm">
                                             <span className={`px-2 py-1 rounded text-xs flex items-center gap-1 w-fit ${
@@ -212,7 +214,7 @@ export default function PersonalPage(){
                                 <div>
                                     <h2 className="text-2xl font-semibold">{selectedReport.report_content.title}</h2>
                                     <p className="text-sm text-zinc-400 mt-1">
-                                        {selectedReport.report_content.date ? `Generated on ${new Date(selectedReport.report_content.date).toLocaleString()}` : 'Date not available'}
+                                        {selectedReport.created_at ? `Generated on ${new Date(selectedReport.created_at).toLocaleString()}` : 'Date not available'}
                                     </p>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs mt-2 ${
                                         selectedReport.report_content.sentiment === "Urgent"
