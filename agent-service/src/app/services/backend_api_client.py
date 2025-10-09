@@ -4,7 +4,6 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 from infra.logging.logger import get_agent_logger
 from infra.exceptions.agent_exceptions import BackendClientException
-from fastapi import Depends
 from app.schemas.query_schema import TransactionFilter
 
 
@@ -20,6 +19,59 @@ class BackendAPIClient:
         self.base_url = os.getenv("BACKEND_API_URL", "http://localhost:80")
         self.logger = get_agent_logger("BackendAPIClient", "INFO")
         self.logger.info(f"BackendAPIClient initialized with base_url: {self.base_url}")
+    
+    async def get_transaction_analysis(self, transaction_id: str) -> Dict[str, Any]:
+        """
+        Get the total count of transactions from the backend.
+
+        Returns:
+            Dict containing transaction count information
+        """
+        endpoint = f"/users/analysis/{transaction_id}"
+        url = f"{self.base_url}{endpoint}"
+        self.logger.info("Requesting analysis on transaction")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()
+
+                data = response.json()
+                self.logger.info(f"Analysis retrieved: {data}")
+                return data
+
+        except httpx.HTTPError as e:
+            self.logger.error(f"Failed to retrieve Document: {str(e)}")
+            raise BackendClientException(f"Failed to retrieve Document: {str(e)}")
+        
+    
+    async def create_transaction_analysis(self, user_id: int, transaction_id: str) -> Dict[str, Any]:
+        """
+        Create a new transaction analysis or return existing one.
+
+        Args:
+            user_id: The ID of the user requesting the analysis
+            transaction_id: The ID of the transaction to analyze
+
+        Returns:
+            Dict containing analysis results
+        """
+        endpoint = f"/transactions/analysis/{user_id}"
+        url = f"{self.base_url}{endpoint}"
+        params = {"transaction_id": transaction_id}
+
+        self.logger.info(f"Creating analysis for transaction {transaction_id} for user {user_id}")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, params=params)
+                response.raise_for_status()
+
+                data = response.json()
+                self.logger.info(f"Analysis created/retrieved successfully: {data.get('id', 'unknown')}")
+                return data
+
+        except httpx.HTTPError as e:
+            self.logger.error(f"Failed to create transaction analysis: {str(e)}")
+            raise BackendClientException(f"Failed to create transaction analysis: {str(e)}")
     
     async def get_latest_report(self, user_id: int) -> Dict[str, Any]:
         """

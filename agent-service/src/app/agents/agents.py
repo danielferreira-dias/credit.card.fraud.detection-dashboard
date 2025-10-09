@@ -237,6 +237,108 @@ class TransactionAgent:
             writer = get_stream_writer()
             writer(f"{result}")
             return result
+        
+        @tool("create_transaction_analysis", description="Create a new fraud analysis for a specific transaction. This triggers the backend to analyze transaction patterns and generate AI insights. Use when user asks to analyze a specific transaction for fraud indicators.")
+        async def create_transaction_analysis(transaction_id: str):
+            try:
+                # Use the current context for user ID
+                user_id = self.current_context.user_id
+                if user_id == 0:
+                    return "Error: User context not available. Please ensure you're logged in."
+                
+                logger.info(f'current user id -> {user_id}')
+
+                analysis = await self.backend_client.create_transaction_analysis(
+                    user_id=user_id,
+                    transaction_id=transaction_id
+                )
+
+                if not analysis:
+                    self.logger.warning(f"No analysis created for transaction {transaction_id}")
+                    return f"Failed to create analysis for transaction {transaction_id}."
+
+                analysis_content = analysis.get('analysis_content', {})
+
+                # Handle both string and object analysis content
+                if isinstance(analysis_content, str):
+                    result = f"""Analysis created for transaction {transaction_id}:
+
+{analysis_content}"""
+                elif isinstance(analysis_content, dict):
+                    # Format structured analysis content
+                    result = f"""Analysis created for transaction {transaction_id}:
+
+Title: {analysis_content.get('title', 'Transaction Fraud Analysis')}
+Sentiment: {analysis_content.get('sentiment', 'Unknown')}
+
+Key Findings:
+- Severity: {analysis_content.get('key_findings', {}).get('severity', 'Unknown')}
+- Finding: {analysis_content.get('key_findings', {}).get('finding', 'No specific findings')}
+- Evidence: {analysis_content.get('key_findings', {}).get('evidence', 'No evidence provided')}
+
+Critical Patterns:
+{chr(10).join(f'- {pattern}' for pattern in analysis_content.get('critical_patterns', ['No critical patterns identified']))}
+
+Recommendations:
+{chr(10).join(f'- {rec}' for rec in analysis_content.get('recommendations', ['No specific recommendations']))}
+
+Analysis:
+{analysis_content.get('analysis', 'No detailed analysis available')}"""
+                else:
+                    result = f"Analysis created for transaction {transaction_id}, but content format is unexpected."
+
+                writer = get_stream_writer()
+                writer(f"📊 Created analysis for transaction: {transaction_id}")
+
+                self.logger.info(f"Successfully created analysis for transaction {transaction_id}")
+                return result
+
+            except Exception as e:
+                self.logger.error(f"Error in create_transaction_analysis: {str(e)}")
+                return f"Error creating analysis for transaction {transaction_id}: {str(e)}"
+
+        @tool("get_transaction_analysis", description="Retrieve an existing analysis for a transaction if it was previously created. Use when user asks about a transaction analysis that may already exist.")
+        async def get_transaction_analysis(transaction_id : str):
+            # Use the current context stored in the agent instance
+            try:
+                report = await self.backend_client.get_transaction_analysis(transaction_id=transaction_id)
+
+                if not report:
+                    self.logger.warning(f"No analysis Found")
+                    return f"No Analysis were found."
+
+                report_content = report.get('report_content', {})
+                key_findings = report_content.get('key_findings', {})
+
+                result = f"""Found the latest report:
+
+Title: {report_content.get('title')}
+Sentiment: {report_content.get('sentiment')}
+
+Key Findings:
+- Severity: {key_findings.get('severity')}
+- Finding: {key_findings.get('finding')}
+- Evidence: {key_findings.get('evidence')}
+
+Critical Patterns:
+{chr(10).join(f'- {pattern}' for pattern in report_content.get('critical_patterns', []))}
+
+Recommendations:
+{chr(10).join(f'- {rec}' for rec in report_content.get('recommendations', []))}
+
+Analysis:
+{report_content.get('analysis')}
+"""
+
+                writer = get_stream_writer()
+                writer(f"📄 Retrieved latest report: {report_content.get('title')}")
+
+                self.logger.info(f"Successfully retrieved Document")
+
+                return result
+            except Exception as e:
+                self.logger.error(f"Error in get_latest_report: {str(e)}")
+                return f"Error retrieving report: {str(e)}"
 
         @tool("get_latest_report", description="Retrieve the latest report of the User when he asks to do an analysis on the latest report. To use this, you may need to fetch the user's data to get the ID.")
         async def get_latest_report(user_id: int):
@@ -374,7 +476,7 @@ Analysis:
                     result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
                     result += f"   Card: {transaction.get('card_type')}\n"
                     result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
-                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   Distant from Home: {'Yes' if transaction.get('distance_from_home') == 1 else 'No'}\n"
                     result += f"   High Risk Merchant: {'Yes' if transaction.get('high_risk_merchant') else 'No'}\n"
                     result += f"   Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}"
 
@@ -414,7 +516,7 @@ Analysis:
                     result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
                     result += f"   Card: {transaction.get('card_type')}\n"
                     result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
-                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   Distant from Home: {'Yes' if transaction.get('distance_from_home') == 1 else 'No'}\n"
                     result += f"   Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n\n"
 
                 writer(f"{result}")
@@ -449,7 +551,7 @@ Analysis:
                     result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
                     result += f"   Card: {transaction.get('card_type')}\n"
                     result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
-                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   Distant from Home: {'Yes' if transaction.get('distance_from_home') == 1 else 'No'}\n"
                     result += f"   High Risk Merchant: {'Yes' if transaction.get('high_risk_merchant') else 'No'}\n\n"
 
                 writer(f"{result}")
@@ -544,7 +646,7 @@ Analysis:
                     result += f"   Location: {transaction.get('city')}, {transaction.get('country')}\n"
                     result += f"   Card: {transaction.get('card_type')}\n"
                     result += f"   Channel: {transaction.get('channel')} via {transaction.get('device')}\n"
-                    result += f"   Distance from Home: {transaction.get('distance_from_home')}km\n"
+                    result += f"   Distant from Home: {'Yes' if transaction.get('distance_from_home') == 1 else 'No'}\n"
                     result += f"   Is Fraud: {'Yes' if transaction.get('is_fraud') else 'No'}\n\n"
 
                 writer(f"{result}")
@@ -582,7 +684,7 @@ Analysis:
                 result += f"High Risk: {'Yes' if transaction.get('high_risk_merchant') else 'No'}\n\n"
 
                 result += f"Location: {transaction.get('city')} ({transaction.get('city_size')}), {transaction.get('country')}\n"
-                result += f"Distance from Home: {transaction.get('distance_from_home')}km\n\n"
+                result += f"   Distant from Home: {'Yes' if transaction.get('distance_from_home') == 1 else 'No'}\n"
 
                 result += f"Channel: {transaction.get('channel')}\n"
                 result += f"Device: {transaction.get('device')}\n"
@@ -637,7 +739,7 @@ Analysis:
                 self.logger.error(f"Error in check_backend_connection_tool: {str(e)}")
                 return f"❌ Error checking backend connection: {str(e)}"
 
-        return [get_user_data, get_latest_report, search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
+        return [get_user_data, get_latest_report, create_transaction_analysis, get_transaction_analysis, search_knowledge_base, get_all_transactions_tool, get_transaction_by_id_tool, get_transactions_by_customer_tool, get_fraud_transactions_tool, get_transaction_stats_tool, search_transactions_by_params_tool, get_all_transactions_count_by_params_tool, predict_transaction_fraud_tool, check_backend_connection_tool, get_all_transactions_count_tool]
 
     async def _stream_query(self, agent_input, thread_id: str, context: UserContext):
         """

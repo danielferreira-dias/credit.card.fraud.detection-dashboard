@@ -167,6 +167,19 @@ async def update_transaction(transaction_id: str, updated_transaction: Transacti
         data=response
     )
 
+@router.get("/analysis/transaction_id")
+async def get_analysis_by_transaction_id(transaction_id: str, analysis_service: AnalysisService = Depends(get_analysis_service), service: TransactionService = Depends(get_transaction_service)):
+    try:
+        analysis = await analysis_service.get_analysis(transaction_id=transaction_id)
+
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404) as-is
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during analysis creation for transaction {transaction_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during analysis creation") from e
+
+
 @router.post("/analysis/{user_id}")
 async def create_report(user_id: int, transaction_id: str, analysis_service: AnalysisService = Depends(get_analysis_service), service: TransactionService = Depends(get_transaction_service)):
     try:
