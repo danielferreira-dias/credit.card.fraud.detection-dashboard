@@ -169,7 +169,6 @@ def read_root():
     logger.info("Root endpoint called")
     return {"message": "Hello from credit-card-fraud-detection-dashboard!"}
 
-
 class StreamException(Exception):
     def __init__(self, message="An exception in Streaming has happened"):
         super().__init__(message)
