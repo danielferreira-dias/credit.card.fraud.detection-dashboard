@@ -299,46 +299,73 @@ Analysis:
 
         @tool("get_transaction_analysis", description="Retrieve an existing analysis for a transaction if it was previously created. Use when user asks about a transaction analysis that may already exist.")
         async def get_transaction_analysis(transaction_id : str):
-            # Use the current context stored in the agent instance
             try:
-                report = await self.backend_client.get_transaction_analysis(transaction_id=transaction_id)
+                response = await self.backend_client.get_transaction_analysis(transaction_id=transaction_id)
 
-                if not report:
-                    self.logger.warning(f"No analysis Found")
-                    return f"No Analysis were found."
+                if not response:
+                    self.logger.warning(f"No response received for transaction {transaction_id}")
+                    return f"Unable to check analysis for transaction {transaction_id}."
 
-                report_content = report.get('report_content', {})
-                key_findings = report_content.get('key_findings', {})
+                # Check if analysis exists
+                analysis_exists = response.get('analysis_exists', False)
 
-                result = f"""Found the latest report:
+                if not analysis_exists:
+                    # No analysis found - suggest creating one
+                    message = response.get('message', f'No analysis found for transaction {transaction_id}')
+                    suggestion = response.get('suggestion', 'Would you like to create a new fraud analysis for this transaction?')
 
-Title: {report_content.get('title')}
-Sentiment: {report_content.get('sentiment')}
+                    result = f"""{message}
+
+{suggestion}
+
+I can create a comprehensive fraud analysis for this transaction if you'd like. Just ask me to "analyze transaction {transaction_id}" or "create analysis for transaction {transaction_id}" and I'll perform a detailed fraud assessment."""
+
+                    writer = get_stream_writer()
+                    writer(f"No existing analysis found for transaction {transaction_id}")
+
+                    self.logger.info(f"No existing analysis found for transaction {transaction_id}")
+                    return result
+
+                # Analysis exists - format and return it
+                analysis = response.get('analysis', {})
+                analysis_content = analysis.get('analysis_content', {})
+
+                if isinstance(analysis_content, str):
+                    result = f"""Found existing analysis for transaction {transaction_id}:
+
+{analysis_content}"""
+                elif isinstance(analysis_content, dict):
+                    key_findings = analysis_content.get('key_findings', {})
+                    result = f"""Found existing analysis for transaction {transaction_id}:
+
+Title: {analysis_content.get('title', 'Transaction Analysis')}
+Sentiment: {analysis_content.get('sentiment', 'Unknown')}
 
 Key Findings:
-- Severity: {key_findings.get('severity')}
-- Finding: {key_findings.get('finding')}
-- Evidence: {key_findings.get('evidence')}
+- Severity: {key_findings.get('severity', 'Unknown')}
+- Finding: {key_findings.get('finding', 'No specific findings')}
+- Evidence: {key_findings.get('evidence', 'No evidence provided')}
 
 Critical Patterns:
-{chr(10).join(f'- {pattern}' for pattern in report_content.get('critical_patterns', []))}
+{chr(10).join(f'- {pattern}' for pattern in analysis_content.get('critical_patterns', ['No critical patterns identified']))}
 
 Recommendations:
-{chr(10).join(f'- {rec}' for rec in report_content.get('recommendations', []))}
+{chr(10).join(f'- {rec}' for rec in analysis_content.get('recommendations', ['No specific recommendations']))}
 
 Analysis:
-{report_content.get('analysis')}
-"""
+{analysis_content.get('analysis', 'No detailed analysis available')}"""
+                else:
+                    result = f"Found existing analysis for transaction {transaction_id}, but content format is unexpected."
 
                 writer = get_stream_writer()
-                writer(f"📄 Retrieved latest report: {report_content.get('title')}")
+                writer(f"Retrieved existing analysis for transaction {transaction_id}")
 
-                self.logger.info(f"Successfully retrieved Document")
-
+                self.logger.info(f"Successfully retrieved existing analysis for transaction {transaction_id}")
                 return result
+
             except Exception as e:
-                self.logger.error(f"Error in get_latest_report: {str(e)}")
-                return f"Error retrieving report: {str(e)}"
+                self.logger.error(f"Error in get_transaction_analysis: {str(e)}")
+                return f"Error retrieving analysis for transaction {transaction_id}: {str(e)}"
 
         @tool("get_latest_report", description="Retrieve the latest report of the User when he asks to do an analysis on the latest report. To use this, you may need to fetch the user's data to get the ID.")
         async def get_latest_report(user_id: int):

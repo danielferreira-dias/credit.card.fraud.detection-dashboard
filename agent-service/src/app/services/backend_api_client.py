@@ -19,29 +19,35 @@ class BackendAPIClient:
         self.base_url = os.getenv("BACKEND_API_URL", "http://localhost:80")
         self.logger = get_agent_logger("BackendAPIClient", "INFO")
         self.logger.info(f"BackendAPIClient initialized with base_url: {self.base_url}")
+        self.logger.info(f"Environment BACKEND_API_URL: {os.getenv('BACKEND_API_URL', 'Not set')}")
     
     async def get_transaction_analysis(self, transaction_id: str) -> Dict[str, Any]:
         """
-        Get the total count of transactions from the backend.
+        Get existing analysis for a transaction from the backend.
+
+        Args:
+            transaction_id: The ID of the transaction to get analysis for
 
         Returns:
-            Dict containing transaction count information
+            Dict containing analysis information or suggestion to create one
         """
-        endpoint = f"/users/analysis/{transaction_id}"
+        endpoint = f"/transactions/analysis/transaction_id"
         url = f"{self.base_url}{endpoint}"
-        self.logger.info("Requesting analysis on transaction")
+        params = {"transaction_id": transaction_id}
+
+        self.logger.info(f"Requesting existing analysis for transaction {transaction_id}")
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(url)
+                response = await client.get(url, params=params)
                 response.raise_for_status()
 
                 data = response.json()
-                self.logger.info(f"Analysis retrieved: {data}")
+                self.logger.info(f"Analysis response received for transaction {transaction_id}: analysis_exists={data.get('analysis_exists', False)}")
                 return data
 
         except httpx.HTTPError as e:
-            self.logger.error(f"Failed to retrieve Document: {str(e)}")
-            raise BackendClientException(f"Failed to retrieve Document: {str(e)}")
+            self.logger.error(f"Failed to retrieve analysis for transaction {transaction_id}: {str(e)}")
+            raise BackendClientException(f"Failed to retrieve analysis for transaction {transaction_id}: {str(e)}")
         
     
     async def create_transaction_analysis(self, user_id: int, transaction_id: str) -> Dict[str, Any]:
@@ -60,18 +66,44 @@ class BackendAPIClient:
         params = {"transaction_id": transaction_id}
 
         self.logger.info(f"Creating analysis for transaction {transaction_id} for user {user_id}")
+        self.logger.info(f"Request URL: {url}")
+        self.logger.info(f"Request params: {params}")
+
+        # Quick health check
         try:
-            async with httpx.AsyncClient() as client:
+            health_ok = await self.health_check()
+            if not health_ok:
+                self.logger.warning("Backend health check failed before analysis creation")
+        except Exception as e:
+            self.logger.warning(f"Health check failed: {e}")
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(url, params=params)
+
+                self.logger.info(f"Response status: {response.status_code}")
+                self.logger.info(f"Response headers: {dict(response.headers)}")
+
+                if response.status_code != 200:
+                    response_text = response.text
+                    self.logger.error(f"HTTP {response.status_code} error. Response text: {response_text}")
+                    raise httpx.HTTPStatusError(f"HTTP {response.status_code}", request=response.request, response=response)
+
                 response.raise_for_status()
 
                 data = response.json()
                 self.logger.info(f"Analysis created/retrieved successfully: {data.get('id', 'unknown')}")
                 return data
 
-        except httpx.HTTPError as e:
-            self.logger.error(f"Failed to create transaction analysis: {str(e)}")
-            raise BackendClientException(f"Failed to create transaction analysis: {str(e)}")
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"HTTP Status Error: {e.response.status_code} - {e.response.text}")
+            raise BackendClientException(f"HTTP {e.response.status_code} error: {e.response.text}")
+        except httpx.RequestError as e:
+            self.logger.error(f"Request Error: {str(e)}")
+            raise BackendClientException(f"Request failed: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error: {str(e)}")
+            raise BackendClientException(f"Unexpected error: {str(e)}")
     
     async def get_latest_report(self, user_id: int) -> Dict[str, Any]:
         """

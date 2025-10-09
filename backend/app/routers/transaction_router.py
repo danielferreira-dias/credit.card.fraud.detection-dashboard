@@ -170,18 +170,46 @@ async def update_transaction(transaction_id: str, updated_transaction: Transacti
 @router.get("/analysis/transaction_id")
 async def get_analysis_by_transaction_id(transaction_id: str, analysis_service: AnalysisService = Depends(get_analysis_service), service: TransactionService = Depends(get_transaction_service)):
     try:
+        # First verify the transaction exists
+        try:
+            transaction = await service.get_transaction_id(transaction_id=transaction_id)
+            if not transaction:
+                raise HTTPException(status_code=404, detail=f"Transaction {transaction_id} not found")
+        except Exception as e:
+            logger.error(f"Error fetching transaction {transaction_id}: {e}")
+            raise HTTPException(status_code=404, detail=f"Transaction {transaction_id} not found") from e
+
+        # Try to get existing analysis
         analysis = await analysis_service.get_analysis(transaction_id=transaction_id)
+
+        if analysis is None:
+            return {
+                "analysis_exists": False,
+                "transaction_id": transaction_id,
+                "message": f"No analysis found for transaction {transaction_id}",
+                "suggestion": "Would you like to create a new fraud analysis for this transaction?",
+                "action": f"To create an analysis, use: POST /transactions/analysis/{{user_id}}?transaction_id={transaction_id}"
+            }
+
+        # Analysis exists - return it with metadata
+        return {
+            "analysis_exists": True,
+            "transaction_id": transaction_id,
+            "analysis": analysis,
+            "message": f"Analysis found for transaction {transaction_id}"
+        }
 
     except HTTPException:
         # Re-raise HTTP exceptions (like 404) as-is
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during analysis creation for transaction {transaction_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error during analysis creation") from e
+        logger.error(f"Unexpected error during analysis retrieval for transaction {transaction_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during analysis retrieval") from e
 
 
 @router.post("/analysis/{user_id}")
 async def create_report(user_id: int, transaction_id: str, analysis_service: AnalysisService = Depends(get_analysis_service), service: TransactionService = Depends(get_transaction_service)):
+    logger.info(f"Analysis creation request received: user_id={user_id}, transaction_id={transaction_id}")
     try:
         # Check if analysis already exists for this transaction
         existent_analysis = await analysis_service.get_analysis(transaction_id=transaction_id)
