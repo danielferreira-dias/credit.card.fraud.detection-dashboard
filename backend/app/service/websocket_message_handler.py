@@ -33,13 +33,15 @@ async def websocket_message_handler(websocket: WebSocket, message_service: Messa
 
     # Determine if this is a new conversation
     is_new_conversation = not convo_id
+    if is_new_conversation:
+        thread_id = f"user_{user_id}_{int(datetime.now().timestamp())}"
 
     # Stream agent response with real-time progress (pass thread_id and is_new_conversation)
     agent_message, chat_title = await query_agent_service_streaming(websocket=websocket, user_id=user_id, user_name='Daniel',user_message=user_message, thread_id=thread_id, is_new_conversation=is_new_conversation)
 
     # Use default title if none was generated
     title = chat_title or "New Conversation"
-    current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, current_conversation_id=convo_id  ,user_id=user_id , title=title)
+    current_conversation_id, thread_id = await websocket_conversation_handle(conversation_service=conversation_service, thread_id=thread_id, current_conversation_id=convo_id  ,user_id=user_id , title=title)
 
     # Send conversation details to client if this is a new conversation
     if is_new_conversation:

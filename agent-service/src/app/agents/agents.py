@@ -786,8 +786,14 @@ Analysis:
             self.current_context = context
             self.logger.info(f"Updated current_context: user_id={self.current_context.user_id}, user_name={self.current_context.user_name}")
 
+            logger.info(f'CURRENT THREAD_ID {thread_id}')
+
             checkpoint = await self.checkpointer.aget({"configurable": {"thread_id": thread_id}})
             is_new_conversation = checkpoint is None or not checkpoint.get("channel_values", {}).get("messages", [])
+
+            current_messages = checkpoint.get("channel_values", {}).get("messages", []) if checkpoint is not None else []
+            logger.info(f'CURRENT MESSAGES {current_messages}')
+            logger.info(f'IS NEW CONVERSATION {is_new_conversation}')
 
             # Add SystemMessage at the beginning for new conversations
             if is_new_conversation:

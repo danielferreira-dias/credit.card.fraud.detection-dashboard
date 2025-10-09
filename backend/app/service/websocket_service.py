@@ -57,7 +57,6 @@ async def query_agent_service_streaming(websocket: WebSocket, user_id : int , us
                         if line_str.startswith('data: '):
                             try:
                                 data = json.loads(line_str[6:])  # Remove 'data: ' prefix
-                                logger.info(f'Current data -> {data}')
 
                                 # Capture chat title
                                 if data.get("type") == "chat_title":
