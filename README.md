@@ -4,6 +4,8 @@ A full-stack fraud detection platform featuring real-time transaction monitoring
 
 This repository ships both the FastAPI backend and React frontend, with WebSocket-based real-time communication, an integrated AI agent service for natural language queries about fraud data, and enterprise-grade vector search capabilities powered by Azure AI Search with PGVector fallback.
 
+[![Watch the video](https://img.youtube.com/vi/WGl6gelmvoA/maxresdefault.jpg)](https://youtu.be/WGl6gelmvoA)
+
 ## Tech Stack
 
 ### Backend
